@@ -39,6 +39,11 @@ public class FinancialFixedAssetController {
                 message = "Archivo subio correctamente: " + file.getOriginalFilename();
                 responseData.setMessage(message);
                 responseData.setResponse(listInputData);
+            } else {
+                message = "Error al cargar archivo: " + file.getOriginalFilename() + "\nFormato permitido: xlsx";
+                ExceptionResponse exceptionResponse = new ExceptionResponse(LocalDateTime.now(), message, "");
+                responseData.setMessage(message);
+                responseData.setResponse(exceptionResponse);
             }
         } catch (Exception e) {
             message = "Error al cargar archivo: " + file.getOriginalFilename() + "\n" + e.getMessage() + " " + e.getCause();
