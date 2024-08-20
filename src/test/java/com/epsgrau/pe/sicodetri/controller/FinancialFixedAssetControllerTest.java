@@ -1,40 +1,38 @@
 package com.epsgrau.pe.sicodetri.controller;
 
+import com.epsgrau.pe.sicodetri.entity.FinancialFixedAsset;
 import com.epsgrau.pe.sicodetri.exception.ExceptionResponse;
 import com.epsgrau.pe.sicodetri.exception.GlobalExceptionHandler;
 import com.epsgrau.pe.sicodetri.model.FixedAssetDetail;
 import com.epsgrau.pe.sicodetri.model.InputData;
-import com.epsgrau.pe.sicodetri.model.DataResponse;
-import com.epsgrau.pe.sicodetri.service.FinacialFixedAssetRegisterService;
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpSession;
+import com.epsgrau.pe.sicodetri.model.ResponseData;
+import com.epsgrau.pe.sicodetri.service.FinancialFixedAssetService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
+import org.springframework.mock.web.MockHttpSession;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.ByteArrayInputStream;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 
-import static com.epsgrau.pe.sicodetri.helper.ExcelHelper.hasExcelFormat;
-import static com.epsgrau.pe.sicodetri.helper.ExcelHelperTest.createMockExcelInputStream;
+import static com.epsgrau.pe.sicodetri.helper.ExcelHelperTest.*;
 import static com.epsgrau.pe.sicodetri.util.Constants.LIST_INPUT_DATA;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.hamcrest.Matchers.hasItem;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 class FinancialFixedAssetControllerTest {
@@ -42,7 +40,7 @@ class FinancialFixedAssetControllerTest {
     private MockMvc mockMvc;
 
     @Mock
-    private FinacialFixedAssetRegisterService service;
+    private FinancialFixedAssetService service;
 
     @InjectMocks
     private FinancialFixedAssetController controller;
@@ -63,7 +61,6 @@ class FinancialFixedAssetControllerTest {
         MultipartFile file = new MockMultipartFile("file", "test.xlsx",
                 "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", bais);
 
-
         List<InputData> inputDataList = new ArrayList<>();
         InputData inputData = new InputData();
         inputData.setMainFixedAssetCode("21.02.010149");
@@ -76,13 +73,9 @@ class FinancialFixedAssetControllerTest {
 
         // Act & Assert
         mockMvc.perform(multipart("/api/v1/financial-fixed-asset/upload")
-                        .file((MockMultipartFile) file))  // Use the MultipartFile directly
+                        .file((MockMultipartFile) file))
                 .andExpect(status().isOk())
-                .andExpect(result -> {
-                    String content = result.getResponse().getContentAsString();
-                    System.out.println("Response Content: " + content);  // Print response content for debugging
-                    assertTrue(content.contains("Archivo subio correctamente"), "Archivo subio correctamente: ");
-                });
+                .andExpect(jsonPath("$.message").value("Archivo subio correctamente: test.xlsx"));
     }
 
     @Test
@@ -90,9 +83,9 @@ class FinancialFixedAssetControllerTest {
     void uploadInputDataController_ShouldReturnErrorFormatNotAllowed() throws Exception {
         // Arrange
         String errorMessage = "Error al cargar archivo: test.xls\nFormato permitido: xlsx";
-        DataResponse expectedResponse = new DataResponse();
+        ResponseData expectedResponse = new ResponseData();
         expectedResponse.setMessage(errorMessage);
-        expectedResponse.setResponse(new ExceptionResponse(LocalDateTime.now(), errorMessage, ""));
+        expectedResponse.setException(new ExceptionResponse(LocalDateTime.now(), errorMessage, ""));
 
         MultipartFile file = mock(MultipartFile.class);
         when(file.getOriginalFilename()).thenReturn("test.xls");
@@ -104,27 +97,64 @@ class FinancialFixedAssetControllerTest {
         mockMvc.perform(multipart("/api/v1/financial-fixed-asset/upload")
                         .file(new MockMultipartFile("file", "test.xls", "application/vnd.ms-excel", new byte[0]))
                         .contentType(MediaType.MULTIPART_FORM_DATA))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.message").value(errorMessage))
-                .andExpect(jsonPath("$.response").isMap());
+                .andExpect(status().isExpectationFailed())
+                .andExpect(jsonPath("$.message").value(errorMessage));
     }
 
     @Test
-    @DisplayName("getAllTaxesController_ShouldReturnInputDataList")
-    void getAllTaxesController_ShouldReturnInputDataList() throws Exception {
+    @DisplayName("saveFinancialFixedAssetController_ShouldReturnSuccess")
+    void saveFinancialFixedAssetController_ShouldReturnSuccess() throws Exception {
         // Arrange
-        HttpSession session = mock(HttpSession.class);
-        List<InputData> inputDataList = new ArrayList<>();
-        InputData inputData = new InputData();
-        inputDataList.add(inputData);
-        when(session.getAttribute(LIST_INPUT_DATA)).thenReturn(inputDataList);
+        String period = "2024-01-01";
+        MockHttpSession session = new MockHttpSession();
+        List<InputData> inputDataList = getListInputData();
+        session.setAttribute(LIST_INPUT_DATA, inputDataList);
+
+        // Act & Assert
+        mockMvc.perform(post("/api/v1/financial-fixed-asset")
+                        .param("period", period)
+                        .session(session))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.message").value("Informacion guardada de manera correcta para el periodo " + period));
+    }
+
+    @Test
+    @DisplayName("saveFinancialFixedAssetController_ShouldReturnErrorOnException")
+    void saveFinancialFixedAssetController_ShouldReturnErrorOnException() throws Exception {
+        // Arrange
+        String period = "2024-01-01";
+        MockHttpSession session = new MockHttpSession();
+        session.setAttribute(LIST_INPUT_DATA, null); // Simular atributo nulo
+
+        doThrow(new RuntimeException("Exception message")).when(service).saveAllService(any(LocalDate.class), anyList());
+
+        // Act & Assert
+        mockMvc.perform(post("/api/v1/financial-fixed-asset")
+                        .param("period", period)
+                        .session(session))
+                .andExpect(status().isExpectationFailed())
+                .andExpect(jsonPath("$.message").value("Error al guardar informacion para el periodo " + period));
+    }
+
+    @Test
+    @DisplayName("getAllFinancialFixedAssetsController_ShouldReturnFinancialFixedAssets")
+    void getAllFinancialFixedAssetsController_ShouldReturnFinancialFixedAssets() throws Exception {
+        // Arrange
+        ResponseData expectedResponse = new ResponseData();
+        String period = "2024-01-01";
+        List<FinancialFixedAsset> financialFixedAssets = getListFinancialFixedAsset();
+        FinancialFixedAsset asset =financialFixedAssets.get(0);
+        expectedResponse.setResponse(financialFixedAssets);
+
+        when(service.findByPeriodService(any(LocalDate.class))).thenReturn(financialFixedAssets);
 
         // Act & Assert
         mockMvc.perform(get("/api/v1/financial-fixed-asset")
-                        .sessionAttr(LIST_INPUT_DATA, inputDataList))
+                        .param("period", period))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0]").exists())
-                .andExpect(jsonPath("$").isArray());
+                .andExpect(jsonPath("$.response[0].mainFixedAssetCode").value(asset.getMainFixedAssetCode()))
+                .andExpect(jsonPath("$.response[0].description").value(asset.getDescription()))
+        ;
     }
 
 }

@@ -2,7 +2,6 @@ package com.epsgrau.pe.sicodetri.service.impl;
 
 import com.epsgrau.pe.sicodetri.entity.TaxTableSunat;
 import com.epsgrau.pe.sicodetri.repository.TaxTableSunatRepository;
-import com.epsgrau.pe.sicodetri.service.TaxTableSunatService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
