@@ -1,0 +1,24 @@
+spring:
+  application:
+    name: sicodetri
+  servlet:
+    multipart:
+      max-file-size: 100MB
+      max-request-size: 100MB
+
+info:
+  project:
+    name: @project.name@
+    description: @project.description@
+    version: @project.version@
+    type: core
+    artifact-id: @project.artifactId@
+
+server:
+  port: 8081
+
+logging:
+  level:
+    org:
+      hibernate:
+        SQL: debug
