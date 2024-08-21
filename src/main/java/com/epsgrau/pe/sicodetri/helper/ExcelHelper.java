@@ -9,6 +9,24 @@ import static com.epsgrau.pe.sicodetri.util.Constants.FORMATTER_DD_MM_YYYY;
 import static com.epsgrau.pe.sicodetri.util.Constants.TYPE_XLSX;
 import static com.epsgrau.pe.sicodetri.util.Functions.convertDateToLocalDateString;
 
+/**
+ * This class is helper for file excel. <br/>
+ * <b>Class</b>: {@link ExcelHelper}<br/>
+ * <b>Copyright</b>: &Copy; 2024 EPS Grau. <br/>
+ * <b>Company</b>: EPS Grau. <br/>
+ *
+ * @author EPS Grau <br/>
+ *     <u>Service Provider</u>: Consultor TI <br/>
+ *     <u>Developed by</u>: <br/>
+ *     <ul>
+ *     <li>Carlos Augusto Nole Machaca</li>
+ *     </ul>
+ *     <u>Changes</u>:<br/>
+ *     <ul>
+ *     <li>Ago 17, 2024 (JAR) Creation class.</li>
+ *     </ul>
+ * @version 1.0
+ */
 public class ExcelHelper {
 
     public static boolean hasExcelFormat(MultipartFile file) {

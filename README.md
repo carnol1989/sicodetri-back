@@ -105,6 +105,10 @@ Response:
 }
 ```
 
+### Documentación APIs
+- [API Docs (yml)](http://localhost:8081/v3/api-docs) 
+- [API Docs (GUI)](http://localhost:8081/swagger-ui/index.html)
+
 ### Dependencias
 | Nombre                   | Versión | 
 |--------------------------|---------|
@@ -115,6 +119,7 @@ Response:
 | poi-ooxml | 5.3.0   |
 | lombok                   | 1.18.34 |
 | mockito-core             | 5.3.1   |
+| springdoc-openapi-starter-webmvc-ui | 2.3.0 |
 
 ### Licencia
 Este proyecto es propiedad intelectual de &reg;EPS Grau. El uso sin autorización está prohibido.
