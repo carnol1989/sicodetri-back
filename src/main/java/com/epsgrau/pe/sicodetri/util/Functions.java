@@ -37,7 +37,12 @@ public class Functions {
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern(format);
 
         // Formatear el LocalDate a una cadena con el formato deseado
-        return localDate.format(formatter);
+        String dateFormat = localDate.format(formatter);
+
+        String[] dateSplit = dateFormat.split("/");
+        String dateNew = dateSplit[2] + "-" + dateSplit[1] + "-" + dateSplit[0];
+
+        return dateNew;
     }
 
 }

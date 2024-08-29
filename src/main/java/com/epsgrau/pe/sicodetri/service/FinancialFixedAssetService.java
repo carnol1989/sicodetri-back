@@ -1,8 +1,10 @@
 package com.epsgrau.pe.sicodetri.service;
 
 import com.epsgrau.pe.sicodetri.entity.FinancialFixedAsset;
+import com.epsgrau.pe.sicodetri.entity.TaxTableSunat;
 import com.epsgrau.pe.sicodetri.model.InputData;
 import com.epsgrau.pe.sicodetri.service.impl.TaxTableSunatServiceImpl;
+import jakarta.persistence.Column;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDate;
@@ -28,9 +30,9 @@ import java.util.List;
  */
 public interface FinancialFixedAssetService {
 
-    List<InputData> loadExcelFileToObject(MultipartFile file);
+    List<InputData> loadExcelFileToObjectService(MultipartFile file, String period);
 
-    void saveAllService(LocalDate accountingPeriod, List<InputData> listInputData);
+    void saveAllService(String accountingPeriod, List<InputData> listInputData);
 
     void updateService(FinancialFixedAsset obj);
 
@@ -38,10 +40,20 @@ public interface FinancialFixedAssetService {
 
     void deleteByAccountingPeriod(LocalDate period);
 
+    void generateFixedAssetDepreciationService(LocalDate accountingPeriod, FinancialFixedAsset fixedAsset);
+
+    void generateProjectionAdditionsAndDeductionsService(LocalDate accountingPeriod, List<FinancialFixedAsset> fixedAsset);
+
     FinancialFixedAsset findByIdService(Long id);
+
+    List<FinancialFixedAsset> findByMainFixedAssetCodeService(String mainFixedAssetCode);
+
+    List<FinancialFixedAsset> findByFixedAssetAccountingAccountService(String accountingAccount);
 
     List<FinancialFixedAsset> findAllService();
 
     List<FinancialFixedAsset> findByPeriodService(LocalDate period);
+
+    List<FinancialFixedAsset> findByPeriodAndAccountStartingWithService(LocalDate period, String account);
 
 }

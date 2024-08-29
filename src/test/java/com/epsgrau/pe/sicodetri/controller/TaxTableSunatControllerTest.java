@@ -3,25 +3,41 @@ package com.epsgrau.pe.sicodetri.controller;
 import com.epsgrau.pe.sicodetri.entity.TaxTableSunat;
 import com.epsgrau.pe.sicodetri.exception.GlobalExceptionHandler;
 import com.epsgrau.pe.sicodetri.exception.ResourceNotFoundException;
+import com.epsgrau.pe.sicodetri.model.ResponseData;
 import com.epsgrau.pe.sicodetri.service.TaxTableSunatService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.MvcResult;
+import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.stream.Stream;
 
+import static com.epsgrau.pe.sicodetri.util.ConstantsTest.*;
+import static com.epsgrau.pe.sicodetri.util.DataTest.getListTableSunats;
+import static com.epsgrau.pe.sicodetri.util.DataTest.getTaxTable332;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 class TaxTableSunatControllerTest {
+
+    public static String BASE_URI = "/api/v1/tax-tables";
 
     private MockMvc mockMvc;
 
@@ -40,53 +56,118 @@ class TaxTableSunatControllerTest {
                 .build();
     }
 
-    @Test
-    @DisplayName("getTaxTableByIdController_ShouldReturnTaxTable")
-    void getTaxTableByIdController_ShouldReturnTaxTable() throws Exception {
-        // Arrange
-        Long id = 1L;
-        TaxTableSunat taxTableSunat = new TaxTableSunat();
-        taxTableSunat.setId(id);
-        when(service.findByIdService(id)).thenReturn(taxTableSunat);
+    static Stream<Arguments> provideParameters() {
+        return Stream.of(
+                Arguments.of(L_VAL_1, 1L, null, getTaxTable332(), HttpStatus.OK),
+                Arguments.of(L_VAL_1, 2L, "accountingAccount", new TaxTableSunat(), HttpStatus.NOT_FOUND),
+                Arguments.of(L_VAL_2, 0L, "332", getTaxTable332(), HttpStatus.OK),
+                Arguments.of(L_VAL_2, 0L, "invalidAccount", new TaxTableSunat(), HttpStatus.NOT_FOUND),
+                Arguments.of(L_VAL_3, 0L, "invalidAccount", new TaxTableSunat(), HttpStatus.EXPECTATION_FAILED)
+        );
+    }
 
-        // Act & Assert
-        mockMvc.perform(get("/api/v1/tax-tables/{id}", id))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.id").value(id));
+    @ParameterizedTest
+    @MethodSource("provideParameters")
+    @DisplayName("testGetTaxTableSunatController")
+    void testGetTaxTableSunatController(Long option, Long id, String accountingAccount, TaxTableSunat expected, HttpStatus expectedStatus) throws Exception {
+        // Configuración de mocks según el parámetro de prueba
+        String message = "";
+        if (option == N_VAL_1) {
+            if (expectedStatus == HttpStatus.NOT_FOUND) {
+                when(service.findByIdService(id)).thenReturn(expected)
+                        .thenThrow(new ResourceNotFoundException("Error al obtener informacion con el ID: " + id));
+            } else {
+                when(service.findByIdService(id)).thenReturn(expected);
+            }
+        } else if (option == N_VAL_2) {
+            if (expectedStatus == HttpStatus.NOT_FOUND) {
+                when(service.findByAccountigAccountService(accountingAccount)).thenReturn(expected)
+                        .thenThrow(new ResourceNotFoundException("Error al obtener informacion para cuenta contable: " + accountingAccount));
+            } else {
+                when(service.findByAccountigAccountService(accountingAccount)).thenReturn(expected);
+            }
+        }
+
+        // Ejecutar la solicitud y verificar la respuesta
+        MvcResult result = mockMvc.perform(get(BASE_URI + "/{option}", option)
+                        .param("id", id != null ? id.toString() : "")
+                        .param("accountingAccount", accountingAccount != null ? accountingAccount : "")
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(MockMvcResultMatchers.status().is(expectedStatus.value()))
+                .andReturn();
+
+        // Verificar el comportamiento del servicio
+        if (option == N_VAL_1) {
+            if (expectedStatus != HttpStatus.NOT_FOUND) {
+                verify(service, times(1)).findByIdService(id);
+            }
+        } else if (option == N_VAL_2) {
+            if (expectedStatus != HttpStatus.NOT_FOUND) {
+                verify(service, times(1)).findByAccountigAccountService(accountingAccount);
+            }
+        }
+
+        // Verificar los detalles de la respuesta si se espera un error
+        if (expectedStatus == HttpStatus.NOT_FOUND || expectedStatus == HttpStatus.EXPECTATION_FAILED) {
+            String responseBody = result.getResponse().getContentAsString();
+            System.out.println(responseBody);
+            assertTrue(responseBody.contains("Error al obtener informacion"));
+        }
     }
 
     @Test
-    @DisplayName("getTaxTableByIdController_ShouldThrowResourceNotFoundException")
-    void getTaxTableByIdController_ShouldThrowResourceNotFoundException() throws Exception {
+    @DisplayName("testGetTaxTableSunatController_ExceptionHandling")
+    void testGetTaxTableSunatController_ExceptionHandling() {
         // Arrange
-        Long id = 1L;
-        // Crear una instancia de TaxTableSunat con ID nulo
-        TaxTableSunat taxTableSunatWithNullId = new TaxTableSunat();
-        // Sin establecer el ID para que sea nulo por defecto
-        when(service.findByIdService(id)).thenReturn(taxTableSunatWithNullId);
+        Long option = 1L;
+        Long id = 123L;
+        String accountingAccount = "account";
 
-        // Act & Assert
-        mockMvc.perform(get("/api/v1/tax-tables/{id}", id))
-                .andExpect(status().isNotFound())
-                .andExpect(result -> assertTrue(result.getResolvedException() instanceof ResourceNotFoundException))
-                .andExpect(result -> assertEquals("ID no encontrado " + id, result.getResolvedException().getMessage()));
+        // Simulate the service to throw an exception
+        when(service.findByIdService(anyLong())).thenThrow(new RuntimeException("Error al obtener informacion del activo fijo: account"));
+
+        // Act
+        ResponseEntity<ResponseData> response = controller.getTaxTableSunatController(option, id, accountingAccount);
+        System.out.println(response);
+
+        // Assert
+        assertEquals(HttpStatus.EXPECTATION_FAILED, response.getStatusCode());
+
+        ResponseData responseData = response.getBody();
+        assertNotNull(responseData);
+        assertEquals("01", responseData.getCode());
+        assertTrue(responseData.getMessage().startsWith("Error al obtener informacion del activo fijo: "));
+        assertTrue(responseData.getException().getMessage().contains("Error al obtener informacion"));
+        assertNotNull(responseData.getException().getTimestamp());
+        assertTrue(responseData.getException().getDetails().contains("Error al obtener informacion"));
     }
 
     @Test
-    @DisplayName("getAllTaxesController_ShouldReturnAllTaxes")
-    void getAllTaxesController_ShouldReturnAllTaxes() throws Exception {
-        // Arrange
-        TaxTableSunat taxTableSunat1 = new TaxTableSunat();
-        TaxTableSunat taxTableSunat2 = new TaxTableSunat();
-        List<TaxTableSunat> taxTableSunats = Arrays.asList(taxTableSunat1, taxTableSunat2);
-        when(service.findAllService()).thenReturn(taxTableSunats);
+    @DisplayName("testGetAllTaxesController")
+    void testGetAllTaxesController() throws Exception {
+        List<TaxTableSunat> taxes = getListTableSunats();
 
-        // Act & Assert
-        mockMvc.perform(get("/api/v1/tax-tables"))
+        when(service.findAllService()).thenReturn(taxes);
+
+        mockMvc = MockMvcBuilders.standaloneSetup(controller).build();
+        mockMvc.perform(get(BASE_URI + "/"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0]").exists())
-                .andExpect(jsonPath("$[1]").exists())
-                .andExpect(jsonPath("$").isArray());
+                .andExpect(jsonPath("$.length()").value(taxes.size()));
+
+        verify(service, times(1)).findAllService();
+    }
+
+    @Test
+    @DisplayName("testGetAllTaxesControllerEmpty")
+    void testGetAllTaxesControllerEmpty() throws Exception {
+        when(service.findAllService()).thenReturn(new ArrayList<>());
+
+        mockMvc = MockMvcBuilders.standaloneSetup(controller).build();
+        mockMvc.perform(get(BASE_URI + "/"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(0));
+
+        verify(service, times(1)).findAllService();
     }
 
 }

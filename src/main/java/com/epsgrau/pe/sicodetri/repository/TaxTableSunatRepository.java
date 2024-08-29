@@ -1,6 +1,7 @@
 package com.epsgrau.pe.sicodetri.repository;
 
 import com.epsgrau.pe.sicodetri.entity.TaxTableSunat;
+import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.repository.CrudRepository;
 import org.springframework.stereotype.Repository;
 
@@ -23,5 +24,8 @@ import org.springframework.stereotype.Repository;
  * @version 1.0
  */
 @Repository
-public interface TaxTableSunatRepository extends CrudRepository<TaxTableSunat, Long> {
+public interface TaxTableSunatRepository extends JpaRepository<TaxTableSunat, Long> {
+
+    TaxTableSunat findByAccountingAccount(String accountingAccount);
+
 }

@@ -27,6 +27,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 public class InputData {
 
+    private String accountingPeriod;
     private String mainFixedAssetCode;//0
     private String fixedAssetCodeComponent;//1
     private String fixedAssetAccountingAccount;//2

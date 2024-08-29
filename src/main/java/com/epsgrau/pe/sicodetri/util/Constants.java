@@ -1,5 +1,6 @@
 package com.epsgrau.pe.sicodetri.util;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 
@@ -24,18 +25,25 @@ import java.time.format.DateTimeFormatter;
 public class Constants {
 
     public static String LIST_INPUT_DATA = "listInputData";
-
     public static String TYPE_XLS = "application/vnd.ms-excel";
     public static String TYPE_XLSX = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
 
+    public static BigDecimal BD_VAL_100 = new BigDecimal("100");
+    public static BigDecimal BD_VAL_12 = new BigDecimal("12");
+
+    public static int N_VAL_0 = 0;
+    public static int N_VAL_1 = 1;
+    public static int N_VAL_2 = 2;
+    public static int N_VAL_3 = 3;
     public static String _BLANK = "";
     public static String S_VAL_ZERO = "0";
+    public static String S_VAL_332 = "332";
     public static Double D_VAL_ZERO = 0.0;
 
-    public static String S_DATE_DEFAULT = "01/01/1900";
+    public static String S_DATE_DEFAULT = "1900-01-01";
     public static String FORMATTER_DD_MM_YYYY = "dd/MM/yyyy";
     public static String FORMATTER_YYYY_MM_DD = "yyyy-MM-dd";
-    public static LocalDate LOCAL_DATE_DEFAULT = LocalDate.parse("01/01/1900", DateTimeFormatter.ofPattern("dd/MM/yyyy"));
+    public static LocalDate LOCAL_DATE_DEFAULT = LocalDate.parse("1900-01-01", DateTimeFormatter.ofPattern("yyyy-MM-dd"));
 
     public static String[] HEADERS = {"CÓDIGO ACTIVO FIJO PRINCIPAL",	"CÓDIGO ACTIVO FIJO COMPONENTE",	"CUENTA CONTABLE DEL ACTIVO FIJO",
             "DESCRIPCIÓN",	"MARCA DEL ACTIVO FIJO",	"MODELO DEL ACTIVO FIJO",	"NÚMERO DE SERIE Y/O PLACA DEL ACTIVO FIJO",

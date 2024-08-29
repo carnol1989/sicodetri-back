@@ -1,9 +1,7 @@
 package com.epsgrau.pe.sicodetri.entity;
 
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -27,10 +25,13 @@ import java.time.LocalDateTime;
  *     </ul>
  * @version 1.0
  */
-@Entity
-@Data
 @AllArgsConstructor
 @NoArgsConstructor
+@ToString(exclude = "depreciation")
+@Getter
+@Setter
+@Entity
+@Table(name = "financial_fixed_asset")
 public class FinancialFixedAsset {
 
     @Id
@@ -129,6 +130,9 @@ public class FinancialFixedAsset {
 
     @Column
     private BigDecimal netFixedAssets;//30
+
+    @OneToOne(mappedBy = "fixedAsset", cascade = CascadeType.ALL)
+    private FixedAssetDepreciation depreciation;
 
     @Column
     private String addedBy;

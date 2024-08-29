@@ -35,8 +35,9 @@ public class TaxTableSunatServiceImpl implements TaxTableSunatService {
     private TaxTableSunatRepository repository;
 
     @Override
-    public void saveService(TaxTableSunat obj) {
-        repository.save(obj);
+    public TaxTableSunat saveService(TaxTableSunat obj) {
+        TaxTableSunat objCreated = repository.save(obj);
+        return objCreated;
     }
 
     @Override
@@ -60,5 +61,10 @@ public class TaxTableSunatServiceImpl implements TaxTableSunatService {
         List<TaxTableSunat> listTaxTableSunat = new ArrayList<>();
         repository.findAll().forEach(listTaxTableSunat::add);
         return listTaxTableSunat;
+    }
+
+    @Override
+    public TaxTableSunat findByAccountigAccountService(String accountingAccount) {
+        return repository.findByAccountingAccount(accountingAccount);
     }
 }

@@ -2,6 +2,7 @@ package com.epsgrau.pe.sicodetri.service.impl;
 
 import com.epsgrau.pe.sicodetri.entity.TaxTableSunat;
 import com.epsgrau.pe.sicodetri.repository.TaxTableSunatRepository;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
@@ -23,7 +24,8 @@ class TaxTableSunatServiceImplTest {
     @InjectMocks
     private TaxTableSunatServiceImpl service;
 
-    public TaxTableSunatServiceImplTest() {
+    @BeforeEach
+    void setUp() {
         MockitoAnnotations.openMocks(this);
     }
 
@@ -99,6 +101,40 @@ class TaxTableSunatServiceImplTest {
         // Assert
         assertNotNull(result);
         assertEquals(2, result.size());
+    }
+
+    @Test
+    @DisplayName("testFindByAccountigAccountService_Found")
+    public void testFindByAccountigAccountService_Found() {
+        // Arrange
+        String accountingAccount = "123456";
+        TaxTableSunat taxTableSunat = new TaxTableSunat();
+        taxTableSunat.setAccountingAccount(accountingAccount);
+
+        when(repository.findByAccountingAccount(accountingAccount)).thenReturn(taxTableSunat);
+
+        // Act
+        TaxTableSunat result = service.findByAccountigAccountService(accountingAccount);
+
+        // Assert
+        assertEquals(taxTableSunat, result);
+        verify(repository, times(1)).findByAccountingAccount(accountingAccount);
+    }
+
+    @Test
+    @DisplayName("testFindByAccountigAccountService_NotFound")
+    public void testFindByAccountigAccountService_NotFound() {
+        // Arrange
+        String accountingAccount = "123456";
+
+        when(repository.findByAccountingAccount(accountingAccount)).thenReturn(null);
+
+        // Act
+        TaxTableSunat result = service.findByAccountigAccountService(accountingAccount);
+
+        // Assert
+        assertNull(result);
+        verify(repository, times(1)).findByAccountingAccount(accountingAccount);
     }
 
 }

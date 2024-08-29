@@ -46,7 +46,7 @@ public class TaxTableSunat {
 
     @Column
     @NotNull
-    private Integer rate;
+    private Integer annualRate;
 
     @Column
     @NotNull
