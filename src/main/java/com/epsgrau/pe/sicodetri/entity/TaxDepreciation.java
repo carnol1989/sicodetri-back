@@ -30,14 +30,13 @@ import static com.epsgrau.pe.sicodetri.util.Constants.*;
  *     </ul>
  * @version 1.0
  */
-@ToString(exclude = {"fixedAssetDepreciation", "additions", "deductions"})
 @Getter
 @Setter
 @AllArgsConstructor
 @NoArgsConstructor
 @Entity
 @Table(name = "tax_depreciation")
-public class TaxDepreciation extends FixedAssetDepreciation{
+public class TaxDepreciation {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -59,14 +58,14 @@ public class TaxDepreciation extends FixedAssetDepreciation{
     private BigDecimal netTaxValue;
 
     @ManyToOne
-    @JoinColumn(name = "fixed_asset_depreciation_id", foreignKey = @ForeignKey(name = "FK_fixed_asset_depreciation_tax_depreciation"))
-    private FixedAssetDepreciation fixedAssetDepreciation;
+    @JoinColumn(name = "id_financiacl_fixed_asset", foreignKey = @ForeignKey(name = "FK_tax_depreciation_fixed_asset"))
+    private FinancialFixedAsset financialFixedAsset;
 
     @OneToMany(mappedBy = "taxDepreciation", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<Addition> additions;
+    private List<Addition> additionsList;
 
     @OneToMany(mappedBy = "taxDepreciation", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<Deduction> deductions;
+    private List<Deduction> deductionsList;
 
     @Column
     private String addedBy;
@@ -80,7 +79,6 @@ public class TaxDepreciation extends FixedAssetDepreciation{
     @Column
     private LocalDateTime modificationDate;
 
-    @Override
     public BigDecimal calculateDepreciation(FinancialFixedAsset fixedAsset, TaxTableSunat taxTable) {
         Period period = Period.between(fixedAsset.getAcquisitionDate(), this.accountingPeriod.minusYears(N_VAL_1));
         int numberYears = period.getYears();

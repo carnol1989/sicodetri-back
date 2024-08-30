@@ -6,6 +6,7 @@ import lombok.*;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.List;
 
 /**
  * This class entity for Financial Fixed Asset. <br/>
@@ -27,7 +28,6 @@ import java.time.LocalDateTime;
  */
 @AllArgsConstructor
 @NoArgsConstructor
-@ToString(exclude = "depreciation")
 @Getter
 @Setter
 @Entity
@@ -62,31 +62,31 @@ public class FinancialFixedAsset {
     @Column
     private String fixedAssetSerialNumberAndOrPlate;//6
 
-    @Column
+    @Column(precision = 20, scale = 4)
     private BigDecimal initialBalance;//7
 
-    @Column
+    @Column(precision = 20, scale = 4)
     private BigDecimal acquisitionsAdditions;//8
 
-    @Column
+    @Column(precision = 20, scale = 4)
     private BigDecimal improvements;//9
 
-    @Column
+    @Column(precision = 20, scale = 4)
     private BigDecimal transfersAndOrReclassifications;//10
 
-    @Column
+    @Column(precision = 20, scale = 4)
     private BigDecimal withdrawalsAndOrRetirements;//11
 
-    @Column
+    @Column(precision = 20, scale = 4)
     private BigDecimal otherAdjustments;//12
 
-    @Column
+    @Column(precision = 20, scale = 4)
     private BigDecimal bookValueOfFixedAssets;//13
 
-    @Column
+    @Column(precision = 20, scale = 4)
     private BigDecimal inflationAdjustment;//14
 
-    @Column
+    @Column(precision = 20, scale = 4)
     private BigDecimal adjustedValueOfFixedAssets;//15
 
     @Column
@@ -107,32 +107,37 @@ public class FinancialFixedAsset {
     @Column
     private Double usefulLifeYears;//21
 
-    @Column
+    @Column(precision = 20, scale = 4)
     private BigDecimal accumulatedDepreciationTheEndPrevious;//22
 
-    @Column
+    @Column(precision = 20, scale = 4)
     private BigDecimal currentDepreciation;//23
 
-    @Column
+    @Column(precision = 20, scale = 4)
     private BigDecimal currentDepreciationRelatedWithdrawalsRetirements;//24
 
-    @Column
+    @Column(precision = 20, scale = 4)
     private BigDecimal currentDepreciationRelatedOtherAdjustments;//25
 
-    @Column
+    @Column(precision = 20, scale = 4)
     private BigDecimal accumulatedHistoricalDepreciation;//26
 
-    @Column
+    @Column(precision = 20, scale = 4)
     private BigDecimal depreciationInflationAdjustment;//27
 
-    @Column
+    @Column(precision = 20, scale = 4)
     private BigDecimal accumulatedDepreciationAdjustedInflation;//28
 
-    @Column
+    @Column(precision = 20, scale = 4)
     private BigDecimal netFixedAssets;//30
 
-    @OneToOne(mappedBy = "fixedAsset", cascade = CascadeType.ALL)
-    private FixedAssetDepreciation depreciation;
+    @OneToMany(mappedBy = "financialFixedAsset", cascade = CascadeType.ALL, orphanRemoval = true)
+    @ToString.Exclude
+    private List<FinancialDepreciation> depreciacionFinancieraList;
+
+    @OneToMany(mappedBy = "financialFixedAsset", cascade = CascadeType.ALL, orphanRemoval = true)
+    @ToString.Exclude
+    private List<TaxDepreciation> depreciacionTributariaList;
 
     @Column
     private String addedBy;

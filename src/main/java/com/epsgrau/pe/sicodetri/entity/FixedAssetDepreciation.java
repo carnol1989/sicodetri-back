@@ -30,9 +30,6 @@ import java.util.List;
 @Getter
 @Setter
 @NoArgsConstructor
-@Entity
-@Inheritance(strategy = InheritanceType.JOINED)
-@Table(name = "fixed_asset_depreciation")
 public class FixedAssetDepreciation {
 
     @Id
@@ -42,7 +39,7 @@ public class FixedAssetDepreciation {
     @Column
     private LocalDate accountingPeriod;
 
-    @OneToOne
+    @ManyToOne
     @JoinColumn(name = "fixed_asset_financial_id", foreignKey = @ForeignKey(name = "FK_financial_fixed_asset_fixed_asset_depreciation"))
     private FinancialFixedAsset fixedAsset;
 

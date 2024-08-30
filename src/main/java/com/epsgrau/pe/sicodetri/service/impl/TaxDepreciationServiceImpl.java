@@ -22,6 +22,11 @@ public class TaxDepreciationServiceImpl implements TaxDepreciationService {
     }
 
     @Override
+    public void saveAllService(List<TaxDepreciation> listObj) {
+        repository.saveAll(listObj);
+    }
+
+    @Override
     public void updateService(TaxDepreciation obj) {
         repository.save(obj);
     }

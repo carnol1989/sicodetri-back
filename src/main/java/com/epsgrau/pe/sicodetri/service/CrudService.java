@@ -8,6 +8,8 @@ public interface CrudService<T, ID> {
 
     T saveService(T obj);
 
+    void saveAllService(List<T> listObj);
+
     void updateService(T obj);
 
     void deleteByIdService(ID id);

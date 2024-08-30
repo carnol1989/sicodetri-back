@@ -22,6 +22,11 @@ public class DeductionServiceImpl implements DeductionService {
     }
 
     @Override
+    public void saveAllService(List<Deduction> listObj) {
+        repository.saveAll(listObj);
+    }
+
+    @Override
     public void updateService(Deduction obj) {
         repository.save(obj);
     }

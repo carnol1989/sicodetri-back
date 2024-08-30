@@ -28,14 +28,13 @@ import static com.epsgrau.pe.sicodetri.util.Constants.*;
  *     </ul>
  * @version 1.0
  */
-@ToString(exclude = "fixedAssetDepreciation")
 @Getter
 @Setter
 @AllArgsConstructor
 @NoArgsConstructor
 @Entity
 @Table(name = "financial_depreciation")
-public class FinancialDepreciation extends FixedAssetDepreciation {
+public class FinancialDepreciation {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -44,15 +43,15 @@ public class FinancialDepreciation extends FixedAssetDepreciation {
     @Column
     private LocalDate accountingPeriod;
 
-    @Column
+    @Column(precision = 20, scale = 4)
     private BigDecimal valueDepreciation;
 
-    @Column
+    @Column(precision = 20, scale = 4)
     private BigDecimal annualFinancialRate;
 
     @ManyToOne
-    @JoinColumn(name = "fixed_asset_depreciation_id", foreignKey = @ForeignKey(name = "FK_fixed_asset_depreciation_financial_depreciation"))
-    private FixedAssetDepreciation fixedAssetDepreciation;
+    @JoinColumn(name = "id_financiacl_fixed_asset", foreignKey = @ForeignKey(name = "FK_financial_depreciation_fixed_asset"))
+    private FinancialFixedAsset financialFixedAsset;
 
     @Column
     private String addedBy;
@@ -66,12 +65,27 @@ public class FinancialDepreciation extends FixedAssetDepreciation {
     @Column
     private LocalDateTime modificationDate;
 
-    @Override
     public BigDecimal calculateDepreciation(FinancialFixedAsset fixedAsset, TaxTableSunat taxTable) {
-        this.annualFinancialRate = BD_VAL_100.divide(BigDecimal.valueOf(fixedAsset.getUsefulLifeYears()), N_VAL_2,
-                RoundingMode.HALF_UP);
-        this.valueDepreciation = fixedAsset.getInitialBalance().multiply((this.annualFinancialRate.divide(BD_VAL_12, N_VAL_2,
-                RoundingMode.HALF_UP)));
-        return this.valueDepreciation.setScale(N_VAL_2, RoundingMode.HALF_UP);
+        // Obtener el saldo inicial
+        BigDecimal initialBalance = fixedAsset.getInitialBalance().setScale(N_VAL_2, RoundingMode.HALF_UP);
+        //System.out.println("Initial Balance: " + initialBalance);
+
+        // Calcular la tasa anual de depreciación como un valor decimal (no porcentaje)
+        this.annualFinancialRate = BD_VAL_100.divide(BigDecimal.valueOf(fixedAsset.getUsefulLifeYears()), N_VAL_9, RoundingMode.HALF_UP)
+                .divide(BD_VAL_100, N_VAL_9, RoundingMode.HALF_UP);
+        //System.out.println("Annual Financial Rate (Decimal): " + this.annualFinancialRate);
+
+        // Calcular la tasa mensual
+        BigDecimal monthlyFinancialRate = this.annualFinancialRate.divide(BD_VAL_12, N_VAL_9, RoundingMode.HALF_UP);
+        //System.out.println("Monthly Financial Rate: " + monthlyFinancialRate);
+
+        // Calcular la depreciación mensual
+        this.valueDepreciation = initialBalance.multiply(monthlyFinancialRate);
+        //System.out.println("Value Depreciation: " + this.valueDepreciation);
+
+        this.valueDepreciation.setScale(N_VAL_2, RoundingMode.DOWN);
+
+        // Retornar el resultado redondeado
+        return this.valueDepreciation;
     }
 }

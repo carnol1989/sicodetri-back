@@ -41,8 +41,8 @@ class FinancialFixedAssetServiceImplTest {
     @Mock
     private TaxTableSunatService taxTableService;
 
-    @Mock
-    private FixedAssetDepreciationService depreciationService;
+    /*@Mock
+    private FixedAssetDepreciationService depreciationService;*/
 
     @Mock
     private FinancialDepreciationService financialDepreciationService;
@@ -289,15 +289,15 @@ class FinancialFixedAssetServiceImplTest {
         List<Deduction> deductions = new ArrayList<>();
         Deduction deduction = new Deduction();
         deductions.add(deduction);
-        taxDepreciation.setAdditions(additions);
-        taxDepreciation.setDeductions(deductions);
+        //taxDepreciation.setAdditions(additions);
+        //taxDepreciation.setDeductions(deductions);
 
         // Call the method under test
         service.generateFixedAssetDepreciationService(accountingPeriod, fixedAsset);
 
         // Verify interactions and state changes
         verify(taxTableService).findByAccountigAccountService(S_VAL_332);
-        verify(depreciationService).saveService(any(FixedAssetDepreciation.class));
+        //verify(depreciationService).saveService(any(FixedAssetDepreciation.class));
         verify(financialDepreciationService).saveService(any(FinancialDepreciation.class));
         verify(taxDepreciationService).saveService(any(TaxDepreciation.class));
     }
@@ -321,7 +321,7 @@ class FinancialFixedAssetServiceImplTest {
 
         // Assert
         verify(taxTableService, times(1)).findByAccountigAccountService(S_VAL_332);
-        verify(depreciationService, atLeast(1)).saveService(any(FixedAssetDepreciation.class));
+        //verify(depreciationService, atLeast(1)).saveService(any(FixedAssetDepreciation.class));
         verify(financialDepreciationService, atLeast(1)).saveService(any(FinancialDepreciation.class));
     }
 
@@ -341,7 +341,7 @@ class FinancialFixedAssetServiceImplTest {
 
         // Verify interactions with mocks
         verify(taxTableService).findByAccountigAccountService(S_VAL_332);
-        verify(depreciationService, atLeastOnce()).saveService(any(FixedAssetDepreciation.class));
+        //verify(depreciationService, atLeastOnce()).saveService(any(FixedAssetDepreciation.class));
         verify(financialDepreciationService, atLeastOnce()).saveService(any(FinancialDepreciation.class));
     }
 
@@ -360,7 +360,7 @@ class FinancialFixedAssetServiceImplTest {
         service.generateProjectionAdditionsAndDeductionsService(accountingPeriod, fixedAssets);
 
         // Verify that saveService was not called since taxTable is null
-        verify(depreciationService, never()).saveService(any(FixedAssetDepreciation.class));
+        //verify(depreciationService, never()).saveService(any(FixedAssetDepreciation.class));
         verify(financialDepreciationService, never()).saveService(any(FinancialDepreciation.class));
     }
 

@@ -22,6 +22,11 @@ public class FinancialDepreciationServiceImpl implements FinancialDepreciationSe
     }
 
     @Override
+    public void saveAllService(List<FinancialDepreciation> listObj) {
+        repository.saveAll(listObj);
+    }
+
+    @Override
     public void updateService(FinancialDepreciation obj) {
         repository.save(obj);
     }

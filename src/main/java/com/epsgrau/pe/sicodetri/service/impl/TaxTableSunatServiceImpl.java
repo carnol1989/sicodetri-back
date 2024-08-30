@@ -41,6 +41,11 @@ public class TaxTableSunatServiceImpl implements TaxTableSunatService {
     }
 
     @Override
+    public void saveAllService(List<TaxTableSunat> listObj) {
+        repository.saveAll(listObj);
+    }
+
+    @Override
     public void updateService(TaxTableSunat obj) {
         repository.save(obj);
     }

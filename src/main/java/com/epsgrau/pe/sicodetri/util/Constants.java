@@ -35,6 +35,10 @@ public class Constants {
     public static int N_VAL_1 = 1;
     public static int N_VAL_2 = 2;
     public static int N_VAL_3 = 3;
+    public static int N_VAL_4 = 4;
+    public static int N_VAL_8 = 8;
+    public static int N_VAL_9 = 9;
+    public static int N_VAL_10 = 10;
     public static String _BLANK = "";
     public static String S_VAL_ZERO = "0";
     public static String S_VAL_332 = "332";

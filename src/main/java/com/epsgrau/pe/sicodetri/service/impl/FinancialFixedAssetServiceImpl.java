@@ -56,9 +56,6 @@ public class FinancialFixedAssetServiceImpl implements FinancialFixedAssetServic
     private FinancialFixedAssetRepository repository;
 
     @Autowired
-    private FixedAssetDepreciationService depreciationService;
-
-    @Autowired
     private FinancialDepreciationService financialDepreciationService;
 
     @Autowired
@@ -86,16 +83,15 @@ public class FinancialFixedAssetServiceImpl implements FinancialFixedAssetServic
             Sheet sheet = workbook.getSheetAt(0);
             Iterator<Row> rows = sheet.iterator();
             int physicalNumberOfRows = sheet.getPhysicalNumberOfRows();
-            System.out.println("physicalNumberOfRows: " + physicalNumberOfRows);
+            //System.out.println("physicalNumberOfRows: " + physicalNumberOfRows);
 
             while (rows.hasNext()) {
                 Row currentRow = rows.next();
                 int rowNum = currentRow.getRowNum();
+                //System.out.println("rowNum: " + rowNum);
 
                 // skip header
-                if (rowNum > 11 && (rowNum < physicalNumberOfRows)) {
-                    System.out.println("rowNum: " + rowNum);
-
+                if (rowNum > 10 && (rowNum < physicalNumberOfRows)) {
                     Iterator<Cell> cellsInRow = currentRow.iterator();
 
                     InputData itemInputData = new InputData();
@@ -106,8 +102,8 @@ public class FinancialFixedAssetServiceImpl implements FinancialFixedAssetServic
                     while (cellsInRow.hasNext()) {
                         Cell currentCell = cellsInRow.next();
                         int columnIndex = currentCell.getColumnIndex();
-                        System.out.println("columnIndex: " + columnIndex);
-                        System.out.println("cellType: " + currentCell.getCellType() + "\tvalueCurrentCell: " + String.valueOf(getValueCell(currentCell)));
+                        //System.out.println("columnIndex: " + columnIndex);
+                        //System.out.println("cellType: " + currentCell.getCellType() + "\tvalueCurrentCell: " + String.valueOf(getValueCell(currentCell)));
                         switch (columnIndex) {
                             case 0:
                                 String mainFixAssetCode = (getValueCell(currentCell) != null ? String.valueOf(getValueCell(currentCell)) : _BLANK);
@@ -301,8 +297,8 @@ public class FinancialFixedAssetServiceImpl implements FinancialFixedAssetServic
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern(FORMATTER_YYYY_MM_DD);
         int row = 0;
         for (InputData itemInputData : listInputData) {
-            System.out.println("row: "+ row);
-            System.out.println(itemInputData.toString());
+            //System.out.println("row: "+ row);
+            //System.out.println(itemInputData.toString());
 
             if (accountingPeriod.equals(itemInputData.getAccountingPeriod())) {
                 FinancialFixedAsset itemFinancialFixedAsset = new FinancialFixedAsset();
@@ -471,12 +467,10 @@ public class FinancialFixedAssetServiceImpl implements FinancialFixedAssetServic
                 fixedAssetDepreciation.setTaxDepreciations(taxDepreciations);
                 fixedAssetDepreciation.setAddedBy("CARNOL");
                 fixedAssetDepreciation.setAdditionDate(LocalDateTime.now());
-                depreciationService.saveService(fixedAssetDepreciation);
+                //depreciationService.saveService(fixedAssetDepreciation);
 
                 FinancialDepreciation financialDepreciation = new FinancialDepreciation();
-                financialDepreciation.setFixedAsset(fixedAsset);
                 financialDepreciation.setAccountingPeriod(accountingPeriod);
-                financialDepreciation.setFixedAssetDepreciation(fixedAssetDepreciation);
                 financialDepreciation.calculateDepreciation(fixedAsset, taxTable);
                 financialDepreciation.setAddedBy("CARNOL");
                 financialDepreciation.setAdditionDate(LocalDateTime.now());
@@ -486,12 +480,11 @@ public class FinancialFixedAssetServiceImpl implements FinancialFixedAssetServic
                 List<Addition> additions = new ArrayList<>();
                 List<Deduction> deductions = new ArrayList<>();
                 TaxDepreciation taxDepreciation = new TaxDepreciation();
-                taxDepreciation.setFixedAsset(fixedAsset);
+                //taxDepreciation.setFixedAsset(fixedAsset);
                 taxDepreciation.setAccountingPeriod(accountingPeriod);
-                taxDepreciation.setFixedAssetDepreciation(fixedAssetDepreciation);
                 taxDepreciation.calculateDepreciation(fixedAsset, taxTable);
-                taxDepreciation.setAdditions(additions);
-                taxDepreciation.setDeductions(deductions);
+                //taxDepreciation.setAdditions(additions);
+                //taxDepreciation.setDeductions(deductions);
                 taxDepreciation.setAddedBy("CARNOL");
                 taxDepreciation.setAdditionDate(LocalDateTime.now());
                 taxDepreciationService.saveService(taxDepreciation);
@@ -499,7 +492,7 @@ public class FinancialFixedAssetServiceImpl implements FinancialFixedAssetServic
 
                 financialDepreciation.setModifiedBy("CARNOL");
                 financialDepreciation.setModificationDate(LocalDateTime.now());
-                depreciationService.updateService(financialDepreciation);
+                //depreciationService.updateService(financialDepreciation);
 
                 Deduction deduction = new Deduction();
                 Addition addition = new Addition();
@@ -518,8 +511,8 @@ public class FinancialFixedAssetServiceImpl implements FinancialFixedAssetServic
                     deductionService.saveService(deduction);
                     deductions.add(deduction);
                 }
-                taxDepreciation.setAdditions(additions);
-                taxDepreciation.setDeductions(deductions);
+                //taxDepreciation.setAdditions(additions);
+                //taxDepreciation.setDeductions(deductions);
                 taxDepreciation.setModifiedBy("CARNOL");
                 taxDepreciation.setModificationDate(LocalDateTime.now());
                 taxDepreciationService.updateService(taxDepreciation);
@@ -532,51 +525,66 @@ public class FinancialFixedAssetServiceImpl implements FinancialFixedAssetServic
     @Override
     public void generateProjectionAdditionsAndDeductionsService(LocalDate accountingPeriod, List<FinancialFixedAsset> fixedAssets) {
         TaxTableSunat taxTable = taxTableService.findByAccountigAccountService(S_VAL_332);
-        if (taxTable != null) {
-            for (FinancialFixedAsset fixedAsset : fixedAssets) {
-                System.out.println(fixedAsset.getId() + "\n" + fixedAsset.getAcquisitionDate() + "\n" + fixedAsset.getUsefulLifeYears()
-                        + "\n" + fixedAsset.getInitialBalance());
-                if (!fixedAsset.getAcquisitionDate().equals(LOCAL_DATE_DEFAULT) &&
-                        fixedAsset.getInitialBalance().compareTo(BigDecimal.ZERO) > N_VAL_0) {
-                    LocalDate acquisitionDate = fixedAsset.getAcquisitionDate();
-                    Period period = Period.between(accountingPeriod, acquisitionDate);
-                    int numberYears = period.getYears();
-                    int useFullLifeYears = fixedAsset.getUsefulLifeYears().intValue();
-                    int repeatYears = useFullLifeYears - numberYears;
-                    int repeatMonths = 12;
-                    List<FinancialDepreciation> financialDepreciations = new ArrayList<>();
-                    for (int i = 0; i < repeatYears; i++) {
-                        for (int j = 0; j < repeatMonths; j++) {
-                            FixedAssetDepreciation fixedAssetDepreciation = new FixedAssetDepreciation();
-                            fixedAssetDepreciation.setAccountingPeriod(accountingPeriod);
-                            fixedAssetDepreciation.setFixedAsset(fixedAsset);
-                            fixedAssetDepreciation.setFinancialDepreciations(financialDepreciations);
-                            fixedAssetDepreciation.getFinancialDepreciations().forEach(item -> {
-                                item.setFixedAssetDepreciation(fixedAssetDepreciation);
-                            });
-                            FixedAssetDepreciation depreciationCreated = depreciationService.saveService(fixedAssetDepreciation);
-
-                            FinancialDepreciation financialDepreciation = new FinancialDepreciation();
-                            financialDepreciation.setFixedAsset(fixedAsset);
-                            financialDepreciation.setAccountingPeriod(accountingPeriod);
-                            financialDepreciation.setFixedAssetDepreciation(depreciationCreated);
-                            financialDepreciation.calculateDepreciation(fixedAsset, taxTable);
-                            financialDepreciation.setAddedBy("CARNOL");
-                            financialDepreciation.setAdditionDate(LocalDateTime.now());
-                            //FinancialDepreciation financialDepreciationCreated = financialDepreciationService.saveService(financialDepreciation);
-                            financialDepreciations.add(financialDepreciation);
-
-                            fixedAssetDepreciation.setFinancialDepreciations(financialDepreciations);
-                            depreciationService.updateService(fixedAssetDepreciation);
-
-                            accountingPeriod = accountingPeriod.plusMonths(N_VAL_1);
-                        }
-                        accountingPeriod = accountingPeriod.plusYears(N_VAL_1);
-                    }
-                }
-            }
+        if (taxTable == null) {
+            return; // Si no hay tabla de impuestos, no se puede proceder
         }
 
+        for (FinancialFixedAsset fixedAsset : fixedAssets) {
+            if (isEligibleForDepreciation(fixedAsset)) {
+                processAssetDepreciation(fixedAsset, accountingPeriod, taxTable);
+            }
+        }
+    }
+
+    private boolean isEligibleForDepreciation(FinancialFixedAsset fixedAsset) {
+        return !fixedAsset.getAcquisitionDate().equals(LOCAL_DATE_DEFAULT) &&
+                fixedAsset.getInitialBalance().compareTo(BigDecimal.ZERO) > N_VAL_0;
+    }
+
+    private void processAssetDepreciation(FinancialFixedAsset fixedAsset, LocalDate accountingPeriod, TaxTableSunat taxTable) {
+        LocalDate acquisitionDate = fixedAsset.getAcquisitionDate();
+        int numberYearsPassed = Period.between(acquisitionDate, accountingPeriod).getYears();
+        int remainingYears = fixedAsset.getUsefulLifeYears().intValue() - numberYearsPassed;
+
+        List<FinancialDepreciation> financialDepreciations = new ArrayList<>();
+        for (int year = 0; year < remainingYears; year++) {
+            accountingPeriod = processYearDepreciation(fixedAsset, accountingPeriod, taxTable, financialDepreciations);
+        }
+
+        financialDepreciationService.saveAllService(financialDepreciations);
+    }
+
+    private LocalDate processYearDepreciation(FinancialFixedAsset fixedAsset, LocalDate accountingPeriod, TaxTableSunat taxTable,
+                                              List<FinancialDepreciation> financialDepreciations) {
+        for (int month = 0; month < 12; month++) {
+            FinancialDepreciation financialDepreciation = createFinancialDepreciation(fixedAsset, accountingPeriod, taxTable);
+            financialDepreciations.add(financialDepreciation);
+            accountingPeriod = accountingPeriod.plusMonths(1);
+        }
+        return accountingPeriod.plusYears(1).minusMonths(12); // Ajusta el periodo al siguiente año
+    }
+
+    private FinancialDepreciation createFinancialDepreciation(FinancialFixedAsset fixedAsset, LocalDate accountingPeriod,
+                                                              TaxTableSunat taxTable) {
+        FinancialDepreciation financialDepreciation = new FinancialDepreciation();
+        financialDepreciation.setFinancialFixedAsset(fixedAsset);
+        financialDepreciation.setAccountingPeriod(accountingPeriod);
+        financialDepreciation.calculateDepreciation(fixedAsset, taxTable);
+        financialDepreciation.setAddedBy("CARNOL");
+        financialDepreciation.setAdditionDate(LocalDateTime.now());
+        return financialDepreciation;
+    }
+
+    // Validación para asegurarse de que los campos obligatorios estén presentes antes de persistir
+    private boolean validateFinancialDepreciation(FinancialDepreciation financialDepreciation) {
+        boolean result = true;
+        if (financialDepreciation.getFinancialFixedAsset() == null ||
+                financialDepreciation.getAccountingPeriod() == null ||
+                financialDepreciation.getAddedBy() == null ||
+                financialDepreciation.getAdditionDate() == null) {
+            result = false;
+        }
+        return result;
     }
 
     @Override

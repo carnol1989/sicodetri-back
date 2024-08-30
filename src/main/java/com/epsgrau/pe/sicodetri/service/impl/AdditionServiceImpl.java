@@ -23,6 +23,11 @@ public class AdditionServiceImpl implements AdditionService {
     }
 
     @Override
+    public void saveAllService(List<Addition> listObj) {
+        repository.saveAll(listObj);
+    }
+
+    @Override
     public void updateService(Addition obj) {
         repository.save(obj);
     }
