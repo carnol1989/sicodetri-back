@@ -1,11 +1,13 @@
 package com.epsgrau.pe.sicodetri.entity;
 
+import com.epsgrau.pe.sicodetri.util.Constants;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
@@ -41,7 +43,7 @@ public class Addition {
     @Column
     private LocalDate accountingPeriod;
 
-    @Column
+    @Column(precision = 25, scale = 15)
     private BigDecimal valueAddition;
 
     @ManyToOne
@@ -59,4 +61,5 @@ public class Addition {
 
     @Column
     private LocalDateTime modificationDate;
+
 }

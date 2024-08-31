@@ -549,36 +549,62 @@ public class FinancialFixedAssetServiceImpl implements FinancialFixedAssetServic
 
         List<FinancialDepreciation> financialDepreciationList = new ArrayList<>();
         List<TaxDepreciation> taxDepreciationList = new ArrayList<>();
-        LocalDate accountingPeriodNext = accountingPeriod;
+        List<Addition> additionList = new ArrayList<>();
+        List<Deduction> deductionList = new ArrayList<>();
 
         TaxDepreciation taxDepreciationMonth = new TaxDepreciation();
         taxDepreciationMonth.setNetTaxValue(BigDecimal.ZERO);
         taxDepreciationMonth.setFirst(true);
+        taxDepreciationMonth.setLast(false);
 
         Projection projection = new Projection();
         projection.setAccountigPeriod(accountingPeriod);
-        projection.setAccountigPeriodNext(accountingPeriodNext);
+        projection.setAccountigPeriodNext(accountingPeriod);
+        projection.setFinancialDepreciationList(financialDepreciationList);
         projection.setTaxDepreciation(taxDepreciationMonth);
+        projection.setTaxDepreciationList(taxDepreciationList);
+        projection.setAdditionList(additionList);
+        projection.setDeductionList(deductionList);
 
         for (int year = 0; year < remainingYears; year++) {
-            projection = processYearDepreciation(fixedAsset, projection, taxTable,
-                    financialDepreciationList, taxDepreciationList);
+            projection = processYearDepreciation(fixedAsset, projection, taxTable);
         }
 
-        financialDepreciationService.saveAllService(financialDepreciationList);
-        taxDepreciationService.saveAllService(taxDepreciationList);
+        financialDepreciationService.saveAllService(projection.getFinancialDepreciationList());
+        taxDepreciationService.saveAllService(projection.getTaxDepreciationList());
+        deductionService.saveAllService(projection.getDeductionList());
+        additionService.saveAllService(projection.getAdditionList());
     }
 
     private Projection processYearDepreciation(FinancialFixedAsset fixedAsset, Projection projection,
-                                              TaxTableSunat taxTable, List<FinancialDepreciation> financialDepreciationList,
-                                              List<TaxDepreciation> taxDepreciationList) {
+                                              TaxTableSunat taxTable) {
         for (int month = 0; month < 12; month++) {
             FinancialDepreciation financialDepreciation = createFinancialDepreciation(fixedAsset, projection.getAccountigPeriodNext());
-            financialDepreciationList.add(financialDepreciation);
+            projection.getFinancialDepreciationList().add(financialDepreciation);
 
             TaxDepreciation taxDepreciation = createTaxDepreciation(fixedAsset, projection.getAccountigPeriodNext(),
                     projection.getAccountigPeriod(), projection.getTaxDepreciation(), taxTable);
-            taxDepreciationList.add(taxDepreciation);
+            projection.getTaxDepreciationList().add(taxDepreciation);
+
+            BigDecimal valueAdditionOrDeduction = BigDecimal.ZERO;
+            /*System.out.println("Periodo: " + projection.getAccountigPeriodNext());
+            System.out.println("Depreciación Tributaria: " + taxDepreciation.getValueDepreciation() + "\tValor Neto Tributario: "
+                    + taxDepreciation.getNetTaxValue() + "\nDepreciación Financiera: " + financialDepreciation.getValueDepreciation());*/
+            if (taxDepreciation.getValueDepreciation().compareTo(financialDepreciation.getValueDepreciation()) > 0 &&
+                    taxDepreciation.getNetTaxValue().compareTo(BigDecimal.ZERO) > 0) {
+                valueAdditionOrDeduction = taxDepreciation.getValueDepreciation().subtract(financialDepreciation.getValueDepreciation());
+                Deduction deduction = createDeduction(projection.getAccountigPeriodNext(), taxDepreciation, valueAdditionOrDeduction);
+                projection.getDeductionList().add(deduction);
+            } else if (projection.getTaxDepreciation().getNetTaxValue().compareTo(BigDecimal.ZERO) > 0 &&
+                    taxDepreciation.getNetTaxValue().compareTo(BigDecimal.ZERO) == 0) {
+                valueAdditionOrDeduction = taxDepreciation.getValueDepreciation().subtract(financialDepreciation.getValueDepreciation());
+                Deduction deduction = createDeduction(projection.getAccountigPeriodNext(), taxDepreciation, valueAdditionOrDeduction);
+                projection.getDeductionList().add(deduction);
+            } else {
+                valueAdditionOrDeduction = financialDepreciation.getValueDepreciation();
+                Addition addition = createAddition(projection.getAccountigPeriodNext(), taxDepreciation, valueAdditionOrDeduction);
+                projection.getAdditionList().add(addition);
+            }
 
             projection.setAccountigPeriodNext(projection.getAccountigPeriodNext().plusMonths(1));
             projection.setTaxDepreciation(taxDepreciation);
@@ -608,6 +634,28 @@ public class FinancialFixedAssetServiceImpl implements FinancialFixedAssetServic
         taxDepreciation.setAdditionDate(LocalDateTime.now());
         taxDepreciation.setFirst(false);
         return taxDepreciation;
+    }
+
+    private Addition createAddition(LocalDate accountingPeriod, TaxDepreciation taxDepreciation,
+                                    BigDecimal valueAddition) {
+        Addition addition = new Addition();
+        addition.setAccountingPeriod(accountingPeriod);
+        addition.setTaxDepreciation(taxDepreciation);
+        addition.setValueAddition(valueAddition);
+        addition.setAddedBy("CARNOL");
+        addition.setAdditionDate(LocalDateTime.now());
+        return addition;
+    }
+
+    private Deduction createDeduction(LocalDate accountingPeriod, TaxDepreciation taxDepreciation,
+                                      BigDecimal valueDeduction) {
+        Deduction deduction = new Deduction();
+        deduction.setAccountingPeriod(accountingPeriod);
+        deduction.setTaxDepreciation(taxDepreciation);
+        deduction.setValueDeduction(valueDeduction);
+        deduction.setAddedBy("CARNOL");
+        deduction.setAdditionDate(LocalDateTime.now());
+        return deduction;
     }
 
     @Override

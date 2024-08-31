@@ -83,6 +83,9 @@ public class TaxDepreciation {
     @Transient
     private boolean isFirst;
 
+    @Transient
+    private boolean isLast;
+
     public void calculateDepreciation(FinancialFixedAsset fixedAsset, TaxTableSunat taxTable, LocalDate accountingPeriod,
                                       TaxDepreciation taxDepreciationOld) {
         MathContext mathContext = new MathContext(N_VAL_15, RoundingMode.HALF_UP);
