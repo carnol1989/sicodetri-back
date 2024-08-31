@@ -41,6 +41,9 @@
 		<mockito.core.version>5.3.1</mockito.core.version>
 		<jacoco.version>0.8.8</jacoco.version>
 		<springdoc.openapi.version>2.3.0</springdoc.openapi.version>
+		<itext.core>8.0.2</itext.core>
+		<powermock.api.mockito2>2.0.9</powermock.api.mockito2>
+		<mockito.inline>5.2.0</mockito.inline>
 	</properties>
 	<dependencies>
 		<dependency>
@@ -98,6 +101,13 @@
 			<groupId>org.springdoc</groupId>
 			<artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
 			<version>${springdoc.openapi.version}</version>
+		</dependency>
+
+		<dependency>
+			<groupId>com.itextpdf</groupId>
+			<artifactId>itext-core</artifactId>
+			<version>${itext.core}</version>
+			<type>pom</type>
 		</dependency>
 	</dependencies>
 	<build>

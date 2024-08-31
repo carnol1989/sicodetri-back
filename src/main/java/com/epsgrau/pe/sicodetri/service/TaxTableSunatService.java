@@ -22,16 +22,8 @@ import java.util.List;
  *     </ul>
  * @version 1.0
  */
-public interface TaxTableSunatService {
+public interface TaxTableSunatService extends CrudService<TaxTableSunat, Long> {
 
-    void saveService(TaxTableSunat obj);
-
-    void updateService(TaxTableSunat obj);
-
-    void deleteByIdService(Long id);
-
-    TaxTableSunat findByIdService(Long id);
-
-    List<TaxTableSunat> findAllService();
+    TaxTableSunat findByAccountigAccountService(String accountingAccount);
 
 }

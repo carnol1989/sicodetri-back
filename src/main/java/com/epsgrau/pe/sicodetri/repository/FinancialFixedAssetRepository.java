@@ -32,7 +32,13 @@ import java.util.List;
 @Repository
 public interface FinancialFixedAssetRepository extends JpaRepository<FinancialFixedAsset, Long> {
 
-    List<FinancialFixedAsset> findByAccountingPeriod(LocalDate period);
+    List<FinancialFixedAsset> findByAccountingPeriod(LocalDate accountingPeriod);
+
+    List<FinancialFixedAsset> findByAccountingPeriodAndFixedAssetAccountingAccountStartingWith(LocalDate accountingPeriod, String accountingAccountPrefix);
+
+    List<FinancialFixedAsset> findByMainFixedAssetCode(String mainFixedAssetCode);
+
+    List<FinancialFixedAsset> findByFixedAssetAccountingAccount(String fixedAssetAccountingAccount);
 
     @Transactional
     @Modifying

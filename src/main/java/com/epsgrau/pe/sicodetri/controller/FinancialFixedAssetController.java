@@ -25,8 +25,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import static com.epsgrau.pe.sicodetri.helper.ExcelHelper.hasExcelFormat;
-import static com.epsgrau.pe.sicodetri.util.Constants.FORMATTER_YYYY_MM_DD;
-import static com.epsgrau.pe.sicodetri.util.Constants.LIST_INPUT_DATA;
+import static com.epsgrau.pe.sicodetri.util.Constants.*;
 
 /**
  * This class provide the endpoints for Fixed Asset. <br/>
@@ -47,7 +46,7 @@ import static com.epsgrau.pe.sicodetri.util.Constants.LIST_INPUT_DATA;
  * @version 1.0
  */
 @RestController
-@RequestMapping("/api/v1/financial-fixed-asset")
+@RequestMapping("/api/v1/financial-fixed-assets")
 public class FinancialFixedAssetController {
 
     @Autowired
@@ -63,6 +62,7 @@ public class FinancialFixedAssetController {
     })
     @PostMapping("/upload")
     public ResponseEntity<ResponseData> uploadInputDataController(@RequestParam("file") MultipartFile file,
+                                                                  @RequestParam(name = "period") String period,
                                                                   HttpServletRequest request) {
         String code = "00";
         String message = "";
@@ -74,9 +74,10 @@ public class FinancialFixedAssetController {
         try {
             if (hasExcelFormat(file)) {
                 responseData.setTimestamp(LocalDateTime.now());
-                listInputData = service.loadExcelFileToObject(file);
+                listInputData = service.loadExcelFileToObjectService(file, period);
                 request.getSession().setAttribute(LIST_INPUT_DATA, listInputData);
                 message = "Archivo subio correctamente: " + file.getOriginalFilename();
+                responseData.setResponse("Cantidad de registros: "+ listInputData.size());
             } else {
                 responseData.setTimestamp(LocalDateTime.now());
                 code = "01";
@@ -92,6 +93,58 @@ public class FinancialFixedAssetController {
             statusCode = HttpStatus.EXPECTATION_FAILED;
             e.printStackTrace();
             message = "Error al cargar archivo: " + file.getOriginalFilename();
+            detailError = "Mensaje: " + e.getMessage() + "\nCausa: " + e.getCause();
+            exceptionResponse.setMessage(message);
+            exceptionResponse.setTimestamp(LocalDateTime.now());
+            exceptionResponse.setDetails(detailError);
+        }
+        responseData.setCode(code);
+        responseData.setMessage(message);
+        responseData.setException(exceptionResponse);
+        return new ResponseEntity<ResponseData>(responseData, statusCode);
+    }
+
+    @Operation(summary = "Subir información del archivo Excel (Formato 7)")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Archivo subio correctamente.",
+                    content = {@Content(mediaType = "application/json",
+                            schema = @Schema(implementation = ResponseData.class))}),
+            @ApiResponse(responseCode = "417", description = "Error al cargar archivo.",
+                    content = @Content)
+    })
+    @PostMapping("/projection")
+    public ResponseEntity<ResponseData> generateProjectionController(@RequestParam(name = "period") String period,
+                                                                     @RequestParam(name = "account") String account,
+                                                                     HttpServletRequest request) {
+        String code = "00";
+        String message = "";
+        String detailError = "";
+        HttpStatus statusCode = HttpStatus.OK;
+        ResponseData responseData = new ResponseData();
+        ExceptionResponse exceptionResponse = new ExceptionResponse();
+        try {
+            DateTimeFormatter formatter = DateTimeFormatter.ofPattern(FORMATTER_YYYY_MM_DD);
+            LocalDate periodDate = LocalDate.parse(period, formatter);
+            List<FinancialFixedAsset> listFinancialFixedAsset = service.findByPeriodAndAccountStartingWithService(periodDate, account);
+            if (listFinancialFixedAsset.size() > 0 && listFinancialFixedAsset != null) {
+                responseData.setTimestamp(LocalDateTime.now());
+                service.generateProjectionAdditionsAndDeductionsService(periodDate, listFinancialFixedAsset);
+                message = "Proyeccion generada correctamente.";
+            } else {
+                responseData.setTimestamp(LocalDateTime.now());
+                code = "01";
+                statusCode = HttpStatus.EXPECTATION_FAILED;
+                message = "Error al generar proyeccion.";
+                exceptionResponse.setMessage(message);
+                exceptionResponse.setTimestamp(LocalDateTime.now());
+                exceptionResponse.setDetails(detailError);
+            }
+        } catch (Exception e) {
+            responseData.setTimestamp(LocalDateTime.now());
+            code = "01";
+            statusCode = HttpStatus.EXPECTATION_FAILED;
+            e.printStackTrace();
+            message = "Error al generar proyeccion.";
             detailError = "Mensaje: " + e.getMessage() + "\nCausa: " + e.getCause();
             exceptionResponse.setMessage(message);
             exceptionResponse.setTimestamp(LocalDateTime.now());
@@ -127,7 +180,7 @@ public class FinancialFixedAssetController {
                 LocalDate periodDate = LocalDate.parse(period, formatter);
                 service.deleteByAccountingPeriod(periodDate);
 
-                service.saveAllService(periodDate, listInputData);
+                service.saveAllService(period, listInputData);
 
                 responseData.setTimestamp(LocalDateTime.now());
                 message = "Informacion guardada de manera correcta para el periodo " + period;
@@ -165,37 +218,77 @@ public class FinancialFixedAssetController {
             @ApiResponse(responseCode = "404", description = "Error al obtener informacion para el periodo.",
                     content = @Content)
     })
-    @GetMapping
-    public ResponseEntity<ResponseData> getAllFinancialFixedController(@RequestParam(name = "period") String period) {
+    @GetMapping("/{option}")
+    public ResponseEntity<ResponseData> getFinancialFixedAssetController(@PathVariable int option,
+                                                                         @RequestParam String period,
+                                                                         @RequestParam String mainFixedAssetCode,
+                                                                         @RequestParam String accountingAccount) {
         String code = "00";
         String message = "";
         String detailError = "";
         HttpStatus statusCode = HttpStatus.OK;
         ResponseData responseData = new ResponseData();
         ExceptionResponse exceptionResponse = new ExceptionResponse();
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern(FORMATTER_YYYY_MM_DD);
         try {
-            LocalDate periodDate = LocalDate.parse(period, formatter);
             responseData.setTimestamp(LocalDateTime.now());
-            List<FinancialFixedAsset> listFinancialFixedAsset = service.findByPeriodService(periodDate);
-            if (listFinancialFixedAsset != null) {
-                responseData.setResponse(listFinancialFixedAsset);
-                message = "Se obtuvo informacion para el periodo " + period;
+            if (option == N_VAL_1) {
+                DateTimeFormatter formatter = DateTimeFormatter.ofPattern(FORMATTER_YYYY_MM_DD);
+                LocalDate periodDate = LocalDate.parse(period, formatter);
+                List<FinancialFixedAsset> listFinancialFixedAsset = service.findByPeriodService(periodDate);
+                if (listFinancialFixedAsset != null) {
+                    responseData.setResponse(listFinancialFixedAsset);
+                    message = "Se obtuvo informacion para el periodo: " + period;
+                } else {
+                    code = "01";
+                    statusCode = HttpStatus.NOT_FOUND;
+                    responseData.setTimestamp(LocalDateTime.now());
+                    message = "Error al obtener informacion para el periodo: " + period;
+                    exceptionResponse.setMessage(message);
+                    exceptionResponse.setTimestamp(LocalDateTime.now());
+                    exceptionResponse.setDetails(detailError);
+                }
+            } else if (option == N_VAL_2) {
+                List<FinancialFixedAsset> listFinancialFixedAsset = service.findByMainFixedAssetCodeService(mainFixedAssetCode);
+                if (listFinancialFixedAsset != null) {
+                    responseData.setResponse(listFinancialFixedAsset);
+                    message = "Se obtuvo informacion para el código de activo fijo principal: " + mainFixedAssetCode;
+                } else {
+                    code = "01";
+                    statusCode = HttpStatus.NOT_FOUND;
+                    responseData.setTimestamp(LocalDateTime.now());
+                    message = "Error al obtener informacion para el código de activo fijo principal: " + mainFixedAssetCode;
+                    exceptionResponse.setMessage(message);
+                    exceptionResponse.setTimestamp(LocalDateTime.now());
+                    exceptionResponse.setDetails(detailError);
+                }
+            } else if (option == N_VAL_3) {
+                List<FinancialFixedAsset> listFinancialFixedAsset = service.findByFixedAssetAccountingAccountService(accountingAccount);
+                if (listFinancialFixedAsset != null) {
+                    responseData.setResponse(listFinancialFixedAsset);
+                    message = "Se obtuvo informacion para la cuenta contable: " + accountingAccount;
+                } else {
+                    code = "01";
+                    statusCode = HttpStatus.NOT_FOUND;
+                    responseData.setTimestamp(LocalDateTime.now());
+                    message = "Error al obtener informacion para la cuenta contable: " + accountingAccount;
+                    exceptionResponse.setMessage(message);
+                    exceptionResponse.setTimestamp(LocalDateTime.now());
+                    exceptionResponse.setDetails(detailError);
+                }
             } else {
                 code = "01";
-                statusCode = HttpStatus.NOT_FOUND;
+                statusCode = HttpStatus.EXPECTATION_FAILED;
                 responseData.setTimestamp(LocalDateTime.now());
-                message = "Error al obtener informacion para el periodo " + period;
+                message = "Error al obtener informacion del activo fijo.";
                 exceptionResponse.setMessage(message);
                 exceptionResponse.setTimestamp(LocalDateTime.now());
                 exceptionResponse.setDetails(detailError);
             }
         } catch (Exception e) {
-            e.printStackTrace();
             code = "01";
             statusCode = HttpStatus.EXPECTATION_FAILED;
             responseData.setTimestamp(LocalDateTime.now());
-            message = "Error al obtener informacion para el periodo " + period;
+            message = "Error al obtener informacion del activo fijo: " + accountingAccount;
             detailError = "Mensaje: " + e.getMessage() + "\nCausa: " + e.getCause();
             exceptionResponse.setMessage(message);
             exceptionResponse.setTimestamp(LocalDateTime.now());
