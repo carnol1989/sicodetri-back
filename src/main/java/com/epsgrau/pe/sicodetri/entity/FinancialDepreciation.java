@@ -65,7 +65,7 @@ public class FinancialDepreciation {
     @Column
     private LocalDateTime modificationDate;
 
-    public BigDecimal calculateDepreciation(FinancialFixedAsset fixedAsset, TaxTableSunat taxTable) {
+    public void calculateDepreciation(FinancialFixedAsset fixedAsset) {
         // Obtener el saldo inicial
         BigDecimal initialBalance = fixedAsset.getInitialBalance().setScale(N_VAL_2, RoundingMode.HALF_UP);
         //System.out.println("Initial Balance: " + initialBalance);
@@ -84,8 +84,5 @@ public class FinancialDepreciation {
         //System.out.println("Value Depreciation: " + this.valueDepreciation);
 
         this.valueDepreciation.setScale(N_VAL_2, RoundingMode.DOWN);
-
-        // Retornar el resultado redondeado
-        return this.valueDepreciation;
     }
 }

@@ -4,6 +4,7 @@ import com.epsgrau.pe.sicodetri.entity.*;
 import com.epsgrau.pe.sicodetri.model.Depreciation;
 import com.epsgrau.pe.sicodetri.model.FixedAssetDetail;
 import com.epsgrau.pe.sicodetri.model.InputData;
+import com.epsgrau.pe.sicodetri.model.Projection;
 import com.epsgrau.pe.sicodetri.repository.FinancialFixedAssetRepository;
 import com.epsgrau.pe.sicodetri.service.*;
 import org.apache.poi.ss.usermodel.Cell;
@@ -471,7 +472,7 @@ public class FinancialFixedAssetServiceImpl implements FinancialFixedAssetServic
 
                 FinancialDepreciation financialDepreciation = new FinancialDepreciation();
                 financialDepreciation.setAccountingPeriod(accountingPeriod);
-                financialDepreciation.calculateDepreciation(fixedAsset, taxTable);
+                financialDepreciation.calculateDepreciation(fixedAsset);
                 financialDepreciation.setAddedBy("CARNOL");
                 financialDepreciation.setAdditionDate(LocalDateTime.now());
                 financialDepreciationService.saveService(financialDepreciation);
@@ -482,7 +483,7 @@ public class FinancialFixedAssetServiceImpl implements FinancialFixedAssetServic
                 TaxDepreciation taxDepreciation = new TaxDepreciation();
                 //taxDepreciation.setFixedAsset(fixedAsset);
                 taxDepreciation.setAccountingPeriod(accountingPeriod);
-                taxDepreciation.calculateDepreciation(fixedAsset, taxTable);
+                taxDepreciation.calculateDepreciation(fixedAsset, taxTable, null, null);
                 //taxDepreciation.setAdditions(additions);
                 //taxDepreciation.setDeductions(deductions);
                 taxDepreciation.setAddedBy("CARNOL");
@@ -546,45 +547,67 @@ public class FinancialFixedAssetServiceImpl implements FinancialFixedAssetServic
         int numberYearsPassed = Period.between(acquisitionDate, accountingPeriod).getYears();
         int remainingYears = fixedAsset.getUsefulLifeYears().intValue() - numberYearsPassed;
 
-        List<FinancialDepreciation> financialDepreciations = new ArrayList<>();
+        List<FinancialDepreciation> financialDepreciationList = new ArrayList<>();
+        List<TaxDepreciation> taxDepreciationList = new ArrayList<>();
+        LocalDate accountingPeriodNext = accountingPeriod;
+
+        TaxDepreciation taxDepreciationMonth = new TaxDepreciation();
+        taxDepreciationMonth.setNetTaxValue(BigDecimal.ZERO);
+        taxDepreciationMonth.setFirst(true);
+
+        Projection projection = new Projection();
+        projection.setAccountigPeriod(accountingPeriod);
+        projection.setAccountigPeriodNext(accountingPeriodNext);
+        projection.setTaxDepreciation(taxDepreciationMonth);
+
         for (int year = 0; year < remainingYears; year++) {
-            accountingPeriod = processYearDepreciation(fixedAsset, accountingPeriod, taxTable, financialDepreciations);
+            projection = processYearDepreciation(fixedAsset, projection, taxTable,
+                    financialDepreciationList, taxDepreciationList);
         }
 
-        financialDepreciationService.saveAllService(financialDepreciations);
+        financialDepreciationService.saveAllService(financialDepreciationList);
+        taxDepreciationService.saveAllService(taxDepreciationList);
     }
 
-    private LocalDate processYearDepreciation(FinancialFixedAsset fixedAsset, LocalDate accountingPeriod, TaxTableSunat taxTable,
-                                              List<FinancialDepreciation> financialDepreciations) {
+    private Projection processYearDepreciation(FinancialFixedAsset fixedAsset, Projection projection,
+                                              TaxTableSunat taxTable, List<FinancialDepreciation> financialDepreciationList,
+                                              List<TaxDepreciation> taxDepreciationList) {
         for (int month = 0; month < 12; month++) {
-            FinancialDepreciation financialDepreciation = createFinancialDepreciation(fixedAsset, accountingPeriod, taxTable);
-            financialDepreciations.add(financialDepreciation);
-            accountingPeriod = accountingPeriod.plusMonths(1);
+            FinancialDepreciation financialDepreciation = createFinancialDepreciation(fixedAsset, projection.getAccountigPeriodNext());
+            financialDepreciationList.add(financialDepreciation);
+
+            TaxDepreciation taxDepreciation = createTaxDepreciation(fixedAsset, projection.getAccountigPeriodNext(),
+                    projection.getAccountigPeriod(), projection.getTaxDepreciation(), taxTable);
+            taxDepreciationList.add(taxDepreciation);
+
+            projection.setAccountigPeriodNext(projection.getAccountigPeriodNext().plusMonths(1));
+            projection.setTaxDepreciation(taxDepreciation);
         }
-        return accountingPeriod.plusYears(1).minusMonths(12); // Ajusta el periodo al siguiente año
+        projection.setAccountigPeriodNext(projection.getAccountigPeriodNext().plusYears(1).minusMonths(12)); // Ajusta el periodo al siguiente año
+        return projection;
     }
 
-    private FinancialDepreciation createFinancialDepreciation(FinancialFixedAsset fixedAsset, LocalDate accountingPeriod,
-                                                              TaxTableSunat taxTable) {
+    private FinancialDepreciation createFinancialDepreciation(FinancialFixedAsset fixedAsset, LocalDate accountingPeriod) {
         FinancialDepreciation financialDepreciation = new FinancialDepreciation();
         financialDepreciation.setFinancialFixedAsset(fixedAsset);
         financialDepreciation.setAccountingPeriod(accountingPeriod);
-        financialDepreciation.calculateDepreciation(fixedAsset, taxTable);
+        financialDepreciation.calculateDepreciation(fixedAsset);
         financialDepreciation.setAddedBy("CARNOL");
         financialDepreciation.setAdditionDate(LocalDateTime.now());
         return financialDepreciation;
     }
 
-    // Validación para asegurarse de que los campos obligatorios estén presentes antes de persistir
-    private boolean validateFinancialDepreciation(FinancialDepreciation financialDepreciation) {
-        boolean result = true;
-        if (financialDepreciation.getFinancialFixedAsset() == null ||
-                financialDepreciation.getAccountingPeriod() == null ||
-                financialDepreciation.getAddedBy() == null ||
-                financialDepreciation.getAdditionDate() == null) {
-            result = false;
-        }
-        return result;
+    private TaxDepreciation createTaxDepreciation(FinancialFixedAsset fixedAsset, LocalDate accountingPeriodNext,
+                                                  LocalDate accountingPeriod, TaxDepreciation taxDepreciationOld,
+                                                  TaxTableSunat taxTable) {
+        TaxDepreciation taxDepreciation = new TaxDepreciation();
+        taxDepreciation.setFinancialFixedAsset(fixedAsset);
+        taxDepreciation.setAccountingPeriod(accountingPeriodNext);
+        taxDepreciation.calculateDepreciation(fixedAsset, taxTable, accountingPeriod, taxDepreciationOld);
+        taxDepreciation.setAddedBy("CARNOL");
+        taxDepreciation.setAdditionDate(LocalDateTime.now());
+        taxDepreciation.setFirst(false);
+        return taxDepreciation;
     }
 
     @Override
