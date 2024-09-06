@@ -104,6 +104,61 @@ public class FinancialFixedAssetController {
         return new ResponseEntity<ResponseData>(responseData, statusCode);
     }
 
+    @Operation(summary = "Guardar información subido al sistema en base de datos.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "201", description = "Informacion guardada de manera correcta para el periodo.",
+                    content = {@Content(mediaType = "application/json",
+                            schema = @Schema(implementation = ResponseData.class))}),
+            @ApiResponse(responseCode = "417", description = "Error al guardar informacion para el periodo.",
+                    content = @Content)
+    })
+    @PostMapping
+    public ResponseEntity<ResponseData> saveFinancialFixedAssetController(@RequestParam(name = "period") String period,
+                                                                          HttpSession session) {
+        String code = "00";
+        String message = "";
+        String detailError = "";
+        HttpStatus statusCode = HttpStatus.CREATED;
+        ResponseData responseData = new ResponseData();
+        ExceptionResponse exceptionResponse = new ExceptionResponse();
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern(FORMATTER_YYYY_MM_DD);
+        try {
+            List<InputData> listInputData = (List<InputData>) session.getAttribute(LIST_INPUT_DATA);
+            System.out.println("Cantidad datos entrada: " + listInputData.size());
+            if (listInputData != null) {
+                LocalDate periodDate = LocalDate.parse(period, formatter);
+                service.deleteByAccountingPeriod(periodDate);
+
+                service.saveAllService(period, listInputData);
+
+                responseData.setTimestamp(LocalDateTime.now());
+                message = "Informacion guardada de manera correcta para el periodo " + period;
+            } else {
+                responseData.setTimestamp(LocalDateTime.now());
+                code = "01";
+                statusCode = HttpStatus.EXPECTATION_FAILED;
+                message = "Error al obtener informacion de entrada para el periodo " + period;
+                exceptionResponse.setMessage(message);
+                exceptionResponse.setTimestamp(LocalDateTime.now());
+                exceptionResponse.setDetails(detailError);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            code = "01";
+            statusCode = HttpStatus.EXPECTATION_FAILED;
+            responseData.setTimestamp(LocalDateTime.now());
+            message = "Error al guardar informacion para el periodo " + period;
+            detailError = "Mensaje: " + e.getMessage() + "\nCausa: " + e.getCause();
+            exceptionResponse.setMessage(message);
+            exceptionResponse.setTimestamp(LocalDateTime.now());
+            exceptionResponse.setDetails(detailError);
+        }
+        responseData.setCode(code);
+        responseData.setMessage(message);
+        responseData.setException(exceptionResponse);
+        return new ResponseEntity<ResponseData>(responseData, statusCode);
+    }
+
     @Operation(summary = "Subir información del archivo Excel (Formato 7)")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Archivo subio correctamente.",
@@ -128,7 +183,7 @@ public class FinancialFixedAssetController {
             List<FinancialFixedAsset> listFinancialFixedAsset = service.findByPeriodAndAccountStartingWithService(periodDate, account);
             if (listFinancialFixedAsset.size() > 0 && listFinancialFixedAsset != null) {
                 responseData.setTimestamp(LocalDateTime.now());
-                service.generateProjectionAdditionsAndDeductionsService(periodDate, listFinancialFixedAsset);
+                service.generateTemporayDeductionsService(periodDate, listFinancialFixedAsset);
                 message = "Proyeccion generada correctamente.";
             } else {
                 responseData.setTimestamp(LocalDateTime.now());
@@ -145,60 +200,6 @@ public class FinancialFixedAssetController {
             statusCode = HttpStatus.EXPECTATION_FAILED;
             e.printStackTrace();
             message = "Error al generar proyeccion.";
-            detailError = "Mensaje: " + e.getMessage() + "\nCausa: " + e.getCause();
-            exceptionResponse.setMessage(message);
-            exceptionResponse.setTimestamp(LocalDateTime.now());
-            exceptionResponse.setDetails(detailError);
-        }
-        responseData.setCode(code);
-        responseData.setMessage(message);
-        responseData.setException(exceptionResponse);
-        return new ResponseEntity<ResponseData>(responseData, statusCode);
-    }
-
-    @Operation(summary = "Guardar información subido al sistema en base de datos.")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "201", description = "Informacion guardada de manera correcta para el periodo.",
-                    content = {@Content(mediaType = "application/json",
-                            schema = @Schema(implementation = ResponseData.class))}),
-            @ApiResponse(responseCode = "417", description = "Error al guardar informacion para el periodo.",
-                    content = @Content)
-    })
-    @PostMapping
-    public ResponseEntity<ResponseData> saveFinancialFixedAssetController(@RequestParam(name = "period") String period,
-                                                                          HttpSession session) {
-        String code = "00";
-        String message = "";
-        String detailError = "";
-        HttpStatus statusCode = HttpStatus.CREATED;
-        ResponseData responseData = new ResponseData();
-        ExceptionResponse exceptionResponse = new ExceptionResponse();
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern(FORMATTER_YYYY_MM_DD);
-        try {
-            List<InputData> listInputData = (List<InputData>) session.getAttribute(LIST_INPUT_DATA);
-            if (listInputData != null) {
-                LocalDate periodDate = LocalDate.parse(period, formatter);
-                service.deleteByAccountingPeriod(periodDate);
-
-                service.saveAllService(period, listInputData);
-
-                responseData.setTimestamp(LocalDateTime.now());
-                message = "Informacion guardada de manera correcta para el periodo " + period;
-            } else {
-                responseData.setTimestamp(LocalDateTime.now());
-                code = "01";
-                statusCode = HttpStatus.EXPECTATION_FAILED;
-                message = "Error al guardar informacion para el periodo " + period;
-                exceptionResponse.setMessage(message);
-                exceptionResponse.setTimestamp(LocalDateTime.now());
-                exceptionResponse.setDetails(detailError);
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-            code = "01";
-            statusCode = HttpStatus.EXPECTATION_FAILED;
-            responseData.setTimestamp(LocalDateTime.now());
-            message = "Error al guardar informacion para el periodo " + period;
             detailError = "Mensaje: " + e.getMessage() + "\nCausa: " + e.getCause();
             exceptionResponse.setMessage(message);
             exceptionResponse.setTimestamp(LocalDateTime.now());

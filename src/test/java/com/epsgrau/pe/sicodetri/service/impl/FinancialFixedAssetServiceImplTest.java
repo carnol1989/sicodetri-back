@@ -317,7 +317,7 @@ class FinancialFixedAssetServiceImplTest {
         when(taxTableService.findByAccountigAccountService(S_VAL_332)).thenReturn(taxTable);
 
         // Act
-        service.generateProjectionAdditionsAndDeductionsService(period, financialFixedAssets);
+        service.generateTemporayDeductionsService(period, financialFixedAssets);
 
         // Assert
         verify(taxTableService, times(1)).findByAccountigAccountService(S_VAL_332);
@@ -337,7 +337,7 @@ class FinancialFixedAssetServiceImplTest {
         when(taxTableService.findByAccountigAccountService(S_VAL_332)).thenReturn(taxTable);
 
         // Call the method under test
-        service.generateProjectionAdditionsAndDeductionsService(accountingPeriod, fixedAssets);
+        service.generateTemporayDeductionsService(accountingPeriod, fixedAssets);
 
         // Verify interactions with mocks
         verify(taxTableService).findByAccountigAccountService(S_VAL_332);
@@ -357,7 +357,7 @@ class FinancialFixedAssetServiceImplTest {
         List<FinancialFixedAsset> fixedAssets = List.of(fixedAsset);
 
         // Call the method under test
-        service.generateProjectionAdditionsAndDeductionsService(accountingPeriod, fixedAssets);
+        service.generateTemporayDeductionsService(accountingPeriod, fixedAssets);
 
         // Verify that saveService was not called since taxTable is null
         //verify(depreciationService, never()).saveService(any(FixedAssetDepreciation.class));

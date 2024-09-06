@@ -276,7 +276,7 @@ public class FinancialFixedAssetServiceImpl implements FinancialFixedAssetServic
                                 break;
                         }
                     }
-                    System.out.println(itemInputData);
+                    //System.out.println(itemInputData);
                     listInputData.add(itemInputData);
                 }
             }
@@ -524,7 +524,7 @@ public class FinancialFixedAssetServiceImpl implements FinancialFixedAssetServic
     @Transactional
     @Modifying
     @Override
-    public void generateProjectionAdditionsAndDeductionsService(LocalDate accountingPeriod, List<FinancialFixedAsset> fixedAssets) {
+    public void generateTemporayDeductionsService(LocalDate accountingPeriod, List<FinancialFixedAsset> fixedAssets) {
         TaxTableSunat taxTable = taxTableService.findByAccountigAccountService(S_VAL_332);
         if (taxTable == null) {
             return; // Si no hay tabla de impuestos, no se puede proceder
