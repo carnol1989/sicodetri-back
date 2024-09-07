@@ -177,7 +177,7 @@ public class FinancialFixedAssetController {
         List<FinancialFixedAsset> listFinancialFixedAsset = service.findByPeriodService(periodDate);
 
         if (listFinancialFixedAsset != null && !listFinancialFixedAsset.isEmpty()) {
-            return buildResponse("Se obtuvo informacion para el periodo: " + period, listFinancialFixedAsset.size(), HttpStatus.OK);
+            return buildResponse("Se obtuvo informacion para el periodo: " + period, listFinancialFixedAsset, HttpStatus.OK);
         } else {
             return buildResponseWithError("Error al obtener informacion para el periodo: " + period, HttpStatus.NOT_FOUND, "");
         }
@@ -187,7 +187,7 @@ public class FinancialFixedAssetController {
         List<FinancialFixedAsset> listFinancialFixedAsset = service.findByMainFixedAssetCodeService(mainFixedAssetCode);
 
         if (listFinancialFixedAsset != null && !listFinancialFixedAsset.isEmpty()) {
-            return buildResponse("Se obtuvo informacion para el código de activo fijo principal: " + mainFixedAssetCode, listFinancialFixedAsset.size(), HttpStatus.OK);
+            return buildResponse("Se obtuvo informacion para el código de activo fijo principal: " + mainFixedAssetCode, listFinancialFixedAsset, HttpStatus.OK);
         } else {
             return buildResponseWithError("Error al obtener informacion para el código de activo fijo principal: " + mainFixedAssetCode, HttpStatus.NOT_FOUND, "");
         }
@@ -197,17 +197,17 @@ public class FinancialFixedAssetController {
         List<FinancialFixedAsset> listFinancialFixedAsset = service.findByFixedAssetAccountingAccountService(accountingAccount);
 
         if (listFinancialFixedAsset != null && !listFinancialFixedAsset.isEmpty()) {
-            return buildResponse("Se obtuvo informacion para la cuenta contable: " + accountingAccount, listFinancialFixedAsset.size(), HttpStatus.OK);
+            return buildResponse("Se obtuvo informacion para la cuenta contable: " + accountingAccount, listFinancialFixedAsset, HttpStatus.OK);
         } else {
             return buildResponseWithError("Error al obtener informacion para la cuenta contable: " + accountingAccount, HttpStatus.NOT_FOUND, "");
         }
     }
 
-    private ResponseEntity<ResponseData> buildResponse(String message, int size, HttpStatus status) {
+    private ResponseEntity<ResponseData> buildResponse(String message, Object obj, HttpStatus status) {
         ResponseData responseData = new ResponseData();
         responseData.setTimestamp(LocalDateTime.now());
         responseData.setMessage(message);
-        responseData.setResponse("Cantidad de registros: " + size);
+        responseData.setResponse(obj);
         responseData.setCode(Constants.S_VAL_00);
         return new ResponseEntity<>(responseData, status);
     }

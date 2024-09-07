@@ -111,7 +111,6 @@ class FinancialFixedAssetControllerTest {
 
         // Obtener el contenido de la respuesta
         String responseContent = result.getResponse().getContentAsString();
-        System.out.println("responseContent: " + responseContent);
 
         // Validar el contenido de la respuesta usando jsonPath
         mockMvc.perform(requestBuilder)
@@ -170,7 +169,6 @@ class FinancialFixedAssetControllerTest {
 
         // Obtener el contenido de la respuesta
         String responseContent = result.getResponse().getContentAsString();
-        System.out.println("responseContent: " + responseContent);
 
         // Validar la respuesta
         mockMvc.perform(requestBuilder)
@@ -216,7 +214,6 @@ class FinancialFixedAssetControllerTest {
         // Assert
         assertEquals(HttpStatus.EXPECTATION_FAILED, response.getStatusCode());
         ResponseData responseData = response.getBody();
-        System.out.println("responseData: " + responseData);
         assertNotNull(responseData);
         assertEquals(S_VAL_01, responseData.getCode());
         assertTrue(responseData.getMessage().contains("Error al obtener información"));
@@ -276,7 +273,6 @@ class FinancialFixedAssetControllerTest {
 
         // Act
         ResponseEntity<ResponseData> response = controller.generateProjectionController(period, account);
-        System.out.println(response);
 
         // Assert
         assertEquals(HttpStatus.EXPECTATION_FAILED, response.getStatusCode());

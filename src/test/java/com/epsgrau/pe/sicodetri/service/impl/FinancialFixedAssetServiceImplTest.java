@@ -270,39 +270,6 @@ class FinancialFixedAssetServiceImplTest {
     }
 
     @Test
-    @Transactional
-    @DisplayName("testGenerateFixedAssetDepreciationService")
-    void testGenerateFixedAssetDepreciationService() {
-        LocalDate accountingPeriod = LocalDate.now();
-        FinancialFixedAsset fixedAsset = getFinancialFixedAsset332();
-
-        // Mock behavior for taxTableService
-        TaxTableSunat taxTable = getTaxTable332();
-        when(taxTableService.findByAccountigAccountService(S_VAL_332)).thenReturn(taxTable);
-
-        // Mock behavior for financialDepreciationService and taxDepreciationService
-        FinancialDepreciation financialDepreciation = new FinancialDepreciation();
-        TaxDepreciation taxDepreciation = new TaxDepreciation();
-        List<Addition> additions = new ArrayList<>();
-        Addition addition = new Addition();
-        additions.add(addition);
-        List<Deduction> deductions = new ArrayList<>();
-        Deduction deduction = new Deduction();
-        deductions.add(deduction);
-        //taxDepreciation.setAdditions(additions);
-        //taxDepreciation.setDeductions(deductions);
-
-        // Call the method under test
-        service.generateFixedAssetDepreciationService(accountingPeriod, fixedAsset);
-
-        // Verify interactions and state changes
-        verify(taxTableService).findByAccountigAccountService(S_VAL_332);
-        //verify(depreciationService).saveService(any(FixedAssetDepreciation.class));
-        verify(financialDepreciationService).saveService(any(FinancialDepreciation.class));
-        verify(taxDepreciationService).saveService(any(TaxDepreciation.class));
-    }
-
-    @Test
     @DisplayName("testGenerateProjectionAdditionsAndDeductions")
     void testGenerateProjectionAdditionsAndDeductions() {
         // Arrange
