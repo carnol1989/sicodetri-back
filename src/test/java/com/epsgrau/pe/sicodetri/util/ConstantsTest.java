@@ -17,6 +17,8 @@ public class ConstantsTest {
 
     public static String _BLANK = "";
     public static String S_VAL_ZERO = "0";
+    public static String S_VAL_00 = "00";
+    public static String S_VAL_01 = "01";
     public static String S_VAL_332 = "332";
 
     public static Double D_VAL_ZERO = 0.0;

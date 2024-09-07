@@ -32,14 +32,16 @@ public class Constants {
     public static BigDecimal BD_VAL_12 = new BigDecimal("12");
 
     public static int N_VAL_0 = 0;
-    public static int N_VAL_1 = 1;
-    public static int N_VAL_2 = 2;
-    public static int N_VAL_3 = 3;
+    public static final int N_VAL_1 = 1;
+    public static final int N_VAL_2 = 2;
+    public static final int N_VAL_3 = 3;
     public static int N_VAL_4 = 4;
     public static int N_VAL_9 = 9;
     public static int N_VAL_15 = 15;
     public static String _BLANK = "";
     public static String S_VAL_ZERO = "0";
+    public static String S_VAL_00 = "00";
+    public static String S_VAL_01 = "01";
     public static String S_VAL_332 = "332";
     public static Double D_VAL_ZERO = 0.0;
 
