@@ -10,7 +10,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.*;
-import org.springframework.transaction.annotation.Transactional;
+import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.ByteArrayInputStream;
@@ -26,10 +26,29 @@ import static com.epsgrau.pe.sicodetri.helper.FileExcelHelperTest.*;
 import static com.epsgrau.pe.sicodetri.service.impl.FinancialFixedAssetServiceImpl.getListFinancialFixedAsset;
 import static com.epsgrau.pe.sicodetri.util.Constants.FORMATTER_YYYY_MM_DD;
 import static com.epsgrau.pe.sicodetri.util.ConstantsTest.S_VAL_332;
+import static com.epsgrau.pe.sicodetri.util.ConstantsTest.TYPE_XLSX;
 import static com.epsgrau.pe.sicodetri.util.DataTest.*;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
+/**
+ * This class test for FinancialFixedAssetServiceImpl. <br/>
+ * <b>Class</b>: {@link FinancialFixedAssetServiceImplTest}<br/>
+ * <b>Copyright</b>: &Copy; 2024 EPS Grau. <br/>
+ * <b>Company</b>: EPS Grau. <br/>
+ *
+ * @author EPS Grau <br/>
+ *     <u>Service Provider</u>: Consultor TI <br/>
+ *     <u>Developed by</u>: <br/>
+ *     <ul>
+ *     <li>Carlos Augusto Nole Machaca</li>
+ *     </ul>
+ *     <u>Changes</u>:<br/>
+ *     <ul>
+ *     <li>Ago 17, 2024 (JAR) Creation class.</li>
+ *     </ul>
+ * @version 1.0
+ */
 class FinancialFixedAssetServiceImplTest {
 
     @Mock
@@ -40,9 +59,6 @@ class FinancialFixedAssetServiceImplTest {
 
     @Mock
     private TaxTableSunatService taxTableService;
-
-    /*@Mock
-    private FixedAssetDepreciationService depreciationService;*/
 
     @Mock
     private FinancialDepreciationService financialDepreciationService;
@@ -71,8 +87,8 @@ class FinancialFixedAssetServiceImplTest {
         // Arrange
         String period = "2022-01-01";
         ByteArrayInputStream bais = createMockExcelInputStream();
-        MultipartFile file = mock(MultipartFile.class);
-        when(file.getInputStream()).thenReturn(bais);
+        MockMultipartFile file = new MockMultipartFile("file", "test.xlsx",
+                TYPE_XLSX, bais);
 
         // Act
         List<InputData> result = service.loadExcelFileToObjectService(file, period);
@@ -89,10 +105,9 @@ class FinancialFixedAssetServiceImplTest {
     void testLoadExcelFileToObjectWhenFileIsEmpty() throws IOException {
         // Arrange
         String period = "2022-01-01";
-        MultipartFile file = mock(MultipartFile.class);
-        ByteArrayInputStream bais = new ByteArrayInputStream(new byte[0]);
-        when(file.getInputStream()).thenReturn(bais);
-        when(file.isEmpty()).thenReturn(true);
+        ByteArrayInputStream bais = createMockExcelEmpty();
+        MockMultipartFile file = new MockMultipartFile("file", "test.xlsx",
+                TYPE_XLSX, bais);
 
         // Act
         List<InputData> result = service.loadExcelFileToObjectService(file, period);
@@ -114,7 +129,7 @@ class FinancialFixedAssetServiceImplTest {
             service.loadExcelFileToObjectService(file, period);
         });
 
-        assertTrue(thrown.getMessage().contains("fail to parse Excel file"), "Exception message should indicate failure to parse Excel file.");
+        assertTrue(thrown.getMessage().contains("Failed to parse Excel file"), "Exception message should indicate failure to parse Excel file.");
     }
 
     @Test
@@ -270,79 +285,24 @@ class FinancialFixedAssetServiceImplTest {
     }
 
     @Test
-    @Transactional
-    @DisplayName("testGenerateFixedAssetDepreciationService")
-    void testGenerateFixedAssetDepreciationService() {
-        LocalDate accountingPeriod = LocalDate.now();
-        FinancialFixedAsset fixedAsset = getFinancialFixedAsset332();
-
-        // Mock behavior for taxTableService
-        TaxTableSunat taxTable = getTaxTable332();
-        when(taxTableService.findByAccountigAccountService(S_VAL_332)).thenReturn(taxTable);
-
-        // Mock behavior for financialDepreciationService and taxDepreciationService
-        FinancialDepreciation financialDepreciation = new FinancialDepreciation();
-        TaxDepreciation taxDepreciation = new TaxDepreciation();
-        List<Addition> additions = new ArrayList<>();
-        Addition addition = new Addition();
-        additions.add(addition);
-        List<Deduction> deductions = new ArrayList<>();
-        Deduction deduction = new Deduction();
-        deductions.add(deduction);
-        //taxDepreciation.setAdditions(additions);
-        //taxDepreciation.setDeductions(deductions);
-
-        // Call the method under test
-        service.generateFixedAssetDepreciationService(accountingPeriod, fixedAsset);
-
-        // Verify interactions and state changes
-        verify(taxTableService).findByAccountigAccountService(S_VAL_332);
-        //verify(depreciationService).saveService(any(FixedAssetDepreciation.class));
-        verify(financialDepreciationService).saveService(any(FinancialDepreciation.class));
-        verify(taxDepreciationService).saveService(any(TaxDepreciation.class));
-    }
-
-    @Test
-    @DisplayName("testGenerateProjectionAdditionsAndDeductions")
-    void testGenerateProjectionAdditionsAndDeductions() {
-        // Arrange
-        String accountingPeriod = "2024-01-01";
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern(FORMATTER_YYYY_MM_DD);
-        LocalDate period = LocalDate.parse(accountingPeriod, formatter);
-        List<FinancialFixedAsset> financialFixedAssets = new ArrayList<>();
-        FinancialFixedAsset fixedAsset = getFinancialFixedAsset332();
-        financialFixedAssets.add(fixedAsset);
-        TaxTableSunat taxTable = getTaxTable332();
-
-        when(taxTableService.findByAccountigAccountService(S_VAL_332)).thenReturn(taxTable);
-
-        // Act
-        service.generateProjectionAdditionsAndDeductionsService(period, financialFixedAssets);
-
-        // Assert
-        verify(taxTableService, times(1)).findByAccountigAccountService(S_VAL_332);
-        //verify(depreciationService, atLeast(1)).saveService(any(FixedAssetDepreciation.class));
-        verify(financialDepreciationService, atLeast(1)).saveService(any(FinancialDepreciation.class));
-    }
-
-    @Test
     @DisplayName("testGenerateProjectionAdditionsAndDeductionsService with Non-Null Tax Table")
     void testGenerateProjectionAdditionsAndDeductionsServiceWithNonNullTaxTable() {
         LocalDate accountingPeriod = LocalDate.parse("2022-01-01");
-        FinancialFixedAsset fixedAsset = getFinancialFixedAsset332();
-        List<FinancialFixedAsset> fixedAssets = List.of(fixedAsset);
+        List<FinancialFixedAsset> fixedAssets = getListFinancialFixedAsset332();
         TaxTableSunat taxTable = getTaxTable332();
 
         // Setup mock behaviors
         when(taxTableService.findByAccountigAccountService(S_VAL_332)).thenReturn(taxTable);
 
         // Call the method under test
-        service.generateProjectionAdditionsAndDeductionsService(accountingPeriod, fixedAssets);
+        service.generateTemporayDeductionsService(accountingPeriod, fixedAssets);
 
         // Verify interactions with mocks
         verify(taxTableService).findByAccountigAccountService(S_VAL_332);
-        //verify(depreciationService, atLeastOnce()).saveService(any(FixedAssetDepreciation.class));
-        verify(financialDepreciationService, atLeastOnce()).saveService(any(FinancialDepreciation.class));
+        verify(financialDepreciationService, atLeastOnce()).saveAllService(anyList());
+        verify(taxDepreciationService, atLeastOnce()).saveAllService(anyList());
+        verify(deductionService, atLeastOnce()).saveAllService(anyList());
+        verify(additionService, atLeastOnce()).saveAllService(anyList());
     }
 
     @Test
@@ -357,7 +317,7 @@ class FinancialFixedAssetServiceImplTest {
         List<FinancialFixedAsset> fixedAssets = List.of(fixedAsset);
 
         // Call the method under test
-        service.generateProjectionAdditionsAndDeductionsService(accountingPeriod, fixedAssets);
+        service.generateTemporayDeductionsService(accountingPeriod, fixedAssets);
 
         // Verify that saveService was not called since taxTable is null
         //verify(depreciationService, never()).saveService(any(FixedAssetDepreciation.class));

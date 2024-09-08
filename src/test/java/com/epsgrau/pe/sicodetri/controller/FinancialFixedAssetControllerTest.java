@@ -1,14 +1,12 @@
 package com.epsgrau.pe.sicodetri.controller;
 
 import com.epsgrau.pe.sicodetri.entity.FinancialFixedAsset;
-import com.epsgrau.pe.sicodetri.exception.ExceptionResponse;
 import com.epsgrau.pe.sicodetri.exception.GlobalExceptionHandler;
 import com.epsgrau.pe.sicodetri.model.InputData;
 import com.epsgrau.pe.sicodetri.model.ResponseData;
 import com.epsgrau.pe.sicodetri.service.FinancialFixedAssetService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
-import org.hamcrest.Matchers;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -43,6 +41,24 @@ import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
+/**
+ * This class test for FinancialFixedAssetController. <br/>
+ * <b>Class</b>: {@link FinancialFixedAssetControllerTest}<br/>
+ * <b>Copyright</b>: &Copy; 2024 EPS Grau. <br/>
+ * <b>Company</b>: EPS Grau. <br/>
+ *
+ * @author EPS Grau <br/>
+ *     <u>Service Provider</u>: Consultor TI <br/>
+ *     <u>Developed by</u>: <br/>
+ *     <ul>
+ *     <li>Carlos Augusto Nole Machaca</li>
+ *     </ul>
+ *     <u>Changes</u>:<br/>
+ *     <ul>
+ *     <li>Ago 17, 2024 (JAR) Creation class.</li>
+ *     </ul>
+ * @version 1.0
+ */
 class FinancialFixedAssetControllerTest {
 
     public static String BASE_URI = "/api/v1/financial-fixed-assets";
@@ -96,20 +112,16 @@ class FinancialFixedAssetControllerTest {
         // Obtener el contenido de la respuesta
         String responseContent = result.getResponse().getContentAsString();
 
-        // Imprimir el contenido de la respuesta y el estado (opcional)
-        System.out.println("Response Status: " + result.getResponse().getStatus());
-        System.out.println("Response Content: " + responseContent);
-
         // Validar el contenido de la respuesta usando jsonPath
         mockMvc.perform(requestBuilder)
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.code").value("00"))
-                .andExpect(jsonPath("$.message").value("Archivo subio correctamente: test.xlsx"))
+                .andExpect(jsonPath("$.code").value(S_VAL_00))
+                .andExpect(jsonPath("$.message").value("Archivo subido correctamente: test.xlsx"))
                 .andExpect(jsonPath("$.timestamp").exists()) // Validar que timestamp existe
-                .andExpect(jsonPath("$.exception").value(new ExceptionResponse())) // Validar que `exception` es un objeto
-                .andExpect(jsonPath("$.exception.timestamp").value(Matchers.nullValue())) // Validar campo timestamp del objeto `ExceptionResponse` sean null
-                .andExpect(jsonPath("$.exception.message").value(Matchers.nullValue())) // Validar campo message del objeto `ExceptionResponse` sean null
-                .andExpect(jsonPath("$.exception.details").value(Matchers.nullValue())); // Validar campo details del objeto `ExceptionResponse` sean null
+                .andExpect(jsonPath("$.exception").isEmpty()) // Validar que `exception` es un objeto
+                .andExpect(jsonPath("$.exception.timestamp").doesNotExist()) // Validar campo timestamp del objeto `ExceptionResponse` sean null
+                .andExpect(jsonPath("$.exception.message").doesNotExist()) // Validar campo message del objeto `ExceptionResponse` sean null
+                .andExpect(jsonPath("$.exception.details").doesNotExist()); // Validar campo details del objeto `ExceptionResponse` sean null
     }
 
     @Test
@@ -133,7 +145,7 @@ class FinancialFixedAssetControllerTest {
 
         // Validar la respuesta
         assertEquals(HttpStatus.EXPECTATION_FAILED.value(), result.getResponse().getStatus());
-        assertTrue(responseContent.contains("Error al cargar archivo"));
+        assertTrue(responseContent.contains("Formato no permitido. Debe ser"));
     }
 
     @Test
@@ -144,7 +156,7 @@ class FinancialFixedAssetControllerTest {
         MultipartFile file = new MockMultipartFile("file", "test.xlsx", TYPE_XLSX, bais);
 
         // Configurar el comportamiento del servicio para lanzar una excepción
-        when(service.loadExcelFileToObjectService(file, "2022-01-01")).thenThrow(new RuntimeException("Error al cargar archivo: test.xlsx"));
+        when(service.loadExcelFileToObjectService(file, "2022-01-01")).thenThrow(new RuntimeException("Error al procesar archivo: test.xlsx"));
 
         // Establecer la sesión en el request simulado
         MockHttpServletRequestBuilder requestBuilder = multipart(BASE_URI + "/upload")
@@ -158,15 +170,11 @@ class FinancialFixedAssetControllerTest {
         // Obtener el contenido de la respuesta
         String responseContent = result.getResponse().getContentAsString();
 
-        // Imprimir el contenido de la respuesta y el estado (opcional)
-        System.out.println("Response Status: " + result.getResponse().getStatus());
-        System.out.println("Response Content: " + responseContent);
-
         // Validar la respuesta
         mockMvc.perform(requestBuilder)
                 .andExpect(status().isExpectationFailed()) // Verifica el código de estado 417
-                .andExpect(jsonPath("$.code").value("01"))
-                .andExpect(jsonPath("$.message").value("Error al cargar archivo: test.xlsx"))
+                .andExpect(jsonPath("$.code").value(S_VAL_01))
+                .andExpect(jsonPath("$.message").value("Error al subir archivo."))
                 .andExpect(jsonPath("$.timestamp").exists()) // Validar que timestamp existe
                 .andExpect(jsonPath("$.exception").exists()) // Validar que `exception` existe
                 .andExpect(jsonPath("$.exception.timestamp").exists()) // Validar campo timestamp del objeto `ExceptionResponse`
@@ -175,72 +183,20 @@ class FinancialFixedAssetControllerTest {
     }
 
     @Test
-    @DisplayName("testGenerateProjectionController_Success")
-    void testGenerateProjectionController_Success() {
-        String period = "2022-01-01";
-
-        when(service.findByPeriodAndAccountStartingWithService(any(LocalDate.class), anyString())).thenReturn(getListFinancialFixedAsset());
-
-        ResponseEntity<ResponseData> response = controller.generateProjectionController(period, S_VAL_332, request);
-
-        assertEquals(HttpStatus.OK, response.getStatusCode());
-        assertEquals("00", response.getBody().getCode());
-        assertTrue(response.getBody().getMessage().contains("Proyeccion generada correctamente"));
-    }
-
-    @Test
-    @DisplayName("testGenerateProjectionController_Failure")
-    void testGenerateProjectionController_Failure() {
-        when(service.findByPeriodAndAccountStartingWithService(any(LocalDate.class), anyString())).thenReturn(new ArrayList<>());
-
-        ResponseEntity<ResponseData> response = controller.generateProjectionController("2024-08-01", "account", request);
-
-        assertEquals(HttpStatus.EXPECTATION_FAILED, response.getStatusCode());
-        assertEquals("01", response.getBody().getCode());
-        assertTrue(response.getBody().getMessage().contains("Error al generar proyeccion"));
-    }
-
-    @Test
-    @DisplayName("testGenerateProjectionController_ExceptionHandling")
-    void testGenerateProjectionController_ExceptionHandling() {
-        // Arrange
-        String period = "2024-08-01";
-        String account = "account";
-        HttpServletRequest request = mock(HttpServletRequest.class);
-
-        // Simulate the service to throw an exception
-        when(service.findByPeriodAndAccountStartingWithService(any(LocalDate.class), anyString()))
-                .thenThrow(new RuntimeException("Simulated exception"));
-
-        // Act
-        ResponseEntity<ResponseData> response = controller.generateProjectionController(period, account, request);
-        System.out.println(response);
-
-        // Assert
-        assertEquals(HttpStatus.EXPECTATION_FAILED, response.getStatusCode());
-
-        ResponseData responseData = response.getBody();
-        assertNotNull(responseData);
-        assertEquals("01", responseData.getCode());
-        assertTrue(responseData.getMessage().startsWith("Error al generar proyeccion."));
-        assertTrue(responseData.getException().getMessage().contains("Error al generar proyeccion."));
-        assertTrue(responseData.getException().getDetails().contains("Mensaje: Simulated exception"));
-        assertNotNull(responseData.getException().getTimestamp());
-    }
-
-    @Test
+    @DisplayName("testSaveFinancialFixedAssetController_Success")
     void testSaveFinancialFixedAssetController_Success() {
-        List<InputData> inputDataList = new ArrayList<>();
+        List<InputData> inputDataList = getListInputData();
         when(session.getAttribute(LIST_INPUT_DATA)).thenReturn(inputDataList);
 
         ResponseEntity<ResponseData> response = controller.saveFinancialFixedAssetController("2022-01-01", session);
 
         assertEquals(HttpStatus.CREATED, response.getStatusCode());
-        assertEquals("00", response.getBody().getCode());
-        assertTrue(response.getBody().getMessage().contains("Informacion guardada de manera correcta"));
+        assertEquals(S_VAL_00, response.getBody().getCode());
+        assertTrue(response.getBody().getMessage().contains("Información guardada correctamente"));
     }
 
     @Test
+    @DisplayName("testSaveFinancialFixedAssetController_ExceptionHandling")
     void testSaveFinancialFixedAssetController_ExceptionHandling() {
         // Arrange
         String period = "2024-08-01";
@@ -259,21 +215,75 @@ class FinancialFixedAssetControllerTest {
         assertEquals(HttpStatus.EXPECTATION_FAILED, response.getStatusCode());
         ResponseData responseData = response.getBody();
         assertNotNull(responseData);
-        assertEquals("01", responseData.getCode());
-        assertTrue(responseData.getMessage().contains("Error al guardar informacion para el periodo"));
+        assertEquals(S_VAL_01, responseData.getCode());
+        assertTrue(responseData.getMessage().contains("Error al obtener información"));
         assertNotNull(responseData.getException());
         assertEquals("Mensaje: Test Exception\nCausa: null", responseData.getException().getDetails());
     }
 
     @Test
+    @DisplayName("testSaveFinancialFixedAssetController_Failure")
     void testSaveFinancialFixedAssetController_Failure() {
         when(session.getAttribute(LIST_INPUT_DATA)).thenReturn(null);
 
         ResponseEntity<ResponseData> response = controller.saveFinancialFixedAssetController("2024-08", session);
 
         assertEquals(HttpStatus.EXPECTATION_FAILED, response.getStatusCode());
-        assertEquals("01", response.getBody().getCode());
-        assertTrue(response.getBody().getMessage().contains("Error al guardar informacion"));
+        assertEquals(S_VAL_01, response.getBody().getCode());
+        assertTrue(response.getBody().getMessage().contains("Error al obtener información de entrada"));
+    }
+
+    @Test
+    @DisplayName("testGenerateProjectionController_Success")
+    void testGenerateProjectionController_Success() {
+        String period = "2022-01-01";
+
+        when(service.findByPeriodAndAccountStartingWithService(any(LocalDate.class), anyString())).thenReturn(getListFinancialFixedAsset());
+
+        ResponseEntity<ResponseData> response = controller.generateProjectionController(period, S_VAL_332);
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertEquals(S_VAL_00, response.getBody().getCode());
+        assertTrue(response.getBody().getMessage().contains("Proyección generada correctamente"));
+    }
+
+    @Test
+    @DisplayName("testGenerateProjectionController_Failure")
+    void testGenerateProjectionController_Failure() {
+        when(service.findByPeriodAndAccountStartingWithService(any(LocalDate.class), anyString())).thenReturn(new ArrayList<>());
+
+        ResponseEntity<ResponseData> response = controller.generateProjectionController("2024-08-01", "account");
+
+        assertEquals(HttpStatus.EXPECTATION_FAILED, response.getStatusCode());
+        assertEquals(S_VAL_01, response.getBody().getCode());
+        assertTrue(response.getBody().getMessage().contains("Error al generar proyección"));
+    }
+
+    @Test
+    @DisplayName("testGenerateProjectionController_ExceptionHandling")
+    void testGenerateProjectionController_ExceptionHandling() {
+        // Arrange
+        String period = "2024-08-01";
+        String account = "account";
+        HttpServletRequest request = mock(HttpServletRequest.class);
+
+        // Simulate the service to throw an exception
+        when(service.findByPeriodAndAccountStartingWithService(any(LocalDate.class), anyString()))
+                .thenThrow(new RuntimeException("Simulated exception"));
+
+        // Act
+        ResponseEntity<ResponseData> response = controller.generateProjectionController(period, account);
+
+        // Assert
+        assertEquals(HttpStatus.EXPECTATION_FAILED, response.getStatusCode());
+
+        ResponseData responseData = response.getBody();
+        assertNotNull(responseData);
+        assertEquals(S_VAL_01, responseData.getCode());
+        assertTrue(responseData.getMessage().startsWith("Error al generar proyección"));
+        assertTrue(responseData.getException().getMessage().contains("Error al generar proyección"));
+        assertTrue(responseData.getException().getDetails().contains("Mensaje: Simulated exception"));
+        assertNotNull(responseData.getException().getTimestamp());
     }
 
     @ParameterizedTest

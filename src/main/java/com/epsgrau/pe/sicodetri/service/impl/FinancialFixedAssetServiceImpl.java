@@ -19,13 +19,13 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.Period;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Optional;
 
@@ -73,218 +73,99 @@ public class FinancialFixedAssetServiceImpl implements FinancialFixedAssetServic
 
     @Override
     public List<InputData> loadExcelFileToObjectService(MultipartFile file, String period) {
-        List<InputData> listInputData = new ArrayList<InputData>();
-        try {
+        List<InputData> listInputData = new ArrayList<>();
+
+        try (Workbook workbook = new XSSFWorkbook(file.getInputStream())) {
+
             if (file.isEmpty() || file.getInputStream().available() == 0) {
                 return listInputData;
             }
 
-            Workbook workbook = new XSSFWorkbook(file.getInputStream());
-
             Sheet sheet = workbook.getSheetAt(0);
-            Iterator<Row> rows = sheet.iterator();
             int physicalNumberOfRows = sheet.getPhysicalNumberOfRows();
-            //System.out.println("physicalNumberOfRows: " + physicalNumberOfRows);
 
-            while (rows.hasNext()) {
-                Row currentRow = rows.next();
-                int rowNum = currentRow.getRowNum();
-                //System.out.println("rowNum: " + rowNum);
+            for (Row row : sheet) {
+                int rowNum = row.getRowNum();
 
-                // skip header
-                if (rowNum > 10 && (rowNum < physicalNumberOfRows)) {
-                    Iterator<Cell> cellsInRow = currentRow.iterator();
-
-                    InputData itemInputData = new InputData();
-                    itemInputData.setAccountingPeriod(period);
-                    FixedAssetDetail itemInputDataDetail = new FixedAssetDetail();
-                    Depreciation itemInputDataDepreciation = new Depreciation();
-
-                    while (cellsInRow.hasNext()) {
-                        Cell currentCell = cellsInRow.next();
-                        int columnIndex = currentCell.getColumnIndex();
-                        //System.out.println("columnIndex: " + columnIndex);
-                        //System.out.println("cellType: " + currentCell.getCellType() + "\tvalueCurrentCell: " + String.valueOf(getValueCell(currentCell)));
-                        switch (columnIndex) {
-                            case 0:
-                                String mainFixAssetCode = (getValueCell(currentCell) != null ? String.valueOf(getValueCell(currentCell)) : _BLANK);
-                                itemInputData.setMainFixedAssetCode(mainFixAssetCode);
-                                break;
-
-                            case 1:
-                                String fixedAssetCodeComponent = (getValueCell(currentCell) != null ? String.valueOf(getValueCell(currentCell)) : _BLANK);
-                                itemInputData.setFixedAssetCodeComponent(fixedAssetCodeComponent);
-                                break;
-
-                            case 2:
-                                String fixedAssetAccountingAccount = (getValueCell(currentCell) != null ? String.valueOf(getValueCell(currentCell)) : _BLANK);
-                                itemInputData.setFixedAssetAccountingAccount(fixedAssetAccountingAccount);
-                                break;
-
-                            case 3:
-                                String description = (getValueCell(currentCell) != null ? String.valueOf(getValueCell(currentCell)) : _BLANK);
-                                itemInputDataDetail.setDescription(description);
-                                itemInputData.setFixedAssetDetail(itemInputDataDetail);
-                                break;
-
-                            case 4:
-                                String fixedAssetBrand = (getValueCell(currentCell) != null ? String.valueOf(getValueCell(currentCell)) : _BLANK);
-                                itemInputDataDetail.setFixedAssetBrand(fixedAssetBrand);
-                                itemInputData.setFixedAssetDetail(itemInputDataDetail);
-                                break;
-
-                            case 5:
-                                String fixedAssetModel = (getValueCell(currentCell) != null ? String.valueOf(getValueCell(currentCell)) : _BLANK);
-                                itemInputDataDetail.setFixedAssetModel(fixedAssetModel);
-                                itemInputData.setFixedAssetDetail(itemInputDataDetail);
-                                break;
-
-                            case 6:
-                                String fixedSerialNumberOrPlate = (getValueCell(currentCell) != null ? String.valueOf(getValueCell(currentCell)) : _BLANK);
-                                itemInputDataDetail.setFixedAssetSerialNumberAndOrPlate(fixedSerialNumberOrPlate);
-                                itemInputData.setFixedAssetDetail(itemInputDataDetail);
-                                break;
-
-                            case 7:
-                                String initialBalance = (getValueCell(currentCell) != null ? String.valueOf(getValueCell(currentCell)) : S_VAL_ZERO);
-                                itemInputData.setInitialBalance(initialBalance);
-                                break;
-
-                            case 8:
-                                String acquisitionsAdditions = (getValueCell(currentCell) != null ? String.valueOf(getValueCell(currentCell)) : S_VAL_ZERO);
-                                itemInputData.setAcquisitionsAdditions(acquisitionsAdditions);
-                                break;
-
-                            case 9:
-                                String improvements = (getValueCell(currentCell) != null ? String.valueOf(getValueCell(currentCell)) : S_VAL_ZERO);
-                                itemInputData.setImprovements(improvements);
-                                break;
-
-                            case 10:
-                                String transfersAndOrReclassifications = (getValueCell(currentCell) != null ? String.valueOf(getValueCell(currentCell)) : S_VAL_ZERO);
-                                itemInputData.setTransfersAndOrReclassifications(transfersAndOrReclassifications);
-                                break;
-
-                            case 11:
-                                String withDrawalsAndOrRetirements = (getValueCell(currentCell) != null ? String.valueOf(getValueCell(currentCell)) : S_VAL_ZERO);
-                                itemInputData.setWithdrawalsAndOrRetirements(withDrawalsAndOrRetirements);
-                                break;
-
-                            case 12:
-                                String otherAdjustments = (getValueCell(currentCell) != null ? String.valueOf(getValueCell(currentCell)) : S_VAL_ZERO);
-                                itemInputData.setOtherAdjustments(otherAdjustments);
-                                break;
-
-                            case 13:
-                                String bookValueOfFixedAssets = (getValueCell(currentCell) != null ? String.valueOf(getValueCell(currentCell)) : S_VAL_ZERO);
-                                itemInputData.setBookValueOfFixedAssets(bookValueOfFixedAssets);
-                                break;
-
-                            case 14:
-                                String inflationAdjustment = (getValueCell(currentCell) != null ? String.valueOf(getValueCell(currentCell)) : S_VAL_ZERO);
-                                itemInputData.setInflationAdjustment(inflationAdjustment);
-
-                            case 15:
-                                String adjustedValueOfFixedAssets = (getValueCell(currentCell) != null ? String.valueOf(getValueCell(currentCell)) : S_VAL_ZERO);
-                                itemInputData.setAdjustedValueOfFixedAssets(adjustedValueOfFixedAssets);
-                                break;
-
-                            case 16:
-                                String acquisitionDate = (getValueCell(currentCell) != null ? String.valueOf(getValueCell(currentCell)) : S_DATE_DEFAULT);
-                                if (acquisitionDate.contains("/")) {
-                                    String[] arrayAcquisitionDate = acquisitionDate.split("/");
-                                    acquisitionDate = arrayAcquisitionDate[2] + "-" + arrayAcquisitionDate[1] + "-" + arrayAcquisitionDate[0];
-                                }
-                                itemInputData.setAcquisitionDate(acquisitionDate);
-                                break;
-
-                            case 17:
-                                String startDateFixedAssetUsage = (getValueCell(currentCell) != null ? String.valueOf(getValueCell(currentCell)) : S_DATE_DEFAULT);
-                                if (startDateFixedAssetUsage.contains("/")) {
-                                    String[] arrayAcquisitionDate = startDateFixedAssetUsage.split("/");
-                                    startDateFixedAssetUsage = arrayAcquisitionDate[2] + "-" + arrayAcquisitionDate[1] + "-" + arrayAcquisitionDate[0];
-                                }
-                                itemInputData.setStartDateFixedAssetUsage(startDateFixedAssetUsage);
-                                break;
-
-                            case 18:
-                                String retirementDate = (getValueCell(currentCell) != null ? String.valueOf(getValueCell(currentCell)) : S_DATE_DEFAULT);
-                                if (retirementDate.contains("/")) {
-                                    String[] arrayRetirementDate = retirementDate.split("/");
-                                    retirementDate = arrayRetirementDate[2] + "-" + arrayRetirementDate[1] + "-" + arrayRetirementDate[0];
-                                }
-                                itemInputData.setRetirementDate(retirementDate);
-                                break;
-
-                            case 19:
-                                String appliedMethod = (getValueCell(currentCell) != null ? String.valueOf(getValueCell(currentCell)) : _BLANK);
-                                itemInputDataDepreciation.setAppliedMethod(appliedMethod);
-                                itemInputData.setDepreciation(itemInputDataDepreciation);
-                                break;
-
-                            case 20:
-                                String authorizationDocumentNumber = (getValueCell(currentCell) != null ? String.valueOf(getValueCell(currentCell)) : _BLANK);
-                                itemInputDataDepreciation.setAuthorizationDocumentNumber(authorizationDocumentNumber);
-                                itemInputData.setDepreciation(itemInputDataDepreciation);
-                                break;
-
-                            case 21:
-                                String useFullLifeYears = (getValueCell(currentCell) != null ? String.valueOf(getValueCell(currentCell)) : S_VAL_ZERO);
-                                itemInputData.setUsefulLifeYears(useFullLifeYears);
-                                break;
-
-                            case 22:
-                                String accumulatedDepreciationTheEndPrevious = (getValueCell(currentCell) != null ? String.valueOf(getValueCell(currentCell)) : S_VAL_ZERO);
-                                itemInputData.setAccumulatedDepreciationTheEndPrevious(accumulatedDepreciationTheEndPrevious);
-                                break;
-
-                            case 23:
-                                String currentDepreciation = (getValueCell(currentCell) != null ? String.valueOf(getValueCell(currentCell)) : S_VAL_ZERO);
-                                itemInputData.setCurrentDepreciation(currentDepreciation);
-                                break;
-
-                            case 24:
-                                String currentDepreciationRelatedWithDrawalsRetirements = (getValueCell(currentCell) != null ? String.valueOf(getValueCell(currentCell)) : S_VAL_ZERO);
-                                itemInputData.setCurrentDepreciationRelatedWithdrawalsRetirements(currentDepreciationRelatedWithDrawalsRetirements);
-                                break;
-
-                            case 25:
-                                String currentDepreciationRelatedOtherAdjustments = (getValueCell(currentCell) != null ? String.valueOf(getValueCell(currentCell)) : S_VAL_ZERO);
-                                itemInputData.setCurrentDepreciationRelatedOtherAdjustments(currentDepreciationRelatedOtherAdjustments);
-                                break;
-
-                            case 26:
-                                String accumulatedHistoricalDepreciation = (getValueCell(currentCell) != null ? String.valueOf(getValueCell(currentCell)) : S_VAL_ZERO);
-                                itemInputData.setAccumulatedHistoricalDepreciation(accumulatedHistoricalDepreciation);
-
-                            case 27:
-                                String depreciationInflationAdjustment = (getValueCell(currentCell) != null ? String.valueOf(getValueCell(currentCell)) : S_VAL_ZERO);
-                                itemInputData.setDepreciationInflationAdjustment(depreciationInflationAdjustment);
-                                break;
-
-                            case 28:
-                                String accumulatedDepreciationAdjustedInflation = (getValueCell(currentCell) != null ? String.valueOf(getValueCell(currentCell)) : S_VAL_ZERO);
-                                itemInputData.setAccumulatedDepreciationAdjustedInflation(accumulatedDepreciationAdjustedInflation);
-                                break;
-
-                            case 30:
-                                String netFixedAssets = (getValueCell(currentCell) != null ? String.valueOf(getValueCell(currentCell)) : S_VAL_ZERO);
-                                itemInputData.setNetFixedAssets(String.valueOf(netFixedAssets));
-                                break;
-
-                            default:
-                                break;
-                        }
-                    }
-                    System.out.println(itemInputData);
-                    listInputData.add(itemInputData);
+                // Omitir encabezado y filas fuera de rango
+                if (rowNum <= 10 || rowNum >= physicalNumberOfRows) {
+                    continue;
                 }
+
+                InputData inputData = new InputData();
+                inputData.setAccountingPeriod(period);
+                FixedAssetDetail assetDetail = new FixedAssetDetail();
+                Depreciation depreciation = new Depreciation();
+
+                for (Cell cell : row) {
+                    processCell(cell, inputData, assetDetail, depreciation);
+                }
+
+                inputData.setFixedAssetDetail(assetDetail);
+                inputData.setDepreciation(depreciation);
+                listInputData.add(inputData);
             }
-            workbook.close();
+
         } catch (IOException e) {
-            throw new RuntimeException("fail to parse Excel file: " + e.getMessage());
+            throw new RuntimeException("Failed to parse Excel file: " + e.getMessage(), e);
         }
+
         return listInputData;
+    }
+
+    private void processCell(Cell cell, InputData inputData, FixedAssetDetail assetDetail, Depreciation depreciation) {
+        int columnIndex = cell.getColumnIndex();
+        String cellValue = getCellValue(cell);
+
+        switch (columnIndex) {
+            case 0 -> inputData.setMainFixedAssetCode(cellValue);
+            case 1 -> inputData.setFixedAssetCodeComponent(cellValue);
+            case 2 -> inputData.setFixedAssetAccountingAccount(cellValue);
+            case 3 -> assetDetail.setDescription(cellValue);
+            case 4 -> assetDetail.setFixedAssetBrand(cellValue);
+            case 5 -> assetDetail.setFixedAssetModel(cellValue);
+            case 6 -> assetDetail.setFixedAssetSerialNumberAndOrPlate(cellValue);
+            case 7 -> inputData.setInitialBalance(cellValue);
+            case 8 -> inputData.setAcquisitionsAdditions(cellValue);
+            case 9 -> inputData.setImprovements(cellValue);
+            case 10 -> inputData.setTransfersAndOrReclassifications(cellValue);
+            case 11 -> inputData.setWithdrawalsAndOrRetirements(cellValue);
+            case 12 -> inputData.setOtherAdjustments(cellValue);
+            case 13 -> inputData.setBookValueOfFixedAssets(cellValue);
+            case 14 -> inputData.setInflationAdjustment(cellValue);
+            case 15 -> inputData.setAdjustedValueOfFixedAssets(cellValue);
+            case 16 -> inputData.setAcquisitionDate(formatDate(cellValue));
+            case 17 -> inputData.setStartDateFixedAssetUsage(formatDate(cellValue));
+            case 18 -> inputData.setRetirementDate(formatDate(cellValue));
+            case 19 -> depreciation.setAppliedMethod(cellValue);
+            case 20 -> depreciation.setAuthorizationDocumentNumber(cellValue);
+            case 21 -> inputData.setUsefulLifeYears(cellValue);
+            case 22 -> inputData.setAccumulatedDepreciationTheEndPrevious(cellValue);
+            case 23 -> inputData.setCurrentDepreciation(cellValue);
+            case 24 -> inputData.setCurrentDepreciationRelatedWithdrawalsRetirements(cellValue);
+            case 25 -> inputData.setCurrentDepreciationRelatedOtherAdjustments(cellValue);
+            case 26 -> inputData.setAccumulatedHistoricalDepreciation(cellValue);
+            case 27 -> inputData.setDepreciationInflationAdjustment(cellValue);
+            case 28 -> inputData.setAccumulatedDepreciationAdjustedInflation(cellValue);
+            case 30 -> inputData.setNetFixedAssets(cellValue);
+            default -> {
+            }
+        }
+    }
+
+    private String getCellValue(Cell cell) {
+        Object value = getValueCell(cell);
+        return value != null ? String.valueOf(value) : _BLANK;
+    }
+
+    private String formatDate(String date) {
+        if (date.contains("/")) {
+            String[] dateParts = date.split("/");
+            return dateParts[2] + "-" + dateParts[1] + "-" + dateParts[0];
+        } else if (date.contains("-")) {
+            return date;
+        }
+        return S_DATE_DEFAULT;
     }
 
     @Override
@@ -452,79 +333,10 @@ public class FinancialFixedAssetServiceImpl implements FinancialFixedAssetServic
         repository.deleteByAccountingPeriod(period);
     }
 
-    @Override
-    @Transactional
-    @Modifying
-    public void generateFixedAssetDepreciationService(LocalDate accountingPeriod, FinancialFixedAsset fixedAsset) {
-        if (fixedAsset.getFixedAssetAccountingAccount().startsWith(S_VAL_332)) {
-            TaxTableSunat taxTable = taxTableService.findByAccountigAccountService(S_VAL_332);
-            if (taxTable != null) {
-                List<FinancialDepreciation> financialDepreciations = new ArrayList<>();
-                List<TaxDepreciation> taxDepreciations = new ArrayList<>();
-                FixedAssetDepreciation fixedAssetDepreciation = new FixedAssetDepreciation();
-                fixedAssetDepreciation.setFixedAsset(fixedAsset);
-                fixedAssetDepreciation.setAccountingPeriod(accountingPeriod);
-                fixedAssetDepreciation.setFinancialDepreciations(financialDepreciations);
-                fixedAssetDepreciation.setTaxDepreciations(taxDepreciations);
-                fixedAssetDepreciation.setAddedBy("CARNOL");
-                fixedAssetDepreciation.setAdditionDate(LocalDateTime.now());
-                //depreciationService.saveService(fixedAssetDepreciation);
-
-                FinancialDepreciation financialDepreciation = new FinancialDepreciation();
-                financialDepreciation.setAccountingPeriod(accountingPeriod);
-                financialDepreciation.calculateDepreciation(fixedAsset);
-                financialDepreciation.setAddedBy("CARNOL");
-                financialDepreciation.setAdditionDate(LocalDateTime.now());
-                financialDepreciationService.saveService(financialDepreciation);
-                financialDepreciations.add(financialDepreciation);
-
-                List<Addition> additions = new ArrayList<>();
-                List<Deduction> deductions = new ArrayList<>();
-                TaxDepreciation taxDepreciation = new TaxDepreciation();
-                //taxDepreciation.setFixedAsset(fixedAsset);
-                taxDepreciation.setAccountingPeriod(accountingPeriod);
-                taxDepreciation.calculateDepreciation(fixedAsset, taxTable, null, null);
-                //taxDepreciation.setAdditions(additions);
-                //taxDepreciation.setDeductions(deductions);
-                taxDepreciation.setAddedBy("CARNOL");
-                taxDepreciation.setAdditionDate(LocalDateTime.now());
-                taxDepreciationService.saveService(taxDepreciation);
-                taxDepreciations.add(taxDepreciation);
-
-                financialDepreciation.setModifiedBy("CARNOL");
-                financialDepreciation.setModificationDate(LocalDateTime.now());
-                //depreciationService.updateService(financialDepreciation);
-
-                Deduction deduction = new Deduction();
-                Addition addition = new Addition();
-                if (financialDepreciation.getValueDepreciation().compareTo(taxDepreciation.getValueDepreciation()) > N_VAL_1) {
-                    addition.setAccountingPeriod(accountingPeriod);
-                    addition.setValueAddition(financialDepreciation.getValueDepreciation());
-                    addition.setModifiedBy("CARNOL");
-                    addition.setModificationDate(LocalDateTime.now());
-                    additionService.saveService(addition);
-                    additions.add(addition);
-                } else {
-                    deduction.setAccountingPeriod(accountingPeriod);
-                    deduction.setValueDeduction(financialDepreciation.getValueDepreciation().subtract(taxDepreciation.getValueDepreciation()));
-                    deduction.setModifiedBy("CARNOL");
-                    deduction.setModificationDate(LocalDateTime.now());
-                    deductionService.saveService(deduction);
-                    deductions.add(deduction);
-                }
-                //taxDepreciation.setAdditions(additions);
-                //taxDepreciation.setDeductions(deductions);
-                taxDepreciation.setModifiedBy("CARNOL");
-                taxDepreciation.setModificationDate(LocalDateTime.now());
-                taxDepreciationService.updateService(taxDepreciation);
-            }
-        }
-    }
-
     @Transactional
     @Modifying
     @Override
-    public void generateProjectionAdditionsAndDeductionsService(LocalDate accountingPeriod, List<FinancialFixedAsset> fixedAssets) {
+    public void generateTemporayDeductionsService(LocalDate accountingPeriod, List<FinancialFixedAsset> fixedAssets) {
         TaxTableSunat taxTable = taxTableService.findByAccountigAccountService(S_VAL_332);
         if (taxTable == null) {
             return; // Si no hay tabla de impuestos, no se puede proceder
@@ -587,9 +399,7 @@ public class FinancialFixedAssetServiceImpl implements FinancialFixedAssetServic
             projection.getTaxDepreciationList().add(taxDepreciation);
 
             BigDecimal valueAdditionOrDeduction = BigDecimal.ZERO;
-            /*System.out.println("Periodo: " + projection.getAccountigPeriodNext());
-            System.out.println("Depreciación Tributaria: " + taxDepreciation.getValueDepreciation() + "\tValor Neto Tributario: "
-                    + taxDepreciation.getNetTaxValue() + "\nDepreciación Financiera: " + financialDepreciation.getValueDepreciation());*/
+
             if (taxDepreciation.getValueDepreciation().compareTo(financialDepreciation.getValueDepreciation()) > 0 &&
                     taxDepreciation.getNetTaxValue().compareTo(BigDecimal.ZERO) > 0) {
                 valueAdditionOrDeduction = taxDepreciation.getValueDepreciation().subtract(financialDepreciation.getValueDepreciation());

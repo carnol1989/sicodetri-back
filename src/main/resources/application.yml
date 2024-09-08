@@ -35,7 +35,13 @@ info:
     artifact-id: @project.artifactId@
 
 server:
-  port: 8081
+  port: 8082
+
+springdoc:
+  api-docs:
+    enabled: true
+  swagger-ui:
+    enabled: true
 
 logging:
   level:

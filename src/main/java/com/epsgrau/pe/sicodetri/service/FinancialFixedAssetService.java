@@ -40,9 +40,7 @@ public interface FinancialFixedAssetService {
 
     void deleteByAccountingPeriod(LocalDate period);
 
-    void generateFixedAssetDepreciationService(LocalDate accountingPeriod, FinancialFixedAsset fixedAsset);
-
-    void generateProjectionAdditionsAndDeductionsService(LocalDate accountingPeriod, List<FinancialFixedAsset> fixedAsset);
+    void generateTemporayDeductionsService(LocalDate accountingPeriod, List<FinancialFixedAsset> fixedAsset);
 
     FinancialFixedAsset findByIdService(Long id);
 
