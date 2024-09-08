@@ -25,7 +25,6 @@ import java.time.format.DateTimeFormatter;
 public class Constants {
 
     public static String LIST_INPUT_DATA = "listInputData";
-    public static String TYPE_XLS = "application/vnd.ms-excel";
     public static String TYPE_XLSX = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
 
     public static BigDecimal BD_VAL_100 = new BigDecimal("100");
@@ -35,11 +34,9 @@ public class Constants {
     public static final int N_VAL_1 = 1;
     public static final int N_VAL_2 = 2;
     public static final int N_VAL_3 = 3;
-    public static int N_VAL_4 = 4;
     public static int N_VAL_9 = 9;
     public static int N_VAL_15 = 15;
     public static String _BLANK = "";
-    public static String S_VAL_ZERO = "0";
     public static String S_VAL_00 = "00";
     public static String S_VAL_01 = "01";
     public static String S_VAL_332 = "332";

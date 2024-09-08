@@ -13,6 +13,24 @@ import java.util.List;
 
 import static com.epsgrau.pe.sicodetri.util.ConstantsTest.*;
 
+/**
+ * Util class for test data. <br/>
+ * <b>Class</b>: {@link DataTest}<br/>
+ * <b>Copyright</b>: &Copy; 2024 EPS Grau. <br/>
+ * <b>Company</b>: EPS Grau. <br/>
+ *
+ * @author EPS Grau <br/>
+ *     <u>Service Provider</u>: Consultor TI <br/>
+ *     <u>Developed by</u>: <br/>
+ *     <ul>
+ *     <li>Carlos Augusto Nole Machaca</li>
+ *     </ul>
+ *     <u>Changes</u>:<br/>
+ *     <ul>
+ *     <li>Ago 27, 2024 (JAR) Creation class.</li>
+ *     </ul>
+ * @version 1.0
+ */
 public class DataTest {
 
     public static List<InputData> getListInputData() {
@@ -177,16 +195,6 @@ public class DataTest {
         taxTable.setAnnualRate(0);
         taxTable.setStatus("S");
         return taxTable;
-    }
-
-    public static FixedAssetDepreciation getFixedAssetDepreciation() {
-        FixedAssetDepreciation fixedAssetDepreciation = new FixedAssetDepreciation();
-        fixedAssetDepreciation.setId(1L);
-        fixedAssetDepreciation.setAccountingPeriod(LocalDate.parse("2022-01-01"));
-        fixedAssetDepreciation.setFixedAsset(getFinancialFixedAsset332());
-        fixedAssetDepreciation.setFinancialDepreciations(getListFinancialDepreciations());
-        fixedAssetDepreciation.setTaxDepreciations(getListTaxDepreciations());
-        return fixedAssetDepreciation;
     }
 
     public static List<FinancialDepreciation> getListFinancialDepreciations() {

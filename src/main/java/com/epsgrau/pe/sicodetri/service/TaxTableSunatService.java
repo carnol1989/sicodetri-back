@@ -2,7 +2,6 @@ package com.epsgrau.pe.sicodetri.service;
 
 import com.epsgrau.pe.sicodetri.entity.TaxTableSunat;
 
-import java.util.List;
 
 /**
  * This class is the interface of the service for Tax Table Sunat. <br/>

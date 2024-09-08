@@ -37,6 +37,12 @@ info:
 server:
   port: 8082
 
+springdoc:
+  api-docs:
+    enabled: true
+  swagger-ui:
+    enabled: true
+
 logging:
   level:
     org:

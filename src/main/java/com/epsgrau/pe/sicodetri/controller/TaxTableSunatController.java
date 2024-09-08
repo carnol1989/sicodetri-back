@@ -2,7 +2,6 @@ package com.epsgrau.pe.sicodetri.controller;
 
 import com.epsgrau.pe.sicodetri.entity.TaxTableSunat;
 import com.epsgrau.pe.sicodetri.exception.ExceptionResponse;
-import com.epsgrau.pe.sicodetri.exception.ResourceNotFoundException;
 import com.epsgrau.pe.sicodetri.model.ResponseData;
 import com.epsgrau.pe.sicodetri.service.TaxTableSunatService;
 import io.swagger.v3.oas.annotations.Operation;

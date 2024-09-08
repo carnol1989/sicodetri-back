@@ -2,11 +2,10 @@ package com.epsgrau.pe.sicodetri.repository;
 
 import com.epsgrau.pe.sicodetri.entity.TaxTableSunat;
 import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.repository.CrudRepository;
 import org.springframework.stereotype.Repository;
 
 /**
- * This class is a repository para entity Tax Table SUNAT. <br/>
+ * This class is a repository for entity Tax Table SUNAT. <br/>
  * <b>Class</b>: {@link TaxTableSunatRepository}<br/>
  * <b>Copyright</b>: &Copy; 2024 EPS Grau. <br/>
  * <b>Company</b>: EPS Grau. <br/>

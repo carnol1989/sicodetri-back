@@ -19,13 +19,13 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.Period;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Optional;
 
@@ -76,6 +76,7 @@ public class FinancialFixedAssetServiceImpl implements FinancialFixedAssetServic
         List<InputData> listInputData = new ArrayList<>();
 
         try (Workbook workbook = new XSSFWorkbook(file.getInputStream())) {
+
             if (file.isEmpty() || file.getInputStream().available() == 0) {
                 return listInputData;
             }
@@ -398,9 +399,7 @@ public class FinancialFixedAssetServiceImpl implements FinancialFixedAssetServic
             projection.getTaxDepreciationList().add(taxDepreciation);
 
             BigDecimal valueAdditionOrDeduction = BigDecimal.ZERO;
-            /*System.out.println("Periodo: " + projection.getAccountigPeriodNext());
-            System.out.println("Depreciación Tributaria: " + taxDepreciation.getValueDepreciation() + "\tValor Neto Tributario: "
-                    + taxDepreciation.getNetTaxValue() + "\nDepreciación Financiera: " + financialDepreciation.getValueDepreciation());*/
+
             if (taxDepreciation.getValueDepreciation().compareTo(financialDepreciation.getValueDepreciation()) > 0 &&
                     taxDepreciation.getNetTaxValue().compareTo(BigDecimal.ZERO) > 0) {
                 valueAdditionOrDeduction = taxDepreciation.getValueDepreciation().subtract(financialDepreciation.getValueDepreciation());

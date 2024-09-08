@@ -9,6 +9,24 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 
+/**
+ * Utility class to handle Excel data and methods. <br/>
+ * <b>Class</b>: {@link FileExcelHelperTest}<br/>
+ * <b>Copyright</b>: &Copy; 2024 EPS Grau. <br/>
+ * <b>Company</b>: EPS Grau. <br/>
+ *
+ * @author EPS Grau <br/>
+ *     <u>Service Provider</u>: Consultor TI <br/>
+ *     <u>Developed by</u>: <br/>
+ *     <ul>
+ *     <li>Carlos Augusto Nole Machaca</li>
+ *     </ul>
+ *     <u>Changes</u>:<br/>
+ *     <ul>
+ *     <li>Ago 18, 2024 (JAR) Creation class.</li>
+ *     </ul>
+ * @version 1.0
+ */
 public class FileExcelHelperTest {
 
     public static ByteArrayInputStream createMockExcelInputStreamData() throws IOException {
@@ -40,8 +58,46 @@ public class FileExcelHelperTest {
 
         Sheet sheet = workbook.createSheet("CTA33");
 
-        createRowHeaderFile(sheet, 12);
-        Row row = sheet.createRow(12);
+        Row row0 = sheet.createRow(0);
+        row0.createCell(0).setCellValue("FORMATO 7.1: REGISTRO DE ACTIVOS FIJOS - DETALLE DE LOS ACTIVOS FIJOS - FINANCIERO");
+
+        Row row1 = sheet.createRow(1);
+        row1.createCell(0).setCellValue("");
+
+        Row row2 = sheet.createRow(2);
+        row2.createCell(0).setCellValue("PERÍODO:");
+        row2.createCell(1).setCellValue("");
+        row2.createCell(2).setCellValue("");
+        row2.createCell(3).setCellValue("31/12/2022");
+
+        Row row3 = sheet.createRow(3);
+        row3.createCell(0).setCellValue("RUC:");
+        row3.createCell(1).setCellValue("");
+        row3.createCell(2).setCellValue("");
+        row3.createCell(3).setCellValue("2010276292");
+
+        Row row4 = sheet.createRow(4);
+        row4.createCell(0).setCellValue("ENTIDAD PRESTADORA DE SERVICIOS DE SANEAMIENTO GRAU S.A");
+
+        Row row5 = sheet.createRow(5);
+        row5.createCell(0).setCellValue("");
+
+        Row row6 = sheet.createRow(6);
+        row6.createCell(0).setCellValue("");
+
+        Row row7 = sheet.createRow(7);
+        row7.createCell(0).setCellValue("CÓDIGO");
+
+        Row row8 = sheet.createRow(8);
+        row8.createCell(0).setCellValue("ACTIVO");
+
+        Row row9 = sheet.createRow(9);
+        row9.createCell(0).setCellValue("FIJO");
+
+        Row row10 = sheet.createRow(10);
+        row10.createCell(0).setCellValue("PRINCIPAL");
+
+        Row row = sheet.createRow(11);
         row.createCell(0).setCellValue("21.02.010149");
         row.createCell(1).setCellValue("");
         row.createCell(2).setCellValue("01261110039");
@@ -80,6 +136,17 @@ public class FileExcelHelperTest {
 
         out.close();
 
+        return bais;
+    }
+
+    public static ByteArrayInputStream createMockExcelEmpty() throws IOException {
+        Workbook workbook = new XSSFWorkbook();
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        workbook.createSheet("CTA33");
+        workbook.write(out);
+        workbook.close();
+        ByteArrayInputStream bais = new ByteArrayInputStream(out.toByteArray());
+        out.close();
         return bais;
     }
 

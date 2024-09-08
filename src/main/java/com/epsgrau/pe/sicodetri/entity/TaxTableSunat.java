@@ -1,5 +1,6 @@
 package com.epsgrau.pe.sicodetri.entity;
 
+import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
@@ -25,6 +26,7 @@ import lombok.NoArgsConstructor;
  *     </ul>
  * @version 1.0
  */
+@Schema(description = "Información de la Tasas de Sunat.")
 @Entity
 @Table
 @Data
@@ -32,22 +34,27 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 public class TaxTableSunat {
 
+    @Schema(description = "Identificador del modelo", example = "1")
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Schema(description = "Cuenta contable", example = "332")
     @Column
     private String accountingAccount;
 
+    @Schema(description = "Descripción de tasa tributaria", example = "Edificaciones y Otras Construcciones")
     @Column
     @NotNull
     @Size(max = 255, message = "Descripción debe ser máximo de 255 caracteres.")
     private String description;
 
+    @Schema(description = "Tasa anual tributaria", example = "5%")
     @Column
     @NotNull
     private Integer annualRate;
 
+    @Schema(description = "Indicador de estado del registro", example = "S")
     @Column
     @NotNull
     @Size(max = 1)
