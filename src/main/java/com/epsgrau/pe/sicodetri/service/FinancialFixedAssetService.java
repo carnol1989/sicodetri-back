@@ -1,10 +1,8 @@
 package com.epsgrau.pe.sicodetri.service;
 
+import com.epsgrau.pe.sicodetri.dto.FinancialFixedAssetDto;
 import com.epsgrau.pe.sicodetri.entity.FinancialFixedAsset;
-import com.epsgrau.pe.sicodetri.entity.TaxTableSunat;
 import com.epsgrau.pe.sicodetri.model.InputData;
-import com.epsgrau.pe.sicodetri.service.impl.TaxTableSunatServiceImpl;
-import jakarta.persistence.Column;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDate;
@@ -53,5 +51,7 @@ public interface FinancialFixedAssetService {
     List<FinancialFixedAsset> findByPeriodService(LocalDate period);
 
     List<FinancialFixedAsset> findByPeriodAndAccountStartingWithService(LocalDate period, String account);
+
+    List<FinancialFixedAssetDto> callGetReportTaxBookService(int year);
 
 }

@@ -1,28 +1,42 @@
 package com.epsgrau.pe.sicodetri.controller;
 
+import com.epsgrau.pe.sicodetri.dto.FinancialFixedAssetDto;
 import com.epsgrau.pe.sicodetri.entity.FinancialFixedAsset;
 import com.epsgrau.pe.sicodetri.exception.ExceptionResponse;
+import com.epsgrau.pe.sicodetri.exception.ResourceNotFoundException;
 import com.epsgrau.pe.sicodetri.model.InputData;
 import com.epsgrau.pe.sicodetri.model.ResponseData;
 import com.epsgrau.pe.sicodetri.service.FinancialFixedAssetService;
+import com.epsgrau.pe.sicodetri.service.ReportJasperService;
 import com.epsgrau.pe.sicodetri.util.Constants;
+import com.epsgrau.pe.sicodetri.util.enums.ReportTypeEnum;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.io.ByteArrayResource;
+import org.springframework.core.io.InputStreamResource;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import static com.epsgrau.pe.sicodetri.helper.ExcelHelper.hasExcelFormat;
 import static com.epsgrau.pe.sicodetri.util.Constants.*;
@@ -51,6 +65,9 @@ public class FinancialFixedAssetController {
 
     @Autowired
     private FinancialFixedAssetService service;
+
+    @Autowired
+    private ReportJasperService reportJasperService;
 
     private ResponseEntity<ResponseData> handleException(String messageError, Exception e, HttpStatus statusCode) {
         ResponseData responseData = new ResponseData();
@@ -168,6 +185,52 @@ public class FinancialFixedAssetController {
             String message = "Error al obtener informacion del activo fijo: " + accountingAccount;
             String detailError = "Mensaje: " + e.getMessage() + "\nCausa: " + e.getCause();
             return buildResponseWithError(message, HttpStatus.EXPECTATION_FAILED, detailError);
+        }
+    }
+
+    @Operation(summary = "Obtener reporte del Libro Tributario.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Se obtuvo informacion para el periodo.",
+                    content = {@Content(mediaType = "application/json",
+                            schema = @Schema(implementation = ResponseData.class))}),
+            @ApiResponse(responseCode = "404", description = "Error al obtener informacion para el periodo.",
+                    content = @Content)
+    })
+    @GetMapping(value = "/report", produces = MediaType.APPLICATION_OCTET_STREAM_VALUE)
+    public ResponseEntity<?> callGetReportTaxBookController(@RequestParam("fileType") String fileType,
+                                                                 @RequestParam int year) {
+        try {
+            ReportTypeEnum reportType = ReportTypeEnum.getReportTypeByCode(fileType);
+            List<FinancialFixedAssetDto> reportList = service.callGetReportTaxBookService(year);
+            if (!reportList.isEmpty() && reportList != null) {
+                Map<String, Object> parameters = new HashMap<>();
+                parameters.put("companyName", "EPS GRAU S.A");
+                parameters.put("period", String.valueOf(year));
+                parameters.put("ruc", "2010276292");
+                byte[] bytes = reportJasperService.getJasperReportInBytes("rpt_tax_book.jrxml", fileType, parameters,
+                        reportList);
+                if (null != bytes) {
+                    ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream(bytes);
+                    InputStreamResource resource = new InputStreamResource(byteArrayInputStream);
+                    String fileName = "Libro_Tributario_Activo_Fijo" + "_" + LocalDateTime.now() + reportType.getExtension();
+                    HttpHeaders headers = new HttpHeaders();
+                    headers.setContentType(new MediaType("application", "force-download"));
+                    headers.set(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=" + fileName);
+                    return  ResponseEntity.ok()
+                            .headers(headers)
+                            .contentType(MediaType.APPLICATION_OCTET_STREAM)
+                            .body(resource);
+                } else {
+                    throw new ResourceNotFoundException("Error al obtener reporte");
+                }
+            } else {
+                throw new ResourceNotFoundException("No hay información para el periodo.");
+            }
+        } catch (Exception e) {
+            String message = "Error al obtener informacion para el año: " + year;
+            String detailError = "Mensaje: " + e.getMessage() + "\nCausa: " + e.getCause();
+            System.out.println("Message: " + message + "\nDetalles: " + detailError);
+            throw new ResourceNotFoundException("Error al obtener reporte");
         }
     }
 

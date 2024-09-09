@@ -54,6 +54,11 @@ public class TaxTableSunat {
     @NotNull
     private Integer annualRate;
 
+    @Schema(description = "Años de vida util tributaria", example = "20")
+    @Column
+    @NotNull
+    private Integer usefulLifeYears;
+
     @Schema(description = "Indicador de estado del registro", example = "S")
     @Column
     @NotNull

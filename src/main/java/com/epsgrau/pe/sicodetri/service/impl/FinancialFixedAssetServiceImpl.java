@@ -1,10 +1,12 @@
 package com.epsgrau.pe.sicodetri.service.impl;
 
+import com.epsgrau.pe.sicodetri.dto.FinancialFixedAssetDto;
 import com.epsgrau.pe.sicodetri.entity.*;
 import com.epsgrau.pe.sicodetri.model.Depreciation;
 import com.epsgrau.pe.sicodetri.model.FixedAssetDetail;
 import com.epsgrau.pe.sicodetri.model.InputData;
 import com.epsgrau.pe.sicodetri.model.Projection;
+import com.epsgrau.pe.sicodetri.repository.FinancialFixedAssetJdbcRepository;
 import com.epsgrau.pe.sicodetri.repository.FinancialFixedAssetRepository;
 import com.epsgrau.pe.sicodetri.service.*;
 import org.apache.poi.ss.usermodel.Cell;
@@ -27,6 +29,7 @@ import java.time.Period;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import static com.epsgrau.pe.sicodetri.helper.ExcelHelper.getValueCell;
@@ -55,6 +58,9 @@ public class FinancialFixedAssetServiceImpl implements FinancialFixedAssetServic
 
     @Autowired
     private FinancialFixedAssetRepository repository;
+
+    @Autowired
+    private FinancialFixedAssetJdbcRepository repositoryJdbc;
 
     @Autowired
     private FinancialDepreciationService financialDepreciationService;
@@ -148,6 +154,8 @@ public class FinancialFixedAssetServiceImpl implements FinancialFixedAssetServic
             case 27 -> inputData.setDepreciationInflationAdjustment(cellValue);
             case 28 -> inputData.setAccumulatedDepreciationAdjustedInflation(cellValue);
             case 30 -> inputData.setNetFixedAssets(cellValue);
+            case 31 -> inputData.setHistoricalCost(cellValue);
+            case 32 -> inputData.setRevaluedAmount(cellValue);
             default -> {
             }
         }
@@ -177,11 +185,7 @@ public class FinancialFixedAssetServiceImpl implements FinancialFixedAssetServic
     public static List<FinancialFixedAsset> getListFinancialFixedAsset(String accountingPeriod, List<InputData> listInputData) {
         List<FinancialFixedAsset> list = new ArrayList<>();
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern(FORMATTER_YYYY_MM_DD);
-        int row = 0;
         for (InputData itemInputData : listInputData) {
-            //System.out.println("row: "+ row);
-            //System.out.println(itemInputData.toString());
-
             if (accountingPeriod.equals(itemInputData.getAccountingPeriod())) {
                 FinancialFixedAsset itemFinancialFixedAsset = new FinancialFixedAsset();
 
@@ -308,12 +312,18 @@ public class FinancialFixedAssetServiceImpl implements FinancialFixedAssetServic
                         BigDecimal.ZERO);
                 itemFinancialFixedAsset.setNetFixedAssets(netFixedAssets);//30
 
+                BigDecimal historicalCost = (itemInputData.getHistoricalCost() != null ? new BigDecimal(itemInputData.getHistoricalCost()) :
+                        BigDecimal.ZERO);
+                itemFinancialFixedAsset.setHistoricalCost(historicalCost);//31
+
+                BigDecimal revaluedAmount = (itemInputData.getRevaluedAmount() != null ? new BigDecimal(itemInputData.getRevaluedAmount()) :
+                        BigDecimal.ZERO);
+                itemFinancialFixedAsset.setRevaluedAmount(revaluedAmount);//32
+
                 itemFinancialFixedAsset.setAddedBy("CARNOL");
                 itemFinancialFixedAsset.setAdditionDate(LocalDateTime.now());
                 list.add(itemFinancialFixedAsset);
             }
-
-            row++;
         }
         return list;
     }
@@ -351,7 +361,8 @@ public class FinancialFixedAssetServiceImpl implements FinancialFixedAssetServic
 
     private boolean isEligibleForDepreciation(FinancialFixedAsset fixedAsset) {
         return !fixedAsset.getAcquisitionDate().equals(LOCAL_DATE_DEFAULT) &&
-                fixedAsset.getInitialBalance().compareTo(BigDecimal.ZERO) > N_VAL_0;
+                fixedAsset.getInitialBalance().compareTo(BigDecimal.ZERO) > N_VAL_0 &&
+                fixedAsset.getRevaluedAmount().compareTo(BigDecimal.ZERO) == N_VAL_0;
     }
 
     private void processAssetDepreciation(FinancialFixedAsset fixedAsset, LocalDate accountingPeriod, TaxTableSunat taxTable) {
@@ -497,6 +508,11 @@ public class FinancialFixedAssetServiceImpl implements FinancialFixedAssetServic
     @Override
     public List<FinancialFixedAsset> findByPeriodAndAccountStartingWithService(LocalDate period, String account) {
         return new ArrayList<>(repository.findByAccountingPeriodAndFixedAssetAccountingAccountStartingWith(period, account));
+    }
+
+    @Override
+    public List<FinancialFixedAssetDto> callGetReportTaxBookService(int year) {
+        return repositoryJdbc.callGetReportTaxBookJdbc(year);
     }
 
 }

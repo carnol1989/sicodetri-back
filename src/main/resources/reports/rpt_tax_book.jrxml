@@ -1,0 +1,896 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Created with Jaspersoft Studio version 6.21.3.final using JasperReports Library version 6.21.3-4a3078d20785ebe464f18037d738d12fc98c13cf  -->
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="rpt_tax_book" pageWidth="2520" pageHeight="595" orientation="Landscape" columnWidth="2480" leftMargin="20" rightMargin="20" topMargin="20" bottomMargin="20" uuid="777aa203-3611-43a4-b5f8-4e4f54f58ef9">
+    <parameter name="companyName" class="java.lang.String"/>
+    <parameter name="period" class="java.lang.String"/>
+    <parameter name="ruc" class="java.lang.String"/>
+    <parameter name="financialFixedAssetList" class="net.sf.jasperreports.engine.data.JRBeanCollectionDataSource"/>
+    <queryString>
+        <![CDATA[]]>
+    </queryString>
+    <field name="mainFixedAssetCode" class="java.lang.String"/>
+    <field name="fixedAssetCodeComponent" class="java.lang.String"/>
+    <field name="fixedAssetAccountingAccount" class="java.lang.String"/>
+    <field name="description" class="java.lang.String"/>
+    <field name="fixedAssetBrand" class="java.lang.String"/>
+    <field name="fixedAssetModel" class="java.lang.String"/>
+    <field name="fixedAssetSerialNumberAndOrPlate" class="java.lang.String"/>
+    <field name="initialBalance" class="java.math.BigDecimal"/>
+    <field name="revaluedAmount" class="java.math.BigDecimal"/>
+    <field name="acquisitionsAdditions" class="java.math.BigDecimal"/>
+    <field name="withdrawalsAndOrRetirements" class="java.math.BigDecimal"/>
+    <field name="otherAdjustments" class="java.math.BigDecimal"/>
+    <field name="bookValueOfFixedAssets" class="java.math.BigDecimal"/>
+    <field name="acquisitionDate" class="java.time.LocalDate"/>
+    <field name="startDateFixedAssetUsage" class="java.time.LocalDate"/>
+    <field name="retirementDate" class="java.time.LocalDate"/>
+    <field name="appliedMethod" class="java.lang.String"/>
+    <field name="authorizationDocumentNumber" class="java.lang.String"/>
+    <field name="usefulLifeYears" class="java.lang.Integer"/>
+    <field name="annualRate" class="java.lang.String"/>
+    <field name="annualAccumulatedDepreciationPriorPeriod" class="java.math.BigDecimal"/>
+    <field name="currentDepreciation" class="java.math.BigDecimal"/>
+    <field name="currentDepreciationRelatedWithdrawalsRetirements" class="java.math.BigDecimal"/>
+    <field name="currentDepreciationRelatedOtherAdjustments" class="java.math.BigDecimal"/>
+    <field name="historicalAccumulatedDepreciation" class="java.math.BigDecimal"/>
+    <field name="netFixedAssets" class="java.math.BigDecimal"/>
+    <background>
+        <band splitType="Stretch"/>
+    </background>
+    <title>
+        <band height="100" splitType="Stretch">
+            <staticText>
+                <reportElement x="0" y="0" width="800" height="20" uuid="df96d02d-3470-4726-8a0d-cd25d511eb4d"/>
+                <textElement verticalAlignment="Middle">
+                    <font fontName="Arial Narrow" size="14" isBold="true"/>
+                </textElement>
+                <text><![CDATA[FORMATO 7.1: REGISTRO DE ACTIVOS FIJOS - DETALLE DE LOS ACTIVOS FIJOS -TRIBUTARIO]]></text>
+            </staticText>
+            <staticText>
+                <reportElement x="0" y="26" width="80" height="20" uuid="b8b7410c-2d4b-49db-9541-fa7317072e5c"/>
+                <textElement verticalAlignment="Middle">
+                    <font fontName="Arial Narrow" size="12" isBold="true"/>
+                </textElement>
+                <text><![CDATA[PERIODO:]]></text>
+            </staticText>
+            <staticText>
+                <reportElement x="0" y="46" width="80" height="18" uuid="57bca562-5935-48dc-825b-3b49f4986ec0"/>
+                <textElement verticalAlignment="Middle">
+                    <font fontName="Arial Narrow" size="12" isBold="true"/>
+                </textElement>
+                <text><![CDATA[RUC:]]></text>
+            </staticText>
+            <textField>
+                <reportElement x="0" y="64" width="100" height="22" uuid="d80473f4-b931-40d3-b3e3-e24ca893f712"/>
+                <textElement verticalAlignment="Middle">
+                    <font fontName="Arial Narrow" size="12" isBold="true"/>
+                </textElement>
+                <textFieldExpression><![CDATA[$P{companyName}]]></textFieldExpression>
+            </textField>
+            <textField>
+                <reportElement x="140" y="28" width="100" height="16" uuid="628ab36b-50b1-4c7b-b16f-f882330c0bf5"/>
+                <textElement verticalAlignment="Middle">
+                    <font fontName="Arial Narrow" size="12"/>
+                </textElement>
+                <textFieldExpression><![CDATA[$P{period}]]></textFieldExpression>
+            </textField>
+            <textField>
+                <reportElement x="140" y="47" width="100" height="16" uuid="7ffd0667-75b1-4421-acd0-fa6a222f2c33"/>
+                <textElement verticalAlignment="Middle">
+                    <font fontName="Arial Narrow" size="12"/>
+                </textElement>
+                <textFieldExpression><![CDATA[$P{ruc}]]></textFieldExpression>
+            </textField>
+        </band>
+    </title>
+    <pageHeader>
+        <band height="51" splitType="Stretch">
+            <textField>
+                <reportElement x="2090" y="0" width="380" height="30" uuid="0e680625-40f5-4450-b555-039930c62a69"/>
+                <textElement textAlignment="Right" verticalAlignment="Middle">
+                    <font fontName="Arial Narrow" size="12"/>
+                </textElement>
+                <textFieldExpression><![CDATA[new java.text.SimpleDateFormat("dd/MM/yyyy HH:mm:ss").format(new java.util.Date())]]></textFieldExpression>
+            </textField>
+        </band>
+    </pageHeader>
+    <columnHeader>
+        <band height="62" splitType="Stretch">
+            <staticText>
+                <reportElement x="0" y="0" width="100" height="61" uuid="611a42fa-fafb-45a1-8051-beb9fbe6b47e"/>
+                <box>
+                    <pen lineWidth="0.25"/>
+                    <topPen lineWidth="0.25"/>
+                    <leftPen lineWidth="0.25"/>
+                    <bottomPen lineWidth="0.25"/>
+                    <rightPen lineWidth="0.25"/>
+                </box>
+                <textElement textAlignment="Center" verticalAlignment="Middle">
+                    <font fontName="Arial Narrow" size="9" isBold="true" isItalic="false"/>
+                </textElement>
+                <text><![CDATA[CÓDIGO ACTIVO FIJO PRINCIPAL]]></text>
+            </staticText>
+            <staticText>
+                <reportElement x="100" y="0" width="100" height="61" uuid="668c37f5-1a92-48c5-949f-02b137fb3c94"/>
+                <box>
+                    <pen lineWidth="0.25"/>
+                    <topPen lineWidth="0.25"/>
+                    <leftPen lineWidth="0.25"/>
+                    <bottomPen lineWidth="0.25"/>
+                    <rightPen lineWidth="0.25"/>
+                </box>
+                <textElement textAlignment="Center" verticalAlignment="Middle">
+                    <font fontName="Arial Narrow" size="9" isBold="true" isItalic="false"/>
+                </textElement>
+                <text><![CDATA[CÓDIGO ACTIVO FIJO COMPONENTE]]></text>
+            </staticText>
+            <staticText>
+                <reportElement x="200" y="0" width="100" height="61" uuid="2d4820c5-6818-43c8-88f3-deb1bcb8e070"/>
+                <box>
+                    <pen lineWidth="0.25"/>
+                    <topPen lineWidth="0.25"/>
+                    <leftPen lineWidth="0.25"/>
+                    <bottomPen lineWidth="0.25"/>
+                    <rightPen lineWidth="0.25"/>
+                </box>
+                <textElement textAlignment="Center" verticalAlignment="Middle">
+                    <font fontName="Arial Narrow" size="9" isBold="true" isItalic="false"/>
+                </textElement>
+                <text><![CDATA[CUENTA CONTABLE DEL ACTIVO FIJO]]></text>
+            </staticText>
+            <staticText>
+                <reportElement x="300" y="31" width="150" height="31" uuid="21149891-acaa-4a5c-bd24-aeffe135e010"/>
+                <box>
+                    <pen lineWidth="0.25"/>
+                    <topPen lineWidth="0.25"/>
+                    <leftPen lineWidth="0.25"/>
+                    <bottomPen lineWidth="0.25"/>
+                    <rightPen lineWidth="0.25"/>
+                </box>
+                <textElement textAlignment="Center" verticalAlignment="Middle">
+                    <font fontName="Arial Narrow" size="9" isBold="true" isItalic="false"/>
+                </textElement>
+                <text><![CDATA[DESCRIPCIÓN]]></text>
+            </staticText>
+            <staticText>
+                <reportElement x="450" y="31" width="100" height="31" uuid="40a545e9-8824-4b55-8c79-fd63a017768c"/>
+                <box>
+                    <pen lineWidth="0.25"/>
+                    <topPen lineWidth="0.25"/>
+                    <leftPen lineWidth="0.25"/>
+                    <bottomPen lineWidth="0.25"/>
+                    <rightPen lineWidth="0.25"/>
+                </box>
+                <textElement textAlignment="Center" verticalAlignment="Middle">
+                    <font fontName="Arial Narrow" size="9" isBold="true" isItalic="false"/>
+                </textElement>
+                <text><![CDATA[MARCA DEL ACTIVO FIJO]]></text>
+            </staticText>
+            <staticText>
+                <reportElement x="550" y="31" width="100" height="31" uuid="6e94e176-b7f9-4b3f-9acf-6d6154388dec"/>
+                <box>
+                    <pen lineWidth="0.25"/>
+                    <topPen lineWidth="0.25"/>
+                    <leftPen lineWidth="0.25"/>
+                    <bottomPen lineWidth="0.25"/>
+                    <rightPen lineWidth="0.25"/>
+                </box>
+                <textElement textAlignment="Center" verticalAlignment="Middle">
+                    <font fontName="Arial Narrow" size="9" isBold="true" isItalic="false"/>
+                </textElement>
+                <text><![CDATA[MODELO DEL ACTIVO FIJO]]></text>
+            </staticText>
+            <staticText>
+                <reportElement x="650" y="31" width="100" height="31" uuid="7fd6893d-5e79-4917-8eea-0415f5dfbe21"/>
+                <box>
+                    <pen lineWidth="0.25"/>
+                    <topPen lineWidth="0.25"/>
+                    <leftPen lineWidth="0.25"/>
+                    <bottomPen lineWidth="0.25"/>
+                    <rightPen lineWidth="0.25"/>
+                </box>
+                <textElement textAlignment="Center" verticalAlignment="Middle">
+                    <font fontName="Arial Narrow" size="9" isBold="true" isItalic="false"/>
+                </textElement>
+                <text><![CDATA[NÚMERO DE SERIE Y/O PLACA DEL ACTIVO FIJO]]></text>
+            </staticText>
+            <staticText>
+                <reportElement x="300" y="0" width="450" height="31" uuid="b3aef38d-59ee-446d-86f4-28f96afec460"/>
+                <box>
+                    <pen lineWidth="0.25"/>
+                    <topPen lineWidth="0.25"/>
+                    <leftPen lineWidth="0.25"/>
+                    <bottomPen lineWidth="0.25"/>
+                    <rightPen lineWidth="0.25"/>
+                </box>
+                <textElement textAlignment="Center" verticalAlignment="Middle">
+                    <font fontName="Arial Narrow" size="9" isBold="true" isItalic="false"/>
+                </textElement>
+                <text><![CDATA[DETALLE DEL ACTIVO FIJO]]></text>
+            </staticText>
+            <staticText>
+                <reportElement x="750" y="0" width="100" height="62" uuid="ef5863b4-5396-4f1d-84d0-9feb7a5661a6"/>
+                <box>
+                    <pen lineWidth="0.25"/>
+                    <topPen lineWidth="0.25"/>
+                    <leftPen lineWidth="0.25"/>
+                    <bottomPen lineWidth="0.25"/>
+                    <rightPen lineWidth="0.25"/>
+                </box>
+                <textElement textAlignment="Center" verticalAlignment="Middle">
+                    <font fontName="Arial Narrow" size="9" isBold="true" isItalic="false"/>
+                </textElement>
+                <text><![CDATA[COSTO HISTÓRICO]]></text>
+            </staticText>
+            <staticText>
+                <reportElement x="850" y="0" width="100" height="62" uuid="3aa77c3b-9912-4b4c-8618-7ca66303196f"/>
+                <box>
+                    <pen lineWidth="0.25"/>
+                    <topPen lineWidth="0.25"/>
+                    <leftPen lineWidth="0.25"/>
+                    <bottomPen lineWidth="0.25"/>
+                    <rightPen lineWidth="0.25"/>
+                </box>
+                <textElement textAlignment="Center" verticalAlignment="Middle">
+                    <font fontName="Arial Narrow" size="9" isBold="true" isItalic="false"/>
+                </textElement>
+                <text><![CDATA[VALOR REVALUADO]]></text>
+            </staticText>
+            <staticText>
+                <reportElement x="950" y="0" width="100" height="62" uuid="7ba854e5-d62e-476a-a846-b0dedbdff46a"/>
+                <box>
+                    <pen lineWidth="0.25"/>
+                    <topPen lineWidth="0.25"/>
+                    <leftPen lineWidth="0.25"/>
+                    <bottomPen lineWidth="0.25"/>
+                    <rightPen lineWidth="0.25"/>
+                </box>
+                <textElement textAlignment="Center" verticalAlignment="Middle">
+                    <font fontName="Arial Narrow" size="9" isBold="true" isItalic="false"/>
+                </textElement>
+                <text><![CDATA[VALOR ADQUISICIONES]]></text>
+            </staticText>
+            <staticText>
+                <reportElement x="1050" y="0" width="100" height="62" uuid="3a1b85d0-3d3d-45dc-85c3-c0a89be3c444"/>
+                <box>
+                    <pen lineWidth="0.25"/>
+                    <topPen lineWidth="0.25"/>
+                    <leftPen lineWidth="0.25"/>
+                    <bottomPen lineWidth="0.25"/>
+                    <rightPen lineWidth="0.25"/>
+                </box>
+                <textElement textAlignment="Center" verticalAlignment="Middle">
+                    <font fontName="Arial Narrow" size="9" isBold="true" isItalic="false"/>
+                </textElement>
+                <text><![CDATA[RETIROS Y/O BAJAS]]></text>
+            </staticText>
+            <staticText>
+                <reportElement x="1150" y="0" width="100" height="62" uuid="fad64339-d56a-48be-a255-026159048322"/>
+                <box>
+                    <pen lineWidth="0.25"/>
+                    <topPen lineWidth="0.25"/>
+                    <leftPen lineWidth="0.25"/>
+                    <bottomPen lineWidth="0.25"/>
+                    <rightPen lineWidth="0.25"/>
+                </box>
+                <textElement textAlignment="Center" verticalAlignment="Middle">
+                    <font fontName="Arial Narrow" size="9" isBold="true" isItalic="false"/>
+                </textElement>
+                <text><![CDATA[OTROS AJUSTES]]></text>
+            </staticText>
+            <staticText>
+                <reportElement x="1250" y="0" width="100" height="62" uuid="e9e5a73d-77c1-44bf-8553-745b01678c83"/>
+                <box>
+                    <pen lineWidth="0.25"/>
+                    <topPen lineWidth="0.25"/>
+                    <leftPen lineWidth="0.25"/>
+                    <bottomPen lineWidth="0.25"/>
+                    <rightPen lineWidth="0.25"/>
+                </box>
+                <textElement textAlignment="Center" verticalAlignment="Middle">
+                    <font fontName="Arial Narrow" size="9" isBold="true" isItalic="false"/>
+                </textElement>
+                <text><![CDATA[VALOR EN LIBROS DEL ACTIVO FIJO]]></text>
+            </staticText>
+            <staticText>
+                <reportElement x="1350" y="0" width="60" height="62" uuid="f191da5c-de85-4682-8b00-1a0962a1c38d"/>
+                <box>
+                    <pen lineWidth="0.25"/>
+                    <topPen lineWidth="0.25"/>
+                    <leftPen lineWidth="0.25"/>
+                    <bottomPen lineWidth="0.25"/>
+                    <rightPen lineWidth="0.25"/>
+                </box>
+                <textElement textAlignment="Center" verticalAlignment="Middle">
+                    <font fontName="Arial Narrow" size="9" isBold="true" isItalic="false"/>
+                </textElement>
+                <text><![CDATA[FECHA ADQUISICIÓN]]></text>
+            </staticText>
+            <staticText>
+                <reportElement x="1410" y="0" width="100" height="62" uuid="8c582bd8-dfb3-4658-a622-76bae60dead9"/>
+                <box>
+                    <pen lineWidth="0.25"/>
+                    <topPen lineWidth="0.25"/>
+                    <leftPen lineWidth="0.25"/>
+                    <bottomPen lineWidth="0.25"/>
+                    <rightPen lineWidth="0.25"/>
+                </box>
+                <textElement textAlignment="Center" verticalAlignment="Middle">
+                    <font fontName="Arial Narrow" size="9" isBold="true" isItalic="false"/>
+                </textElement>
+                <text><![CDATA[FECHA DE INICIO DEL USO DEL ACTIVO FIJO]]></text>
+            </staticText>
+            <staticText>
+                <reportElement x="1510" y="0" width="60" height="62" uuid="4978d136-0513-4722-9288-b363b827197e"/>
+                <box>
+                    <pen lineWidth="0.25"/>
+                    <topPen lineWidth="0.25"/>
+                    <leftPen lineWidth="0.25"/>
+                    <bottomPen lineWidth="0.25"/>
+                    <rightPen lineWidth="0.25"/>
+                </box>
+                <textElement textAlignment="Center" verticalAlignment="Middle">
+                    <font fontName="Arial Narrow" size="9" isBold="true" isItalic="false"/>
+                </textElement>
+                <text><![CDATA[FECHA DE RETIRO]]></text>
+            </staticText>
+            <staticText>
+                <reportElement x="1570" y="30" width="100" height="32" uuid="173afa71-134e-446b-b811-48f122d7b1ec"/>
+                <box>
+                    <pen lineWidth="0.25"/>
+                    <topPen lineWidth="0.25"/>
+                    <leftPen lineWidth="0.25"/>
+                    <bottomPen lineWidth="0.25"/>
+                    <rightPen lineWidth="0.25"/>
+                </box>
+                <textElement textAlignment="Center" verticalAlignment="Middle">
+                    <font fontName="Arial Narrow" size="9" isBold="true" isItalic="false"/>
+                </textElement>
+                <text><![CDATA[MÉTODO APLICADO]]></text>
+            </staticText>
+            <staticText>
+                <reportElement x="1670" y="30" width="100" height="32" uuid="468dd5eb-4845-4344-a760-9b54ffdb3f21"/>
+                <box>
+                    <pen lineWidth="0.25"/>
+                    <topPen lineWidth="0.25"/>
+                    <leftPen lineWidth="0.25"/>
+                    <bottomPen lineWidth="0.25"/>
+                    <rightPen lineWidth="0.25"/>
+                </box>
+                <textElement textAlignment="Center" verticalAlignment="Middle">
+                    <font fontName="Arial Narrow" size="9" isBold="true" isItalic="false"/>
+                </textElement>
+                <text><![CDATA[N° DE DOCUMENTO DE AUTORIZACIÓN]]></text>
+            </staticText>
+            <staticText>
+                <reportElement x="1570" y="0" width="200" height="30" uuid="4de1813b-540e-483a-b18c-1fd15d876807"/>
+                <box>
+                    <pen lineWidth="0.25"/>
+                    <topPen lineWidth="0.25"/>
+                    <leftPen lineWidth="0.25"/>
+                    <bottomPen lineWidth="0.25"/>
+                    <rightPen lineWidth="0.25"/>
+                </box>
+                <textElement textAlignment="Center" verticalAlignment="Middle">
+                    <font fontName="Arial Narrow" size="9" isBold="true" isItalic="false"/>
+                </textElement>
+                <text><![CDATA[DEPRECIACIÓN]]></text>
+            </staticText>
+            <staticText>
+                <reportElement x="1770" y="0" width="50" height="62" uuid="04901e3f-be13-4bec-b406-09c6bea61171"/>
+                <box>
+                    <pen lineWidth="0.25"/>
+                    <topPen lineWidth="0.25"/>
+                    <leftPen lineWidth="0.25"/>
+                    <bottomPen lineWidth="0.25"/>
+                    <rightPen lineWidth="0.25"/>
+                </box>
+                <textElement textAlignment="Center" verticalAlignment="Middle">
+                    <font fontName="Arial Narrow" size="9" isBold="true" isItalic="false"/>
+                </textElement>
+                <text><![CDATA[AÑOS DE VIDA UTIL]]></text>
+            </staticText>
+            <staticText>
+                <reportElement x="1820" y="0" width="50" height="62" uuid="d13f23c9-4e3b-4693-adf4-2b4cfa2baf4c"/>
+                <box>
+                    <pen lineWidth="0.25"/>
+                    <topPen lineWidth="0.25"/>
+                    <leftPen lineWidth="0.25"/>
+                    <bottomPen lineWidth="0.25"/>
+                    <rightPen lineWidth="0.25"/>
+                </box>
+                <textElement textAlignment="Center" verticalAlignment="Middle">
+                    <font fontName="Arial Narrow" size="9" isBold="true" isItalic="false"/>
+                </textElement>
+                <text><![CDATA[TASA]]></text>
+            </staticText>
+            <staticText>
+                <reportElement x="1870" y="0" width="100" height="62" uuid="c0f240d2-90b9-4785-9463-f1aae9ea6340"/>
+                <box>
+                    <pen lineWidth="0.25"/>
+                    <topPen lineWidth="0.25"/>
+                    <leftPen lineWidth="0.25"/>
+                    <bottomPen lineWidth="0.25"/>
+                    <rightPen lineWidth="0.25"/>
+                </box>
+                <textElement textAlignment="Center" verticalAlignment="Middle">
+                    <font fontName="Arial Narrow" size="9" isBold="true" isItalic="false"/>
+                </textElement>
+                <text><![CDATA[DEPRECIACIÓN ACUMULADA AL CIERRE DEL EJERCICIO ANTERIOR]]></text>
+            </staticText>
+            <staticText>
+                <reportElement x="1970" y="0" width="100" height="62" uuid="46d0e701-f616-4a74-b3d1-dfb87b997fec"/>
+                <box>
+                    <pen lineWidth="0.25"/>
+                    <topPen lineWidth="0.25"/>
+                    <leftPen lineWidth="0.25"/>
+                    <bottomPen lineWidth="0.25"/>
+                    <rightPen lineWidth="0.25"/>
+                </box>
+                <textElement textAlignment="Center" verticalAlignment="Middle">
+                    <font fontName="Arial Narrow" size="9" isBold="true" isItalic="false"/>
+                </textElement>
+                <text><![CDATA[DEPRECIACIÓN DEL EJERCICIO]]></text>
+            </staticText>
+            <staticText>
+                <reportElement x="2070" y="0" width="100" height="62" uuid="fb7d556e-32ad-4568-8693-33dc743aebd0"/>
+                <box>
+                    <pen lineWidth="0.25"/>
+                    <topPen lineWidth="0.25"/>
+                    <leftPen lineWidth="0.25"/>
+                    <bottomPen lineWidth="0.25"/>
+                    <rightPen lineWidth="0.25"/>
+                </box>
+                <textElement textAlignment="Center" verticalAlignment="Middle">
+                    <font fontName="Arial Narrow" size="9" isBold="true" isItalic="false"/>
+                </textElement>
+                <text><![CDATA[DEPRECIACIÓN DEL EJERCICIO RELACIONADA CON LOS RETIOS y/O BAJAS]]></text>
+            </staticText>
+            <staticText>
+                <reportElement x="2170" y="0" width="100" height="62" uuid="231412ec-f064-4f50-b4a1-6950a46362dc"/>
+                <box>
+                    <pen lineWidth="0.25"/>
+                    <topPen lineWidth="0.25"/>
+                    <leftPen lineWidth="0.25"/>
+                    <bottomPen lineWidth="0.25"/>
+                    <rightPen lineWidth="0.25"/>
+                </box>
+                <textElement textAlignment="Center" verticalAlignment="Middle">
+                    <font fontName="Arial Narrow" size="9" isBold="true" isItalic="false"/>
+                </textElement>
+                <text><![CDATA[DEPRECIACIÓN RELACIONADA CON OTROS AJUSTES]]></text>
+            </staticText>
+            <staticText>
+                <reportElement x="2270" y="0" width="100" height="62" uuid="61224ab3-249f-43f5-8b34-de3b38ae777e"/>
+                <box>
+                    <pen lineWidth="0.25"/>
+                    <topPen lineWidth="0.25"/>
+                    <leftPen lineWidth="0.25"/>
+                    <bottomPen lineWidth="0.25"/>
+                    <rightPen lineWidth="0.25"/>
+                </box>
+                <textElement textAlignment="Center" verticalAlignment="Middle">
+                    <font fontName="Arial Narrow" size="9" isBold="true" isItalic="false"/>
+                </textElement>
+                <text><![CDATA[DEPRECIACIÓN ACUMULADA HISTÓRICA]]></text>
+            </staticText>
+            <staticText>
+                <reportElement x="2370" y="0" width="100" height="62" uuid="71016634-2343-4f5e-8abb-ac2f39dd932f"/>
+                <box>
+                    <pen lineWidth="0.25"/>
+                    <topPen lineWidth="0.25"/>
+                    <leftPen lineWidth="0.25"/>
+                    <bottomPen lineWidth="0.25"/>
+                    <rightPen lineWidth="0.25"/>
+                </box>
+                <textElement textAlignment="Center" verticalAlignment="Middle">
+                    <font fontName="Arial Narrow" size="9" isBold="true" isItalic="false"/>
+                </textElement>
+                <text><![CDATA[ACTIVO FIJO NETO]]></text>
+            </staticText>
+        </band>
+    </columnHeader>
+    <detail>
+        <band height="241" splitType="Stretch">
+            <textField>
+                <reportElement x="0" y="0" width="100" height="30" uuid="63ff52d9-cb66-48d2-b867-739fa38a2b32">
+                    <property name="com.jaspersoft.studio.spreadsheet.connectionID" value="5d07adcb-716d-4bc4-a490-174d6b46ca4d"/>
+                </reportElement>
+                <box>
+                    <topPen lineWidth="0.25" lineStyle="Solid" lineColor="#000000"/>
+                    <leftPen lineWidth="0.25" lineStyle="Solid" lineColor="#000000"/>
+                    <bottomPen lineWidth="0.25" lineStyle="Solid" lineColor="#000000"/>
+                    <rightPen lineWidth="0.25" lineStyle="Solid" lineColor="#000000"/>
+                </box>
+                <textElement verticalAlignment="Middle">
+                    <font fontName="Arial Narrow" size="9"/>
+                </textElement>
+                <textFieldExpression><![CDATA[$F{mainFixedAssetCode}]]></textFieldExpression>
+            </textField>
+            <textField>
+                <reportElement x="100" y="0" width="100" height="30" uuid="ae76ddb1-1ac3-4ac1-b784-a645fca8d2dd">
+                    <property name="com.jaspersoft.studio.spreadsheet.connectionID" value="90866087-fc7b-4025-a7fc-f12157eaa915"/>
+                </reportElement>
+                <box>
+                    <topPen lineWidth="0.25" lineStyle="Solid" lineColor="#000000"/>
+                    <leftPen lineWidth="0.25" lineStyle="Solid" lineColor="#000000"/>
+                    <bottomPen lineWidth="0.25" lineStyle="Solid" lineColor="#000000"/>
+                    <rightPen lineWidth="0.25" lineStyle="Solid" lineColor="#000000"/>
+                </box>
+                <textElement verticalAlignment="Middle">
+                    <font fontName="Arial Narrow" size="9"/>
+                </textElement>
+                <textFieldExpression><![CDATA[$F{fixedAssetCodeComponent}]]></textFieldExpression>
+            </textField>
+            <textField>
+                <reportElement x="200" y="0" width="100" height="30" uuid="b6ac98ff-6752-4f76-bc33-b6e9ec5acb00">
+                    <property name="com.jaspersoft.studio.spreadsheet.connectionID" value="2ed97ab7-8906-400e-b54e-f99fa8663ab2"/>
+                </reportElement>
+                <box>
+                    <topPen lineWidth="0.25" lineStyle="Solid" lineColor="#000000"/>
+                    <leftPen lineWidth="0.25" lineStyle="Solid" lineColor="#000000"/>
+                    <bottomPen lineWidth="0.25" lineStyle="Solid" lineColor="#000000"/>
+                    <rightPen lineWidth="0.25" lineStyle="Solid" lineColor="#000000"/>
+                </box>
+                <textElement verticalAlignment="Middle">
+                    <font fontName="Arial Narrow" size="9"/>
+                </textElement>
+                <textFieldExpression><![CDATA[$F{fixedAssetAccountingAccount}]]></textFieldExpression>
+            </textField>
+            <textField>
+                <reportElement x="300" y="0" width="150" height="30" uuid="a85f2dfe-26a0-4a07-a2d1-d978d266a92d">
+                    <property name="com.jaspersoft.studio.spreadsheet.connectionID" value="2356b982-902d-4db7-8d9f-5f706870f35d"/>
+                </reportElement>
+                <box>
+                    <topPen lineWidth="0.25" lineStyle="Solid" lineColor="#000000"/>
+                    <leftPen lineWidth="0.25" lineStyle="Solid" lineColor="#000000"/>
+                    <bottomPen lineWidth="0.25" lineStyle="Solid" lineColor="#000000"/>
+                    <rightPen lineWidth="0.25" lineStyle="Solid" lineColor="#000000"/>
+                </box>
+                <textElement verticalAlignment="Middle">
+                    <font fontName="Arial Narrow" size="9"/>
+                </textElement>
+                <textFieldExpression><![CDATA[$F{description}]]></textFieldExpression>
+            </textField>
+            <textField>
+                <reportElement x="450" y="0" width="100" height="30" uuid="16577583-e99b-4a59-ba2e-eb0579f95be6">
+                    <property name="com.jaspersoft.studio.spreadsheet.connectionID" value="e8680d65-88e9-453a-a001-28e5c6ecd33a"/>
+                </reportElement>
+                <box>
+                    <topPen lineWidth="0.25" lineStyle="Solid" lineColor="#000000"/>
+                    <leftPen lineWidth="0.25" lineStyle="Solid" lineColor="#000000"/>
+                    <bottomPen lineWidth="0.25" lineStyle="Solid" lineColor="#000000"/>
+                    <rightPen lineWidth="0.25" lineStyle="Solid" lineColor="#000000"/>
+                </box>
+                <textElement verticalAlignment="Middle">
+                    <font fontName="Arial Narrow" size="9"/>
+                </textElement>
+                <textFieldExpression><![CDATA[$F{fixedAssetBrand}]]></textFieldExpression>
+            </textField>
+            <textField>
+                <reportElement x="550" y="0" width="100" height="30" uuid="187e3675-dbd6-46b1-962b-93ed0b792220">
+                    <property name="com.jaspersoft.studio.spreadsheet.connectionID" value="231143a6-7f93-42a2-bde8-562aa24d9b45"/>
+                </reportElement>
+                <box>
+                    <topPen lineWidth="0.25" lineStyle="Solid" lineColor="#000000"/>
+                    <leftPen lineWidth="0.25" lineStyle="Solid" lineColor="#000000"/>
+                    <bottomPen lineWidth="0.25" lineStyle="Solid" lineColor="#000000"/>
+                    <rightPen lineWidth="0.25" lineStyle="Solid" lineColor="#000000"/>
+                </box>
+                <textElement verticalAlignment="Middle">
+                    <font fontName="Arial Narrow" size="9"/>
+                </textElement>
+                <textFieldExpression><![CDATA[$F{fixedAssetModel}]]></textFieldExpression>
+            </textField>
+            <textField>
+                <reportElement x="650" y="0" width="100" height="30" uuid="f219ef4d-c219-4627-b1e1-cc02e9f323db">
+                    <property name="com.jaspersoft.studio.spreadsheet.connectionID" value="3330c25c-86d1-4118-9c1f-8c228c9deffc"/>
+                </reportElement>
+                <box>
+                    <topPen lineWidth="0.25" lineStyle="Solid" lineColor="#000000"/>
+                    <leftPen lineWidth="0.25" lineStyle="Solid" lineColor="#000000"/>
+                    <bottomPen lineWidth="0.25" lineStyle="Solid" lineColor="#000000"/>
+                    <rightPen lineWidth="0.25" lineStyle="Solid" lineColor="#000000"/>
+                </box>
+                <textElement verticalAlignment="Middle">
+                    <font fontName="Arial Narrow" size="9"/>
+                </textElement>
+                <textFieldExpression><![CDATA[$F{fixedAssetSerialNumberAndOrPlate}]]></textFieldExpression>
+            </textField>
+            <textField>
+                <reportElement x="750" y="0" width="100" height="30" uuid="d8a642f6-594f-4ea7-b53d-673fef6e44d0">
+                    <property name="com.jaspersoft.studio.spreadsheet.connectionID" value="980bd8f5-25c1-42e8-825f-033950c2d7cc"/>
+                </reportElement>
+                <box>
+                    <topPen lineWidth="0.25" lineStyle="Solid" lineColor="#000000"/>
+                    <leftPen lineWidth="0.25" lineStyle="Solid" lineColor="#000000"/>
+                    <bottomPen lineWidth="0.25" lineStyle="Solid" lineColor="#000000"/>
+                    <rightPen lineWidth="0.25" lineStyle="Solid" lineColor="#000000"/>
+                </box>
+                <textElement verticalAlignment="Middle">
+                    <font fontName="Arial Narrow" size="9"/>
+                </textElement>
+                <textFieldExpression><![CDATA[$F{initialBalance}]]></textFieldExpression>
+            </textField>
+            <textField>
+                <reportElement x="850" y="0" width="100" height="30" uuid="87b43413-ae78-4ca4-b166-c514aa3740de">
+                    <property name="com.jaspersoft.studio.spreadsheet.connectionID" value="bcc4246c-9da7-4733-805b-b802e16773ec"/>
+                </reportElement>
+                <box>
+                    <topPen lineWidth="0.25" lineStyle="Solid" lineColor="#000000"/>
+                    <leftPen lineWidth="0.25" lineStyle="Solid" lineColor="#000000"/>
+                    <bottomPen lineWidth="0.25" lineStyle="Solid" lineColor="#000000"/>
+                    <rightPen lineWidth="0.25" lineStyle="Solid" lineColor="#000000"/>
+                </box>
+                <textElement verticalAlignment="Middle">
+                    <font fontName="Arial Narrow" size="9"/>
+                </textElement>
+                <textFieldExpression><![CDATA[$F{revaluedAmount}]]></textFieldExpression>
+            </textField>
+            <textField>
+                <reportElement x="950" y="0" width="100" height="30" uuid="8435f87e-381b-4d91-bafe-204f1b4be7b0">
+                    <property name="com.jaspersoft.studio.spreadsheet.connectionID" value="086ce190-57c1-452a-ac08-10f984132c78"/>
+                </reportElement>
+                <box>
+                    <topPen lineWidth="0.25" lineStyle="Solid" lineColor="#000000"/>
+                    <leftPen lineWidth="0.25" lineStyle="Solid" lineColor="#000000"/>
+                    <bottomPen lineWidth="0.25" lineStyle="Solid" lineColor="#000000"/>
+                    <rightPen lineWidth="0.25" lineStyle="Solid" lineColor="#000000"/>
+                </box>
+                <textElement verticalAlignment="Middle">
+                    <font fontName="Arial Narrow" size="9"/>
+                </textElement>
+                <textFieldExpression><![CDATA[$F{acquisitionsAdditions}]]></textFieldExpression>
+            </textField>
+            <textField>
+                <reportElement x="1050" y="0" width="100" height="30" uuid="cbae85ab-ba4d-45bf-890d-a1324dea0621">
+                    <property name="com.jaspersoft.studio.spreadsheet.connectionID" value="0a0626d4-86ec-4091-aa91-d5b78bc218fa"/>
+                </reportElement>
+                <box>
+                    <topPen lineWidth="0.25" lineStyle="Solid" lineColor="#000000"/>
+                    <leftPen lineWidth="0.25" lineStyle="Solid" lineColor="#000000"/>
+                    <bottomPen lineWidth="0.25" lineStyle="Solid" lineColor="#000000"/>
+                    <rightPen lineWidth="0.25" lineStyle="Solid" lineColor="#000000"/>
+                </box>
+                <textElement verticalAlignment="Middle">
+                    <font fontName="Arial Narrow" size="9"/>
+                </textElement>
+                <textFieldExpression><![CDATA[$F{withdrawalsAndOrRetirements}]]></textFieldExpression>
+            </textField>
+            <textField>
+                <reportElement x="1150" y="0" width="100" height="30" uuid="ed579384-980f-4749-912e-5586dce55307">
+                    <property name="com.jaspersoft.studio.spreadsheet.connectionID" value="05d7bf8d-3228-45c1-8af5-040a3142efbf"/>
+                </reportElement>
+                <box>
+                    <topPen lineWidth="0.25" lineStyle="Solid" lineColor="#000000"/>
+                    <leftPen lineWidth="0.25" lineStyle="Solid" lineColor="#000000"/>
+                    <bottomPen lineWidth="0.25" lineStyle="Solid" lineColor="#000000"/>
+                    <rightPen lineWidth="0.25" lineStyle="Solid" lineColor="#000000"/>
+                </box>
+                <textElement verticalAlignment="Middle">
+                    <font fontName="Arial Narrow" size="9"/>
+                </textElement>
+                <textFieldExpression><![CDATA[$F{otherAdjustments}]]></textFieldExpression>
+            </textField>
+            <textField>
+                <reportElement x="1250" y="0" width="100" height="30" uuid="7e5bc4d7-e913-428f-8050-7f48b1a0c310">
+                    <property name="com.jaspersoft.studio.spreadsheet.connectionID" value="bef6f697-eb97-4662-a055-74a602549a00"/>
+                </reportElement>
+                <box>
+                    <topPen lineWidth="0.25" lineStyle="Solid" lineColor="#000000"/>
+                    <leftPen lineWidth="0.25" lineStyle="Solid" lineColor="#000000"/>
+                    <bottomPen lineWidth="0.25" lineStyle="Solid" lineColor="#000000"/>
+                    <rightPen lineWidth="0.25" lineStyle="Solid" lineColor="#000000"/>
+                </box>
+                <textElement verticalAlignment="Middle">
+                    <font fontName="Arial Narrow" size="9"/>
+                </textElement>
+                <textFieldExpression><![CDATA[$F{bookValueOfFixedAssets}]]></textFieldExpression>
+            </textField>
+            <textField>
+                <reportElement x="1350" y="0" width="60" height="30" uuid="95cc70ea-55f2-4c45-ab78-db463dca1237">
+                    <property name="com.jaspersoft.studio.spreadsheet.connectionID" value="d913a80f-ed1b-4003-a5d1-9595d2cec396"/>
+                </reportElement>
+                <box>
+                    <topPen lineWidth="0.25" lineStyle="Solid" lineColor="#000000"/>
+                    <leftPen lineWidth="0.25" lineStyle="Solid" lineColor="#000000"/>
+                    <bottomPen lineWidth="0.25" lineStyle="Solid" lineColor="#000000"/>
+                    <rightPen lineWidth="0.25" lineStyle="Solid" lineColor="#000000"/>
+                </box>
+                <textElement verticalAlignment="Middle">
+                    <font fontName="Arial Narrow" size="9"/>
+                </textElement>
+                <textFieldExpression><![CDATA[$F{acquisitionDate}]]></textFieldExpression>
+            </textField>
+            <textField>
+                <reportElement x="1410" y="0" width="100" height="30" uuid="3e7fb3e2-4162-49de-bc67-da20f6e650a9">
+                    <property name="com.jaspersoft.studio.spreadsheet.connectionID" value="cf62ab24-6e1c-4070-92cb-6aeba9386cb4"/>
+                </reportElement>
+                <box>
+                    <topPen lineWidth="0.25" lineStyle="Solid" lineColor="#000000"/>
+                    <leftPen lineWidth="0.25" lineStyle="Solid" lineColor="#000000"/>
+                    <bottomPen lineWidth="0.25" lineStyle="Solid" lineColor="#000000"/>
+                    <rightPen lineWidth="0.25" lineStyle="Solid" lineColor="#000000"/>
+                </box>
+                <textElement verticalAlignment="Middle">
+                    <font fontName="Arial Narrow" size="9"/>
+                </textElement>
+                <textFieldExpression><![CDATA[$F{startDateFixedAssetUsage}]]></textFieldExpression>
+            </textField>
+            <textField>
+                <reportElement x="1510" y="0" width="60" height="30" uuid="be8340f9-4e5e-43f0-9001-f44774575be0">
+                    <property name="com.jaspersoft.studio.spreadsheet.connectionID" value="1c0ce766-49df-4394-ac65-febcc277d7e0"/>
+                </reportElement>
+                <box>
+                    <topPen lineWidth="0.25" lineStyle="Solid" lineColor="#000000"/>
+                    <leftPen lineWidth="0.25" lineStyle="Solid" lineColor="#000000"/>
+                    <bottomPen lineWidth="0.25" lineStyle="Solid" lineColor="#000000"/>
+                    <rightPen lineWidth="0.25" lineStyle="Solid" lineColor="#000000"/>
+                </box>
+                <textElement verticalAlignment="Middle">
+                    <font fontName="Arial Narrow" size="9"/>
+                </textElement>
+                <textFieldExpression><![CDATA[$F{retirementDate}]]></textFieldExpression>
+            </textField>
+            <textField>
+                <reportElement x="1570" y="0" width="100" height="30" uuid="ed7f7826-f359-49e1-96ee-075eb9a85a69">
+                    <property name="com.jaspersoft.studio.spreadsheet.connectionID" value="2a98b66f-2be3-4517-9d81-1cdc4c8ceb46"/>
+                </reportElement>
+                <box>
+                    <topPen lineWidth="0.25" lineStyle="Solid" lineColor="#000000"/>
+                    <leftPen lineWidth="0.25" lineStyle="Solid" lineColor="#000000"/>
+                    <bottomPen lineWidth="0.25" lineStyle="Solid" lineColor="#000000"/>
+                    <rightPen lineWidth="0.25" lineStyle="Solid" lineColor="#000000"/>
+                </box>
+                <textElement verticalAlignment="Middle">
+                    <font fontName="Arial Narrow" size="9"/>
+                </textElement>
+                <textFieldExpression><![CDATA[$F{appliedMethod}]]></textFieldExpression>
+            </textField>
+            <textField>
+                <reportElement x="1670" y="0" width="100" height="30" uuid="1a624d16-79d0-49cb-8c6b-35bb834a2a3e">
+                    <property name="com.jaspersoft.studio.spreadsheet.connectionID" value="3815b985-9b9b-4d27-8378-3ad7f01f299f"/>
+                </reportElement>
+                <box>
+                    <topPen lineWidth="0.25" lineStyle="Solid" lineColor="#000000"/>
+                    <leftPen lineWidth="0.25" lineStyle="Solid" lineColor="#000000"/>
+                    <bottomPen lineWidth="0.25" lineStyle="Solid" lineColor="#000000"/>
+                    <rightPen lineWidth="0.25" lineStyle="Solid" lineColor="#000000"/>
+                </box>
+                <textElement verticalAlignment="Middle">
+                    <font fontName="Arial Narrow" size="9"/>
+                </textElement>
+                <textFieldExpression><![CDATA[$F{authorizationDocumentNumber}]]></textFieldExpression>
+            </textField>
+            <textField>
+                <reportElement x="1770" y="0" width="50" height="30" uuid="2441c194-448a-4f36-9615-fac1bfcb7155">
+                    <property name="com.jaspersoft.studio.spreadsheet.connectionID" value="48f65eeb-175c-4c21-b3be-d798a2f3a2be"/>
+                </reportElement>
+                <box>
+                    <topPen lineWidth="0.25" lineStyle="Solid" lineColor="#000000"/>
+                    <leftPen lineWidth="0.25" lineStyle="Solid" lineColor="#000000"/>
+                    <bottomPen lineWidth="0.25" lineStyle="Solid" lineColor="#000000"/>
+                    <rightPen lineWidth="0.25" lineStyle="Solid" lineColor="#000000"/>
+                </box>
+                <textElement verticalAlignment="Middle">
+                    <font fontName="Arial Narrow" size="9"/>
+                </textElement>
+                <textFieldExpression><![CDATA[$F{usefulLifeYears}]]></textFieldExpression>
+            </textField>
+            <textField>
+                <reportElement x="1820" y="0" width="50" height="30" uuid="411232b5-b47e-4f63-8306-db9456e6ee43">
+                    <property name="com.jaspersoft.studio.spreadsheet.connectionID" value="d106fcd7-9252-4c70-8114-ae651231bd36"/>
+                </reportElement>
+                <box>
+                    <topPen lineWidth="0.25" lineStyle="Solid" lineColor="#000000"/>
+                    <leftPen lineWidth="0.25" lineStyle="Solid" lineColor="#000000"/>
+                    <bottomPen lineWidth="0.25" lineStyle="Solid" lineColor="#000000"/>
+                    <rightPen lineWidth="0.25" lineStyle="Solid" lineColor="#000000"/>
+                </box>
+                <textElement verticalAlignment="Middle">
+                    <font fontName="Arial Narrow" size="9"/>
+                </textElement>
+                <textFieldExpression><![CDATA[$F{annualRate}]]></textFieldExpression>
+            </textField>
+            <textField>
+                <reportElement x="1870" y="0" width="100" height="30" uuid="b75e20ed-11d8-4173-b053-fc0a10a92fb3">
+                    <property name="com.jaspersoft.studio.spreadsheet.connectionID" value="9cd06f9e-a2d8-42d4-baeb-ce9cd78dfe24"/>
+                </reportElement>
+                <box>
+                    <topPen lineWidth="0.25" lineStyle="Solid" lineColor="#000000"/>
+                    <leftPen lineWidth="0.25" lineStyle="Solid" lineColor="#000000"/>
+                    <bottomPen lineWidth="0.25" lineStyle="Solid" lineColor="#000000"/>
+                    <rightPen lineWidth="0.25" lineStyle="Solid" lineColor="#000000"/>
+                </box>
+                <textElement verticalAlignment="Middle">
+                    <font fontName="Arial Narrow" size="9"/>
+                </textElement>
+                <textFieldExpression><![CDATA[$F{annualAccumulatedDepreciationPriorPeriod}]]></textFieldExpression>
+            </textField>
+            <textField>
+                <reportElement x="1970" y="0" width="100" height="30" uuid="cef6f191-a104-47d9-a249-176f12d18b59">
+                    <property name="com.jaspersoft.studio.spreadsheet.connectionID" value="f12335f0-98fc-4f7d-857f-6961518f19df"/>
+                </reportElement>
+                <box>
+                    <topPen lineWidth="0.25" lineStyle="Solid" lineColor="#000000"/>
+                    <leftPen lineWidth="0.25" lineStyle="Solid" lineColor="#000000"/>
+                    <bottomPen lineWidth="0.25" lineStyle="Solid" lineColor="#000000"/>
+                    <rightPen lineWidth="0.25" lineStyle="Solid" lineColor="#000000"/>
+                </box>
+                <textElement verticalAlignment="Middle">
+                    <font fontName="Arial Narrow" size="9"/>
+                </textElement>
+                <textFieldExpression><![CDATA[$F{currentDepreciation}]]></textFieldExpression>
+            </textField>
+            <textField>
+                <reportElement x="2070" y="0" width="100" height="30" uuid="8cb207f6-4739-48a0-aa0c-467ca2001738">
+                    <property name="com.jaspersoft.studio.spreadsheet.connectionID" value="755575b7-7065-41d8-ba23-db4c9cca14e4"/>
+                </reportElement>
+                <box>
+                    <topPen lineWidth="0.25" lineStyle="Solid" lineColor="#000000"/>
+                    <leftPen lineWidth="0.25" lineStyle="Solid" lineColor="#000000"/>
+                    <bottomPen lineWidth="0.25" lineStyle="Solid" lineColor="#000000"/>
+                    <rightPen lineWidth="0.25" lineStyle="Solid" lineColor="#000000"/>
+                </box>
+                <textElement verticalAlignment="Middle">
+                    <font fontName="Arial Narrow" size="9"/>
+                </textElement>
+                <textFieldExpression><![CDATA[$F{currentDepreciationRelatedWithdrawalsRetirements}]]></textFieldExpression>
+            </textField>
+            <textField>
+                <reportElement x="2170" y="0" width="100" height="30" uuid="2157c874-5975-4c6c-b402-5bc67b9b1b82">
+                    <property name="com.jaspersoft.studio.spreadsheet.connectionID" value="dfb2ddb5-d2c8-4054-b198-1345e2447c59"/>
+                </reportElement>
+                <box>
+                    <topPen lineWidth="0.25" lineStyle="Solid" lineColor="#000000"/>
+                    <leftPen lineWidth="0.25" lineStyle="Solid" lineColor="#000000"/>
+                    <bottomPen lineWidth="0.25" lineStyle="Solid" lineColor="#000000"/>
+                    <rightPen lineWidth="0.25" lineStyle="Solid" lineColor="#000000"/>
+                </box>
+                <textElement verticalAlignment="Middle">
+                    <font fontName="Arial Narrow" size="9"/>
+                </textElement>
+                <textFieldExpression><![CDATA[$F{currentDepreciationRelatedOtherAdjustments}]]></textFieldExpression>
+            </textField>
+            <textField>
+                <reportElement x="2270" y="0" width="100" height="30" uuid="6eb85402-8e43-4b24-9b58-2e3114e89f8b">
+                    <property name="com.jaspersoft.studio.spreadsheet.connectionID" value="937bc92b-f508-4ff9-b1f8-619de4d27098"/>
+                </reportElement>
+                <box>
+                    <topPen lineWidth="0.25" lineStyle="Solid" lineColor="#000000"/>
+                    <leftPen lineWidth="0.25" lineStyle="Solid" lineColor="#000000"/>
+                    <bottomPen lineWidth="0.25" lineStyle="Solid" lineColor="#000000"/>
+                    <rightPen lineWidth="0.25" lineStyle="Solid" lineColor="#000000"/>
+                </box>
+                <textElement verticalAlignment="Middle">
+                    <font fontName="Arial Narrow" size="9"/>
+                </textElement>
+                <textFieldExpression><![CDATA[$F{historicalAccumulatedDepreciation}]]></textFieldExpression>
+            </textField>
+            <textField>
+                <reportElement x="2370" y="0" width="100" height="30" uuid="949fc04d-ce31-4c25-a566-372dc99e00df">
+                    <property name="com.jaspersoft.studio.spreadsheet.connectionID" value="dc17214a-ff4c-4a47-8570-04dbaaa65ce6"/>
+                </reportElement>
+                <box>
+                    <topPen lineWidth="0.25" lineStyle="Solid" lineColor="#000000"/>
+                    <leftPen lineWidth="0.25" lineStyle="Solid" lineColor="#000000"/>
+                    <bottomPen lineWidth="0.25" lineStyle="Solid" lineColor="#000000"/>
+                    <rightPen lineWidth="0.25" lineStyle="Solid" lineColor="#000000"/>
+                </box>
+                <textElement verticalAlignment="Middle">
+                    <font fontName="Arial Narrow" size="9"/>
+                </textElement>
+                <textFieldExpression><![CDATA[$F{netFixedAssets}]]></textFieldExpression>
+            </textField>
+        </band>
+    </detail>
+    <columnFooter>
+        <band height="45" splitType="Stretch"/>
+    </columnFooter>
+    <pageFooter>
+        <band height="54" splitType="Stretch"/>
+    </pageFooter>
+    <summary>
+        <band height="42" splitType="Stretch"/>
+    </summary>
+</jasperReport>
