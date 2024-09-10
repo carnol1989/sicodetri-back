@@ -30,8 +30,10 @@ public class FinancialFixedAssetDto {
     private LocalDate retirementDate;
     private String appliedMethod;
     private String authorizationDocumentNumber;
-    private Integer usefulLifeYears;
-    private String annualRate;
+    private Integer usefulLifeYearsFinancial;
+    private String annualRateFinancial;
+    private Integer usefulLifeYearsTax;
+    private String annualRateTax;
     private BigDecimal annualAccumulatedDepreciationPriorPeriod;
     private BigDecimal currentDepreciation;
     private BigDecimal currentDepreciationRelatedWithdrawalsRetirements;

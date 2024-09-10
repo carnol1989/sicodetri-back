@@ -56,7 +56,7 @@ public class FinancialDepreciation {
     private BigDecimal annualFinancialRate;
 
     @ManyToOne
-    @JoinColumn(name = "id_financiacl_fixed_asset", foreignKey = @ForeignKey(name = "FK_financial_depreciation_fixed_asset"))
+    @JoinColumn(name = "id_financial_fixed_asset", foreignKey = @ForeignKey(name = "FK_financial_depreciation_fixed_asset"))
     private FinancialFixedAsset financialFixedAsset;
 
     @Schema(description = "Usuario que realizó el registro", example = "CANO")

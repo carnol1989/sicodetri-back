@@ -67,7 +67,7 @@ public class TaxDepreciation {
     private BigDecimal netTaxValue;
 
     @ManyToOne
-    @JoinColumn(name = "id_financiacl_fixed_asset", foreignKey = @ForeignKey(name = "FK_tax_depreciation_fixed_asset"))
+    @JoinColumn(name = "id_financial_fixed_asset", foreignKey = @ForeignKey(name = "FK_tax_depreciation_fixed_asset"))
     private FinancialFixedAsset financialFixedAsset;
 
     @OneToMany(mappedBy = "taxDepreciation", cascade = CascadeType.ALL, orphanRemoval = true)

@@ -117,11 +117,11 @@ public class FinancialFixedAssetJdbcImplRepository implements FinancialFixedAsse
                         rs.getString("N_DOCUMENTO_AUTORIZACION") : _BLANK);
                 dto.setAuthorizationDocumentNumber(authorizationDocumentNumber);
 
-                Integer usefulLifeYears = rs.getInt("ANIOS_VIDA_UTIL");
-                dto.setUsefulLifeYears(usefulLifeYears);
+                Integer usefulLifeYearsTax = rs.getInt("ANIOS_VIDA_UTIL_TRIBUTARIO");
+                dto.setUsefulLifeYearsTax(usefulLifeYearsTax);
 
-                String annualRate = (rs.getString("TASA") != null ? rs.getString("TASA") : _BLANK);
-                dto.setAnnualRate(annualRate);
+                String annualRateTax = (rs.getString("TASA_ANUAL_TRIBUTARIO") != null ? rs.getString("TASA_ANUAL_TRIBUTARIO") : _BLANK);
+                dto.setAnnualRateTax(annualRateTax);
 
                 BigDecimal annualAccumulatedDepreciationPriorPeriod = (rs.getBigDecimal("DEPRECIACION_ACUMULADA_CIERRE_EJERCICIO_ANTERIOR") != null ?
                         rs.getBigDecimal("DEPRECIACION_ACUMULADA_CIERRE_EJERCICIO_ANTERIOR") : BigDecimal.ZERO);

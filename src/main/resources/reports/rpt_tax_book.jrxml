@@ -26,8 +26,8 @@
     <field name="retirementDate" class="java.time.LocalDate"/>
     <field name="appliedMethod" class="java.lang.String"/>
     <field name="authorizationDocumentNumber" class="java.lang.String"/>
-    <field name="usefulLifeYears" class="java.lang.Integer"/>
-    <field name="annualRate" class="java.lang.String"/>
+    <field name="usefulLifeYearsTax" class="java.lang.Integer"/>
+    <field name="annualRateTax" class="java.lang.String"/>
     <field name="annualAccumulatedDepreciationPriorPeriod" class="java.math.BigDecimal"/>
     <field name="currentDepreciation" class="java.math.BigDecimal"/>
     <field name="currentDepreciationRelatedWithdrawalsRetirements" class="java.math.BigDecimal"/>
@@ -775,7 +775,7 @@
                 <textElement verticalAlignment="Middle">
                     <font fontName="Arial Narrow" size="9"/>
                 </textElement>
-                <textFieldExpression><![CDATA[$F{usefulLifeYears}]]></textFieldExpression>
+                <textFieldExpression><![CDATA[$F{usefulLifeYearsTax}]]></textFieldExpression>
             </textField>
             <textField>
                 <reportElement x="1820" y="0" width="50" height="30" uuid="411232b5-b47e-4f63-8306-db9456e6ee43">
@@ -790,7 +790,7 @@
                 <textElement verticalAlignment="Middle">
                     <font fontName="Arial Narrow" size="9"/>
                 </textElement>
-                <textFieldExpression><![CDATA[$F{annualRate}]]></textFieldExpression>
+                <textFieldExpression><![CDATA[$F{annualRateTax}]]></textFieldExpression>
             </textField>
             <textField>
                 <reportElement x="1870" y="0" width="100" height="30" uuid="b75e20ed-11d8-4173-b053-fc0a10a92fb3">
