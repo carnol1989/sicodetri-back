@@ -1,6 +1,7 @@
 package com.epsgrau.pe.sicodetri.service.impl;
 
 import com.epsgrau.pe.sicodetri.dto.FinancialFixedAssetDto;
+import com.epsgrau.pe.sicodetri.dto.ParamReportDto;
 import com.epsgrau.pe.sicodetri.entity.*;
 import com.epsgrau.pe.sicodetri.model.Depreciation;
 import com.epsgrau.pe.sicodetri.model.FixedAssetDetail;
@@ -511,8 +512,8 @@ public class FinancialFixedAssetServiceImpl implements FinancialFixedAssetServic
     }
 
     @Override
-    public List<FinancialFixedAssetDto> callGetReportTaxBookService(int year) {
-        return repositoryJdbc.callGetReportTaxBookJdbc(year);
+    public List<FinancialFixedAssetDto> callGetReportTaxBookService(ParamReportDto params) {
+        return repositoryJdbc.callGetReportTaxBookJdbc(params);
     }
 
 }

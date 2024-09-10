@@ -1,6 +1,7 @@
 package com.epsgrau.pe.sicodetri.service;
 
 import com.epsgrau.pe.sicodetri.dto.FinancialFixedAssetDto;
+import com.epsgrau.pe.sicodetri.dto.ParamReportDto;
 import com.epsgrau.pe.sicodetri.entity.FinancialFixedAsset;
 import com.epsgrau.pe.sicodetri.model.InputData;
 import org.springframework.web.multipart.MultipartFile;
@@ -52,6 +53,6 @@ public interface FinancialFixedAssetService {
 
     List<FinancialFixedAsset> findByPeriodAndAccountStartingWithService(LocalDate period, String account);
 
-    List<FinancialFixedAssetDto> callGetReportTaxBookService(int year);
+    List<FinancialFixedAssetDto> callGetReportTaxBookService(ParamReportDto params);
 
 }

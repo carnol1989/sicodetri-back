@@ -1,6 +1,7 @@
 package com.epsgrau.pe.sicodetri.repository.impl;
 
 import com.epsgrau.pe.sicodetri.dto.FinancialFixedAssetDto;
+import com.epsgrau.pe.sicodetri.dto.ParamReportDto;
 import com.epsgrau.pe.sicodetri.repository.FinancialFixedAssetJdbcRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -29,17 +30,27 @@ public class FinancialFixedAssetJdbcImplRepository implements FinancialFixedAsse
     private JdbcTemplate jdbcTemplate;
 
     @Override
-    public List<FinancialFixedAssetDto> callGetReportTaxBookJdbc(int year) {
+    public List<FinancialFixedAssetDto> callGetReportTaxBookJdbc(ParamReportDto params) {
         List<FinancialFixedAssetDto> dtoList = new ArrayList<>();
         Connection connection = null;
         try {
             connection = jdbcTemplate.getDataSource().getConnection();
             connection.setAutoCommit(false);
-            CallableStatement call = connection.prepareCall("call get_report_tax_book(?, ?)");
-            call.setInt(1, year);
-            call.registerOutParameter(2, Types.OTHER);
+            CallableStatement call = connection.prepareCall("call get_report_tax_book(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+            call.setInt(1, params.getYear());
+            call.setString(2, params.getMainCode());
+            call.setString(3, params.getAccountingAccount());
+            call.setString(4, params.getStartAcquisitionDate());
+            call.setString(5, params.getEndAcquisitionDate());
+            call.setString(6, params.getStartDateUse());
+            call.setString(7, params.getEndDateUse());
+            call.registerOutParameter(8, Types.VARCHAR);
+            call.registerOutParameter(9, Types.VARCHAR);
+            call.registerOutParameter(10, Types.OTHER);
             call.execute();
-            ResultSet rs = (ResultSet) call.getObject(2);
+            String errorCode = call.getString(8);
+            String errorMessage = call.getString(9);
+            ResultSet rs = (ResultSet) call.getObject(10);
             while (rs.next()) {
                 FinancialFixedAssetDto dto = new FinancialFixedAssetDto();
 

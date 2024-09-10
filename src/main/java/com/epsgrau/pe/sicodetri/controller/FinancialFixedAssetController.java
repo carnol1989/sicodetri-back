@@ -1,6 +1,7 @@
 package com.epsgrau.pe.sicodetri.controller;
 
 import com.epsgrau.pe.sicodetri.dto.FinancialFixedAssetDto;
+import com.epsgrau.pe.sicodetri.dto.ParamReportDto;
 import com.epsgrau.pe.sicodetri.entity.FinancialFixedAsset;
 import com.epsgrau.pe.sicodetri.exception.ExceptionResponse;
 import com.epsgrau.pe.sicodetri.exception.ResourceNotFoundException;
@@ -198,10 +199,23 @@ public class FinancialFixedAssetController {
     })
     @GetMapping(value = "/report", produces = MediaType.APPLICATION_OCTET_STREAM_VALUE)
     public ResponseEntity<?> callGetReportTaxBookController(@RequestParam("fileType") String fileType,
-                                                                 @RequestParam int year) {
+                                                            @RequestParam int year,
+                                                            @RequestParam String mainCode,
+                                                            @RequestParam String accountingAccount,
+                                                            @RequestParam String startAcquisitionDate,
+                                                            @RequestParam String endAcquisitionDate,
+                                                            @RequestParam String startDateUse,
+                                                            @RequestParam String endDateUse) {
         try {
             ReportTypeEnum reportType = ReportTypeEnum.getReportTypeByCode(fileType);
-            List<FinancialFixedAssetDto> reportList = service.callGetReportTaxBookService(year);
+            ParamReportDto params = new ParamReportDto();
+            params.setMainCode(mainCode);
+            params.setAccountingAccount(accountingAccount);
+            params.setStartAcquisitionDate(startAcquisitionDate);
+            params.setEndAcquisitionDate(endAcquisitionDate);
+            params.setStartDateUse(startDateUse);
+            params.setEndDateUse(endDateUse);
+            List<FinancialFixedAssetDto> reportList = service.callGetReportTaxBookService(params);
             if (!reportList.isEmpty() && reportList != null) {
                 Map<String, Object> parameters = new HashMap<>();
                 parameters.put("companyName", "EPS GRAU S.A");
