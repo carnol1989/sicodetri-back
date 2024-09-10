@@ -199,7 +199,7 @@ public class FinancialFixedAssetController {
     })
     @GetMapping(value = "/report", produces = MediaType.APPLICATION_OCTET_STREAM_VALUE)
     public ResponseEntity<?> callGetReportTaxBookController(@RequestParam("fileType") String fileType,
-                                                            @RequestParam int year,
+                                                            @RequestParam String year,
                                                             @RequestParam String mainCode,
                                                             @RequestParam String accountingAccount,
                                                             @RequestParam String startAcquisitionDate,
@@ -209,6 +209,7 @@ public class FinancialFixedAssetController {
         try {
             ReportTypeEnum reportType = ReportTypeEnum.getReportTypeByCode(fileType);
             ParamReportDto params = new ParamReportDto();
+            params.setYear(Integer.parseInt(year));
             params.setMainCode(mainCode);
             params.setAccountingAccount(accountingAccount);
             params.setStartAcquisitionDate(startAcquisitionDate);
@@ -219,12 +220,12 @@ public class FinancialFixedAssetController {
             if (!reportList.isEmpty() && reportList != null) {
                 Map<String, Object> parameters = new HashMap<>();
                 parameters.put("companyName", "EPS GRAU S.A");
-                parameters.put("period", String.valueOf(year));
+                parameters.put("period", year);
                 parameters.put("ruc", "2010276292");
-                byte[] bytes = reportJasperService.getJasperReportInBytes("rpt_tax_book.jrxml", fileType, parameters,
+                byte[] data = reportJasperService.getJasperReportInBytes("rpt_tax_book.jrxml", fileType, parameters,
                         reportList);
-                if (null != bytes) {
-                    ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream(bytes);
+                if (null != data) {
+                    ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream(data);
                     InputStreamResource resource = new InputStreamResource(byteArrayInputStream);
                     String fileName = "Libro_Tributario_Activo_Fijo" + "_" + LocalDateTime.now() + reportType.getExtension();
                     HttpHeaders headers = new HttpHeaders();
