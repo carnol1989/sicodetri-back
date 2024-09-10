@@ -54,5 +54,7 @@ public class InputData {
     private String depreciationInflationAdjustment;//27
     private String accumulatedDepreciationAdjustedInflation;//28
     private String netFixedAssets;//30
+    private String historicalCost;//31
+    private String revaluedAmount;//32
 
 }

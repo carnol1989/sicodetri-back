@@ -165,6 +165,14 @@ public class FinancialFixedAsset {
     @Column(precision = 20, scale = 4)
     private BigDecimal netFixedAssets;//30
 
+    @Schema(description = "Costo histórico", example = "20,143,512.00")
+    @Column(precision = 20, scale = 4)
+    private BigDecimal historicalCost;//31
+
+    @Schema(description = "Valor revaluado", example = "7,350,188.65")
+    @Column(precision = 20, scale = 4)
+    private BigDecimal revaluedAmount;//32
+
     @OneToMany(mappedBy = "financialFixedAsset", cascade = CascadeType.ALL, orphanRemoval = true)
     @ToString.Exclude
     private List<FinancialDepreciation> depreciacionFinancieraList;
