@@ -4,6 +4,7 @@ import com.epsgrau.pe.sicodetri.entity.TaxTableSunat;
 import com.epsgrau.pe.sicodetri.exception.ExceptionResponse;
 import com.epsgrau.pe.sicodetri.model.ResponseData;
 import com.epsgrau.pe.sicodetri.service.TaxTableSunatService;
+import com.epsgrau.pe.sicodetri.util.Constants;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -11,6 +12,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -57,67 +59,70 @@ public class TaxTableSunatController {
     public ResponseEntity<ResponseData> getTaxTableSunatController(@PathVariable Long option,
                                                                    @RequestParam Long id,
                                                                    @RequestParam String accountingAccount) {
-        String code = "00";
-        String message = "";
-        String detailError = "";
-        HttpStatus statusCode = HttpStatus.OK;
         ResponseData responseData = new ResponseData();
         ExceptionResponse exceptionResponse = new ExceptionResponse();
+
+        responseData.setTimestamp(LocalDateTime.now());
+
         try {
-            responseData.setTimestamp(LocalDateTime.now());
-            TaxTableSunat obj = new TaxTableSunat();
-            if (option == N_VAL_1) {
-                responseData.setTimestamp(LocalDateTime.now());
-                obj = service.findByIdService(id);
-                message = "Se obtuvo información para ID: " + id;
-                responseData.setResponse(obj);
-                if (obj.getId() == null) {
-                    code = "01";
-                    statusCode = HttpStatus.NOT_FOUND;
-                    responseData.setTimestamp(LocalDateTime.now());
-                    message = "Error al obtener informacion con el ID: " + id;
-                    exceptionResponse.setMessage(message);
-                    exceptionResponse.setTimestamp(LocalDateTime.now());
-                    exceptionResponse.setDetails(detailError);
-                }
-            } else if (option == N_VAL_2) {
-                responseData.setTimestamp(LocalDateTime.now());
-                obj = service.findByAccountigAccountService(accountingAccount);
-                message = "Se obtuvo informacion para cuenta contable: " + accountingAccount;
-                responseData.setResponse(obj);
-                if (obj.getId() == null) {
-                    code = "01";
-                    statusCode = HttpStatus.NOT_FOUND;
-                    responseData.setTimestamp(LocalDateTime.now());
-                    message = "Error al obtener informacion para cuenta contable: " + accountingAccount;
-                    exceptionResponse.setMessage(message);
-                    exceptionResponse.setTimestamp(LocalDateTime.now());
-                    exceptionResponse.setDetails(detailError);
-                }
-            } else {
-                code = "01";
-                statusCode = HttpStatus.EXPECTATION_FAILED;
-                responseData.setTimestamp(LocalDateTime.now());
-                message = "Error al obtener informacion de la tasa Sunat.";
-                exceptionResponse.setMessage(message);
-                exceptionResponse.setTimestamp(LocalDateTime.now());
-                exceptionResponse.setDetails(detailError);
+            TaxTableSunat obj = null;
+            String message;
+            HttpStatus statusCode = HttpStatus.OK;
+
+            // Determinamos qué operación realizar según la opción proporcionada
+            switch (option.intValue()) {
+                case N_VAL_1:
+                    obj = service.findByIdService(id);
+                    message = "Se obtuvo información para ID: " + id;
+                    break;
+                case N_VAL_2:
+                    obj = service.findByAccountigAccountService(accountingAccount);
+                    message = "Se obtuvo información para cuenta contable: " + accountingAccount;
+                    break;
+                default:
+                    return buildErrorResponse(responseData, exceptionResponse, "Error al obtener informacion " +
+                            "de la tasa Sunat.", HttpStatus.EXPECTATION_FAILED);
             }
+
+            // Si no se encuentra el objeto
+            if (obj == null || obj.getId() == null) {
+                return buildErrorResponse(responseData, exceptionResponse, "Error al obtener informacion con el ID " +
+                        "o cuenta contable proporcionado.", HttpStatus.NOT_FOUND);
+            }
+
+            responseData.setResponse(obj);
+            responseData.setMessage(message);
+            return ResponseEntity.status(statusCode)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(responseData);
         } catch (Exception e) {
-            e.printStackTrace();
-            code = "01";
-            statusCode = HttpStatus.EXPECTATION_FAILED;
-            responseData.setTimestamp(LocalDateTime.now());
-            message = "Error al obtener informacion del activo fijo: " + accountingAccount;
-            detailError = "Mensaje: " + e.getMessage() + "\nCausa: " + e.getCause();
-            exceptionResponse.setMessage(message);
-            exceptionResponse.setTimestamp(LocalDateTime.now());
-            exceptionResponse.setDetails(detailError);
+            return buildErrorResponse(responseData, exceptionResponse, "Error al obtener informacion del " +
+                    "activo fijo: " + accountingAccount, HttpStatus.EXPECTATION_FAILED, e);
         }
-        responseData.setCode(code);
+    }
+
+    private ResponseEntity<ResponseData> buildErrorResponse(ResponseData responseData, ExceptionResponse exceptionResponse,
+                                                            String message, HttpStatus statusCode) {
+        return buildErrorResponse(responseData, exceptionResponse, message, statusCode, null);
+    }
+
+    private ResponseEntity<ResponseData> buildErrorResponse(ResponseData responseData, ExceptionResponse exceptionResponse,
+                                                            String message, HttpStatus statusCode, Exception e) {
+        String detailError = e != null ? "Mensaje: " + e.getMessage() + "\nCausa: " + e.getCause() : "";
+
+        responseData.setCode(Constants.S_VAL_01);
         responseData.setMessage(message);
+        responseData.setTimestamp(LocalDateTime.now());
+
+        exceptionResponse.setMessage(message);
+        exceptionResponse.setDetails(detailError);
+        exceptionResponse.setTimestamp(LocalDateTime.now());
+
         responseData.setException(exceptionResponse);
-        return new ResponseEntity<ResponseData>(responseData, statusCode);
+
+        return ResponseEntity.status(statusCode)
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(responseData);
     }
 
     @Operation(summary = "Obtener información de toda la tabla de impuesto de la SUNAT.")
@@ -128,7 +133,7 @@ public class TaxTableSunatController {
             @ApiResponse(responseCode = "404", description = "No se encontró información.",
                     content = @Content)
     })
-    @GetMapping
+    @GetMapping(value = "/", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<List<TaxTableSunat>> getAllTaxesController() {
         List<TaxTableSunat> taxes = service.findAllService();
         return ResponseEntity.ok(taxes);

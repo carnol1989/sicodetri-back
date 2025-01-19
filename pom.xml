@@ -46,6 +46,11 @@
 		<mockito.inline>5.2.0</mockito.inline>
 		<postgresql.version>42.7.2</postgresql.version>
 		<jasperreports.version>6.21.3</jasperreports.version>
+<!--		<checkstyle.version>8.41</checkstyle.version>-->
+		<google.guava.version>30.1-jre</google.guava.version>
+		<plugin.maven.checkstyle.version>3.3.1</plugin.maven.checkstyle.version>
+		<plugin.maven.site.version>3.12.0</plugin.maven.site.version>
+		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 	</properties>
 	<dependencies>
 		<dependency>
@@ -126,6 +131,18 @@
 			<artifactId>jasperreports-fonts</artifactId>
 			<version>${jasperreports.version}</version>
 		</dependency>
+
+<!--		<dependency>-->
+<!--			<groupId>com.puppycrawl.tools</groupId>-->
+<!--			<artifactId>checkstyle</artifactId>-->
+<!--			<version>${checkstyle.version}</version>-->
+<!--		</dependency>-->
+		<dependency>
+			<groupId>com.google.guava</groupId>
+			<artifactId>guava</artifactId>
+			<version>${google.guava.version}</version>
+			<scope>provided</scope>
+		</dependency>
 	</dependencies>
 	<build>
 		<plugins>
@@ -155,6 +172,37 @@
 					</execution>
 				</executions>
 			</plugin>
+			<!-- Plugin de Checkstyle -->
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-checkstyle-plugin</artifactId>
+				<version>${plugin.maven.checkstyle.version}</version>
+				<configuration>
+					<configLocation>checkstyle.xml</configLocation>
+					<consoleOutput>true</consoleOutput>
+					<failsOnError>true</failsOnError>
+				</configuration>
+				<executions>
+					<execution>
+						<phase>validate</phase>
+						<goals>
+							<goal>check</goal>
+						</goals>
+					</execution>
+				</executions>
+			</plugin>
 		</plugins>
 	</build>
+	<reporting>
+		<plugins>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-checkstyle-plugin</artifactId>
+				<version>${plugin.checkstyle.version}</version>
+				<configuration>
+					<configLocation>checkstyle.xml</configLocation>
+				</configuration>
+			</plugin>
+		</plugins>
+	</reporting>
 </project>

@@ -23,7 +23,6 @@ import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Stream;
 
@@ -88,7 +87,6 @@ class TaxTableSunatControllerTest {
     @MethodSource("provideParameters")
     @DisplayName("testGetTaxTableSunatController")
     void testGetTaxTableSunatController(Long option, Long id, String accountingAccount, TaxTableSunat expected, HttpStatus expectedStatus) throws Exception {
-        // Configuración de mocks según el parámetro de prueba
         String message = "";
         if (option == N_VAL_1) {
             if (expectedStatus == HttpStatus.NOT_FOUND) {
@@ -106,7 +104,6 @@ class TaxTableSunatControllerTest {
             }
         }
 
-        // Ejecutar la solicitud y verificar la respuesta
         MvcResult result = mockMvc.perform(get(BASE_URI + "/{option}", option)
                         .param("id", id != null ? id.toString() : "")
                         .param("accountingAccount", accountingAccount != null ? accountingAccount : "")
@@ -114,7 +111,6 @@ class TaxTableSunatControllerTest {
                 .andExpect(MockMvcResultMatchers.status().is(expectedStatus.value()))
                 .andReturn();
 
-        // Verificar el comportamiento del servicio
         if (option == N_VAL_1) {
             if (expectedStatus != HttpStatus.NOT_FOUND) {
                 verify(service, times(1)).findByIdService(id);
@@ -125,7 +121,6 @@ class TaxTableSunatControllerTest {
             }
         }
 
-        // Verificar los detalles de la respuesta si se espera un error
         if (expectedStatus == HttpStatus.NOT_FOUND || expectedStatus == HttpStatus.EXPECTATION_FAILED) {
             String responseBody = result.getResponse().getContentAsString();
             System.out.println(responseBody);
@@ -136,21 +131,15 @@ class TaxTableSunatControllerTest {
     @Test
     @DisplayName("testGetTaxTableSunatController_ExceptionHandling")
     void testGetTaxTableSunatController_ExceptionHandling() {
-        // Arrange
         Long option = 1L;
         Long id = 123L;
         String accountingAccount = "account";
 
-        // Simulate the service to throw an exception
         when(service.findByIdService(anyLong())).thenThrow(new RuntimeException("Error al obtener informacion del activo fijo: account"));
 
-        // Act
         ResponseEntity<ResponseData> response = controller.getTaxTableSunatController(option, id, accountingAccount);
-        System.out.println(response);
 
-        // Assert
         assertEquals(HttpStatus.EXPECTATION_FAILED, response.getStatusCode());
-
         ResponseData responseData = response.getBody();
         assertNotNull(responseData);
         assertEquals("01", responseData.getCode());
@@ -168,11 +157,19 @@ class TaxTableSunatControllerTest {
         when(service.findAllService()).thenReturn(taxes);
 
         mockMvc = MockMvcBuilders.standaloneSetup(controller).build();
-        mockMvc.perform(get(BASE_URI + "/"))
+
+        MvcResult result = mockMvc.perform(get(BASE_URI + "/"))
+                .andExpect(status().isOk())
+                .andReturn();
+
+        String responseBody = result.getResponse().getContentAsString();
+
+        mockMvc.perform(get(BASE_URI + "/")
+                        .accept(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(taxes.size()));
 
-        verify(service, times(1)).findAllService();
+        verify(service, atLeastOnce()).findAllService();
     }
 
     @Test

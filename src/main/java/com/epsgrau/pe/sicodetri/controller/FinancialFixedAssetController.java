@@ -16,11 +16,9 @@ import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
-import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.core.io.ByteArrayResource;
 import org.springframework.core.io.InputStreamResource;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -30,11 +28,9 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -82,7 +78,9 @@ public class FinancialFixedAssetController {
         exceptionResponse.setTimestamp(LocalDateTime.now());
         responseData.setException(exceptionResponse);
 
-        return new ResponseEntity<>(responseData, statusCode);
+        return ResponseEntity.status(statusCode)
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(responseData);
     }
 
     @Operation(summary = "Subir información del archivo Excel (Formato 7)")
@@ -197,7 +195,7 @@ public class FinancialFixedAssetController {
             @ApiResponse(responseCode = "404", description = "Error al obtener informacion para el periodo.",
                     content = @Content)
     })
-    @GetMapping(value = "/report", produces = MediaType.APPLICATION_OCTET_STREAM_VALUE)
+    @PostMapping(value = "/upload", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<?> callGetReportTaxBookController(@RequestParam("fileType") String fileType,
                                                             @RequestParam String year,
                                                             @RequestParam String mainCode,
@@ -281,13 +279,15 @@ public class FinancialFixedAssetController {
         }
     }
 
-    private ResponseEntity<ResponseData> buildResponse(String message, Object obj, HttpStatus status) {
+    private ResponseEntity<ResponseData> buildResponse(String message, Object obj, HttpStatus statusCode) {
         ResponseData responseData = new ResponseData();
         responseData.setTimestamp(LocalDateTime.now());
         responseData.setMessage(message);
         responseData.setResponse(obj);
         responseData.setCode(Constants.S_VAL_00);
-        return new ResponseEntity<>(responseData, status);
+        return ResponseEntity.status(statusCode)
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(responseData);
     }
 
     private ResponseEntity<ResponseData> buildResponseWithError(String message, HttpStatus status, String details) {
