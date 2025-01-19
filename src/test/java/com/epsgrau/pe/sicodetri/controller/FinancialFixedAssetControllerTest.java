@@ -16,6 +16,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.mock.web.MockHttpSession;
 import org.springframework.mock.web.MockMultipartFile;
@@ -172,7 +173,8 @@ class FinancialFixedAssetControllerTest {
 
         // Validar la respuesta
         mockMvc.perform(requestBuilder)
-                .andExpect(status().isExpectationFailed()) // Verifica el código de estado 417
+                .andExpect(status().isExpectationFailed())
+                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
                 .andExpect(jsonPath("$.code").value(S_VAL_01))
                 .andExpect(jsonPath("$.message").value("Error al subir archivo."))
                 .andExpect(jsonPath("$.timestamp").exists()) // Validar que timestamp existe

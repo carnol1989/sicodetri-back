@@ -167,6 +167,8 @@ public class DataTest {
         itemInputFinacialFixedAsset.setDepreciationInflationAdjustment(BigDecimal.ZERO);//27
         itemInputFinacialFixedAsset.setAccumulatedDepreciationAdjustedInflation(new BigDecimal("13746850.25"));//28
         itemInputFinacialFixedAsset.setNetFixedAssets(new BigDecimal("13746850.40"));//30
+        itemInputFinacialFixedAsset.setHistoricalCost(BigDecimal.ZERO);
+        itemInputFinacialFixedAsset.setRevaluedAmount(BigDecimal.ZERO);
         return itemInputFinacialFixedAsset;
     }
 
