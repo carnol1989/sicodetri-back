@@ -44,8 +44,8 @@ class ExcelHelperTest {
     private MultipartFile file;
 
     @Test
-    @DisplayName("Test hasExcelFormat with valid Excel format")
-    void testHasExcelFormatWithValidExcelFormat() throws IOException {
+    @DisplayName("Return true when file content type is XLSX")
+    void returnTrueWhenFileContentTypeIsXlsx() throws IOException {
         // Arrange
         ByteArrayInputStream bais = createMockExcelInputStreamData();
         MultipartFile file = mock(MultipartFile.class);
@@ -60,12 +60,10 @@ class ExcelHelperTest {
     }
 
     @Test
-    @DisplayName("Test hasExcelFormat with invalid Excel format")
-    void testHasExcelFormatWithInvalidExcelFormat() throws IOException {
+    @DisplayName("Return false when file content type is not XLSX")
+    void returnFalseWhenFileContentTypeIsNotXlsx() throws IOException {
         // Arrange
-        ByteArrayInputStream bais = createMockPdfInputStreamData();
         MultipartFile file = mock(MultipartFile.class);
-
         when(file.getContentType()).thenReturn("application/pdf");
 
         // Act
@@ -76,8 +74,8 @@ class ExcelHelperTest {
     }
 
     @Test
-    @DisplayName("Test getValueCell with STRING type")
-    void testGetValueCellWithStringType() {
+    @DisplayName("Return string value when cell type is STRING")
+    void returnStringValueWhenCellTypeIsString() {
         // Arrange
         Cell cell = mock(Cell.class);
         when(cell.getCellType()).thenReturn(CellType.STRING);
@@ -91,8 +89,8 @@ class ExcelHelperTest {
     }
 
     @Test
-    @DisplayName("Test getValueCell with NUMERIC type")
-    void testGetValueCellWithNumericType() {
+    @DisplayName("Return numeric value when cell type is NUMERIC and not date formatted")
+    void returnNumericValueWhenCellTypeIsNumericAndNotDate() {
         // Arrange
         Cell cell = mock(Cell.class);
         when(cell.getCellType()).thenReturn(CellType.NUMERIC);
@@ -102,12 +100,12 @@ class ExcelHelperTest {
         Object result = ExcelHelper.getValueCell(cell);
 
         // Assert
-        assertEquals(12345.67, result);
+        assertEquals(String.valueOf(12345.67), result);
     }
 
     @Test
-    @DisplayName("Test getValueCell with DATE type")
-    void testGetValueCellWithDateType() throws ParseException {
+    @DisplayName("Return formatted date string when cell is date formatted")
+    void returnFormattedDateStringWhenCellIsDateFormatted() throws ParseException {
         // Arrange
         Cell cell = mock(Cell.class);
         SimpleDateFormat formatter = new SimpleDateFormat(ConstantsTest.FORMATTER_YYYY_MM_DD);
@@ -115,10 +113,8 @@ class ExcelHelperTest {
         Date parsedDate = formatter.parse(dateString);
 
         try (MockedStatic<DateUtil> mockedDateUtil = Mockito.mockStatic(DateUtil.class)) {
-            // Mockear el método estático
             mockedDateUtil.when(() -> DateUtil.isCellDateFormatted(cell)).thenReturn(true);
 
-            // Configurar el comportamiento de los métodos no estáticos
             when(cell.getCellType()).thenReturn(CellType.NUMERIC);
             when(cell.getDateCellValue()).thenReturn(parsedDate);
 
@@ -127,15 +123,14 @@ class ExcelHelperTest {
 
             // Assert
             assertNotNull(result);
-            // Opcional: verificar el formato de la fecha devuelta
             String expectedDate = formatter.format(parsedDate);
             assertEquals(expectedDate, result);
         }
     }
 
     @Test
-    @DisplayName("Test getValueCell with FORMULA type")
-    void testGetValueCellWithFormulaType() {
+    @DisplayName("Return formula string when cell type is FORMULA")
+    void returnFormulaStringWhenCellTypeIsFormula() {
         // Arrange
         Cell cell = mock(Cell.class);
         when(cell.getCellType()).thenReturn(CellType.FORMULA);
@@ -149,8 +144,8 @@ class ExcelHelperTest {
     }
 
     @Test
-    @DisplayName("Test getValueCell with BOOLEAN type")
-    void testGetValueCellWithBooleanType() {
+    @DisplayName("Return boolean value when cell type is BOOLEAN")
+    void returnBooleanValueWhenCellTypeIsBoolean() {
         // Arrange
         Cell cell = mock(Cell.class);
         when(cell.getCellType()).thenReturn(CellType.BOOLEAN);

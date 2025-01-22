@@ -1,11 +1,11 @@
 package com.epsgrau.pe.sicodetri.config;
 
-import org.springdoc.core.models.GroupedOpenApi;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
 import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.info.Info;
 import io.swagger.v3.oas.models.info.License;
+import org.springdoc.core.models.GroupedOpenApi;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
 
 /**
  * This class configures the information API Docs. <br/>
@@ -29,18 +29,19 @@ import io.swagger.v3.oas.models.info.License;
 public class OpenApiConfig {
 
     /**
-     * Define the basic information that will appear in your API documentation, including title, description, version,
-     * terms of service, contact, and license.
+     * Define the basic information that will appear in your API documentation,
+     * including title, description, version, terms of service, contact, and license.
      *
      * @return OpenAPI bean custom.
      */
     @Bean
-    public OpenAPI customOpenAPI() {
+    public OpenAPI customOpenApi() {
         return new OpenAPI()
                 .info(new Info()
                         .title("SICODETRI API")
                         .version("1.0.0")
-                        .description("Monolítico para realizar la conciliación de la depreciación Tributaria vs la Financiera.")
+                        .description("Monolítico para realizar la conciliación de la depreciación "
+                            + "Tributaria vs la Financiera.")
                         .termsOfService("https://www.epsgrau.pe/webpage/desktop/views/")
                         .contact(new io.swagger.v3.oas.models.info.Contact()
                                 .name("Ing. Inf. Carlos Augusto Nole Machaca")
@@ -53,7 +54,8 @@ public class OpenApiConfig {
     }
 
     /**
-     * Configure the default API group. You can adjust this if you need to create additional groups of APIs.
+     * Configure the default API group. You can adjust this if you need to create
+     * additional groups of APIs.
      *
      * @return GroupedOpenApi groups of APIs.
      */

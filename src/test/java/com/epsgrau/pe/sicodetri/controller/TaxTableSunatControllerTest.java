@@ -85,9 +85,10 @@ class TaxTableSunatControllerTest {
 
     @ParameterizedTest
     @MethodSource("provideParameters")
-    @DisplayName("testGetTaxTableSunatController")
-    void testGetTaxTableSunatController(Long option, Long id, String accountingAccount, TaxTableSunat expected, HttpStatus expectedStatus) throws Exception {
-        String message = "";
+    @DisplayName("Return taxTableSunat when option and parameters are valid or handle not found properly")
+    void returnTaxTableSunatWhenOptionAndParametersAreValidOrNotFound(Long option, Long id, String accountingAccount,
+                                                                      TaxTableSunat expected, HttpStatus expectedStatus) throws Exception {
+        // Arrange
         if (option == N_VAL_1) {
             if (expectedStatus == HttpStatus.NOT_FOUND) {
                 when(service.findByIdService(id)).thenReturn(expected)
@@ -104,6 +105,7 @@ class TaxTableSunatControllerTest {
             }
         }
 
+        // Act
         MvcResult result = mockMvc.perform(get(BASE_URI + "/{option}", option)
                         .param("id", id != null ? id.toString() : "")
                         .param("accountingAccount", accountingAccount != null ? accountingAccount : "")
@@ -111,6 +113,7 @@ class TaxTableSunatControllerTest {
                 .andExpect(MockMvcResultMatchers.status().is(expectedStatus.value()))
                 .andReturn();
 
+        // Assert
         if (option == N_VAL_1) {
             if (expectedStatus != HttpStatus.NOT_FOUND) {
                 verify(service, times(1)).findByIdService(id);
@@ -129,16 +132,19 @@ class TaxTableSunatControllerTest {
     }
 
     @Test
-    @DisplayName("testGetTaxTableSunatController_ExceptionHandling")
-    void testGetTaxTableSunatController_ExceptionHandling() {
+    @DisplayName("Return expectation failed when unexpected exception is thrown in controller")
+    void returnExpectationFailedWhenUnexpectedExceptionIsThrownInController() {
+        // Arrange
         Long option = 1L;
         Long id = 123L;
         String accountingAccount = "account";
 
         when(service.findByIdService(anyLong())).thenThrow(new RuntimeException("Error al obtener informacion del activo fijo: account"));
 
+        // Act
         ResponseEntity<ResponseData> response = controller.getTaxTableSunatController(option, id, accountingAccount);
 
+        // Assert
         assertEquals(HttpStatus.EXPECTATION_FAILED, response.getStatusCode());
         ResponseData responseData = response.getBody();
         assertNotNull(responseData);
@@ -150,38 +156,36 @@ class TaxTableSunatControllerTest {
     }
 
     @Test
-    @DisplayName("testGetAllTaxesController")
-    void testGetAllTaxesController() throws Exception {
+    @DisplayName("Return all taxTableSunat records when data exists")
+    void returnAllTaxTableSunatRecordsWhenDataExists() throws Exception {
+        // Arrange
         List<TaxTableSunat> taxes = getListTableSunats();
-
         when(service.findAllService()).thenReturn(taxes);
-
         mockMvc = MockMvcBuilders.standaloneSetup(controller).build();
 
-        MvcResult result = mockMvc.perform(get(BASE_URI + "/"))
-                .andExpect(status().isOk())
-                .andReturn();
-
-        String responseBody = result.getResponse().getContentAsString();
-
+        // Act
         mockMvc.perform(get(BASE_URI + "/")
                         .accept(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(taxes.size()));
 
+        // Assert
         verify(service, atLeastOnce()).findAllService();
     }
 
     @Test
-    @DisplayName("testGetAllTaxesControllerEmpty")
-    void testGetAllTaxesControllerEmpty() throws Exception {
+    @DisplayName("Return empty list when no taxTableSunat records exist")
+    void returnEmptyListWhenNoTaxTableSunatRecordsExist() throws Exception {
+        // Arrange
         when(service.findAllService()).thenReturn(new ArrayList<>());
-
         mockMvc = MockMvcBuilders.standaloneSetup(controller).build();
+
+        // Act
         mockMvc.perform(get(BASE_URI + "/"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(0));
 
+        // Assert
         verify(service, times(1)).findAllService();
     }
 

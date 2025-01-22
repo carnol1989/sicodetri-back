@@ -4,10 +4,10 @@ import com.epsgrau.pe.sicodetri.dto.FinancialFixedAssetDto;
 import com.epsgrau.pe.sicodetri.dto.ParamReportDto;
 import com.epsgrau.pe.sicodetri.entity.FinancialFixedAsset;
 import com.epsgrau.pe.sicodetri.model.InputData;
-import org.springframework.web.multipart.MultipartFile;
-
+import java.sql.SQLException;
 import java.time.LocalDate;
 import java.util.List;
+import org.springframework.web.multipart.MultipartFile;
 
 /**
  * This class is the interface of the service for Financial Fixed Asset. <br/>
@@ -39,7 +39,8 @@ public interface FinancialFixedAssetService {
 
     void deleteByAccountingPeriod(LocalDate period);
 
-    void generateTemporayDeductionsService(LocalDate accountingPeriod, List<FinancialFixedAsset> fixedAsset);
+    void generateTemporayDeductionsService(LocalDate accountingPeriod,
+                                           List<FinancialFixedAsset> fixedAsset);
 
     FinancialFixedAsset findByIdService(Long id);
 
@@ -51,8 +52,10 @@ public interface FinancialFixedAssetService {
 
     List<FinancialFixedAsset> findByPeriodService(LocalDate period);
 
-    List<FinancialFixedAsset> findByPeriodAndAccountStartingWithService(LocalDate period, String account);
+    List<FinancialFixedAsset> findByPeriodAndAccountStartingWithService(LocalDate period,
+                                                                        String account);
 
-    List<FinancialFixedAssetDto> callGetReportTaxBookService(ParamReportDto params);
+    List<FinancialFixedAssetDto> callGetReportTaxBookService(ParamReportDto params)
+        throws SQLException;
 
 }

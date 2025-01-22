@@ -4,9 +4,14 @@ import com.epsgrau.pe.sicodetri.entity.*;
 import com.epsgrau.pe.sicodetri.model.Depreciation;
 import com.epsgrau.pe.sicodetri.model.FixedAssetDetail;
 import com.epsgrau.pe.sicodetri.model.InputData;
+import net.sf.jasperreports.engine.JasperPrint;
+import net.sf.jasperreports.engine.base.JRBasePrintPage;
+import net.sf.jasperreports.engine.base.JRBasePrintText;
+import net.sf.jasperreports.engine.type.ModeEnum;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
@@ -220,4 +225,63 @@ public class DataTest {
         return taxDepreciation;
     }
 
+    public static JasperPrint createJasperPrintWithOneEmptyPage() {
+        // 1) Creamos el JasperPrint
+        JasperPrint jasperPrint = new JasperPrint();
+        jasperPrint.setName("Prueba con texto");
+
+        // 2) Añadimos una página vacía (JRBasePrintPage)
+        JRBasePrintPage page = new JRBasePrintPage();
+        jasperPrint.addPage(page);
+
+        // 3) Creamos un elemento JRPrintText y lo configuramos
+        JRBasePrintText text = new JRBasePrintText(null);
+        text.setX(0);
+        text.setY(0);
+        text.setWidth(200);
+        text.setHeight(20);
+        text.setForecolor(java.awt.Color.BLACK);
+        text.setBackcolor(java.awt.Color.WHITE);
+        text.setMode(ModeEnum.OPAQUE);
+        text.setText("TEXTO DE PRUEBA");
+
+        // 4) Lo agregamos a la página
+        page.addElement(text);
+
+        return jasperPrint;
+    }
+
+    public static FinancialDepreciation getFinancialDepreciation() {
+        FinancialDepreciation financialDepreciation = new FinancialDepreciation();
+        financialDepreciation.setId(1L);
+        financialDepreciation.setAccountingPeriod(LocalDate.parse("2022-01-01"));
+        financialDepreciation.setAddedBy("CARNOL");
+        financialDepreciation.setAdditionDate(LocalDateTime.now());
+        financialDepreciation.setAnnualFinancialRate(BigDecimal.valueOf(0.0333));
+        financialDepreciation.setValueDepreciation(BigDecimal.valueOf(76371.3900));
+        financialDepreciation.setFinancialFixedAsset(getFinancialFixedAsset332());
+        return financialDepreciation;
+    }
+
+    public static Addition getAddition() {
+        Addition addition = new Addition();
+        addition.setId(1L);
+        addition.setAccountingPeriod(LocalDate.parse("2028-01-01"));
+        addition.setAddedBy("CARNOL");
+        addition.setAdditionDate(LocalDateTime.now());
+        addition.setValueAddition(BigDecimal.valueOf(76371.390000000000000));
+        addition.setTaxDepreciation(getTaxDepreciation());
+        return addition;
+    }
+
+    public static Deduction getDeduction() {
+        Deduction deduction = new Deduction();
+        deduction.setId(1L);
+        deduction.setAccountingPeriod(LocalDate.parse("2022-01-01"));
+        deduction.setAddedBy("CARNOL");
+        deduction.setAdditionDate(LocalDateTime.now());
+        deduction.setValueDeduction(BigDecimal.valueOf(38185.70));
+        deduction.setTaxDepreciation(getTaxDepreciation());
+        return deduction;
+    }
 }

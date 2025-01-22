@@ -1,15 +1,29 @@
 package com.epsgrau.pe.sicodetri.entity;
 
-import io.swagger.v3.oas.annotations.media.Schema;
-import jakarta.persistence.*;
-import lombok.*;
+import static com.epsgrau.pe.sicodetri.util.Constants.BD_VAL_100;
+import static com.epsgrau.pe.sicodetri.util.Constants.BD_VAL_12;
+import static com.epsgrau.pe.sicodetri.util.Constants.N_VAL_2;
+import static com.epsgrau.pe.sicodetri.util.Constants.N_VAL_9;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.ForeignKey;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.Table;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-
-import static com.epsgrau.pe.sicodetri.util.Constants.*;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 /**
  * This class entity for financial depreciation. <br/>
@@ -29,6 +43,7 @@ import static com.epsgrau.pe.sicodetri.util.Constants.*;
  *     </ul>
  * @version 1.0
  */
+@SuppressFBWarnings({"EI_EXPOSE_REP", "EI_EXPOSE_REP2"})
 @Schema(description = "Información de la Depreciación Financiera.")
 @Getter
 @Setter
@@ -56,7 +71,8 @@ public class FinancialDepreciation {
     private BigDecimal annualFinancialRate;
 
     @ManyToOne
-    @JoinColumn(name = "id_financial_fixed_asset", foreignKey = @ForeignKey(name = "FK_financial_depreciation_fixed_asset"))
+    @JoinColumn(name = "id_financial_fixed_asset", foreignKey = @ForeignKey(name =
+        "FK_financial_depreciation_fixed_asset"))
     private FinancialFixedAsset financialFixedAsset;
 
     @Schema(description = "Usuario que realizó el registro", example = "CANO")
@@ -75,24 +91,29 @@ public class FinancialDepreciation {
     @Column
     private LocalDateTime modificationDate;
 
-    /***
+    /**
      * Method that allows the calculation of financial depreciation.
+     *
      * @param fixedAsset Fixed Asset
      */
     public void calculateDepreciation(FinancialFixedAsset fixedAsset) {
         // Obtener el saldo inicial
-        BigDecimal initialBalance = fixedAsset.getInitialBalance().setScale(N_VAL_2, RoundingMode.HALF_UP);
+        BigDecimal initialBalance = fixedAsset.getInitialBalance().setScale(N_VAL_2,
+            RoundingMode.HALF_UP);
 
         // Calcular la tasa anual de depreciación como un valor decimal (no porcentaje)
-        this.annualFinancialRate = BD_VAL_100.divide(BigDecimal.valueOf(fixedAsset.getUsefulLifeYears()), N_VAL_9, RoundingMode.HALF_UP)
-                .divide(BD_VAL_100, N_VAL_9, RoundingMode.HALF_UP);
+        this.annualFinancialRate = BD_VAL_100.divide(BigDecimal.valueOf(
+            fixedAsset.getUsefulLifeYears()), N_VAL_9, RoundingMode.HALF_UP).divide(BD_VAL_100,
+            N_VAL_9, RoundingMode.HALF_UP);
 
         // Calcular la tasa mensual
-        BigDecimal monthlyFinancialRate = this.annualFinancialRate.divide(BD_VAL_12, N_VAL_9, RoundingMode.HALF_UP);
+        BigDecimal monthlyFinancialRate = this.annualFinancialRate.divide(BD_VAL_12, N_VAL_9,
+            RoundingMode.HALF_UP);
 
         // Calcular la depreciación mensual
         this.valueDepreciation = initialBalance.multiply(monthlyFinancialRate);
 
-        this.valueDepreciation.setScale(N_VAL_2, RoundingMode.DOWN);
+        // Asignar el valor de 'valueDepreciation' con la nueva escala
+        this.valueDepreciation = this.valueDepreciation.setScale(N_VAL_2, RoundingMode.DOWN);
     }
 }

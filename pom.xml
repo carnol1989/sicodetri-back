@@ -46,10 +46,12 @@
 		<mockito.inline>5.2.0</mockito.inline>
 		<postgresql.version>42.7.2</postgresql.version>
 		<jasperreports.version>6.21.3</jasperreports.version>
-<!--		<checkstyle.version>8.41</checkstyle.version>-->
 		<google.guava.version>30.1-jre</google.guava.version>
+		<spotbugs.annotations.version>4.0.0</spotbugs.annotations.version>
 		<plugin.maven.checkstyle.version>3.3.1</plugin.maven.checkstyle.version>
 		<plugin.maven.site.version>3.12.0</plugin.maven.site.version>
+		<plugin.maven.antrun.version>3.0.0</plugin.maven.antrun.version>
+		<plugin.maven.spotbugs.version>4.8.6.6</plugin.maven.spotbugs.version>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 	</properties>
 	<dependencies>
@@ -132,16 +134,18 @@
 			<version>${jasperreports.version}</version>
 		</dependency>
 
-<!--		<dependency>-->
-<!--			<groupId>com.puppycrawl.tools</groupId>-->
-<!--			<artifactId>checkstyle</artifactId>-->
-<!--			<version>${checkstyle.version}</version>-->
-<!--		</dependency>-->
 		<dependency>
 			<groupId>com.google.guava</groupId>
 			<artifactId>guava</artifactId>
 			<version>${google.guava.version}</version>
 			<scope>provided</scope>
+		</dependency>
+
+		<dependency>
+			<groupId>com.github.spotbugs</groupId>
+			<artifactId>spotbugs-annotations</artifactId>
+			<version>${spotbugs.annotations.version}</version>
+			<scope>compile</scope>
 		</dependency>
 	</dependencies>
 	<build>
@@ -178,13 +182,38 @@
 				<artifactId>maven-checkstyle-plugin</artifactId>
 				<version>${plugin.maven.checkstyle.version}</version>
 				<configuration>
+					<!-- Ruta a tu archivo checkstyle.xml -->
 					<configLocation>checkstyle.xml</configLocation>
+					<!-- Mostrar salida en consola -->
 					<consoleOutput>true</consoleOutput>
+					<!-- Hacer que falle incluso con violaciones de nivel “error” -->
 					<failsOnError>true</failsOnError>
+					<!-- Hacer que falle incluso con violaciones de nivel “warning” -->
+					<failOnViolation>true</failOnViolation>
+					<!-- Nivel mínimo de severidad que consideraremos para fallar el build -->
+					<violationSeverity>warning</violationSeverity>
 				</configuration>
 				<executions>
 					<execution>
 						<phase>validate</phase>
+						<goals>
+							<goal>check</goal>
+						</goals>
+					</execution>
+				</executions>
+			</plugin>
+			<!-- Plugin de SpotBugs -->
+			<plugin>
+				<groupId>com.github.spotbugs</groupId>
+				<artifactId>spotbugs-maven-plugin</artifactId>
+				<version>${plugin.maven.spotbugs.version}</version>
+				<configuration>
+					<effort>Max</effort>
+					<threshold>Low</threshold>
+					<xmlOutput>true</xmlOutput>
+				</configuration>
+				<executions>
+					<execution>
 						<goals>
 							<goal>check</goal>
 						</goals>
@@ -198,10 +227,15 @@
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-checkstyle-plugin</artifactId>
-				<version>${plugin.checkstyle.version}</version>
+				<version>${plugin.maven.checkstyle.version}</version>
 				<configuration>
 					<configLocation>checkstyle.xml</configLocation>
 				</configuration>
+			</plugin>
+			<plugin>
+				<groupId>com.github.spotbugs</groupId>
+				<artifactId>spotbugs-maven-plugin</artifactId>
+				<version>${plugin.maven.spotbugs.version}</version>
 			</plugin>
 		</plugins>
 	</reporting>

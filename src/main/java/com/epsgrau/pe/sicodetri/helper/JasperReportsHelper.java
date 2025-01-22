@@ -1,6 +1,7 @@
 package com.epsgrau.pe.sicodetri.helper;
 
 import com.epsgrau.pe.sicodetri.util.enums.ReportTypeEnum;
+import java.io.ByteArrayOutputStream;
 import net.sf.jasperreports.engine.JRException;
 import net.sf.jasperreports.engine.JasperExportManager;
 import net.sf.jasperreports.engine.JasperPrint;
@@ -9,56 +10,89 @@ import net.sf.jasperreports.engine.export.JRCsvExporter;
 import net.sf.jasperreports.engine.export.JRRtfExporter;
 import net.sf.jasperreports.engine.export.JRXmlExporter;
 import net.sf.jasperreports.engine.export.ooxml.JRXlsxExporter;
-import net.sf.jasperreports.export.*;
+import net.sf.jasperreports.export.SimpleExporterInput;
+import net.sf.jasperreports.export.SimpleHtmlExporterOutput;
+import net.sf.jasperreports.export.SimpleOutputStreamExporterOutput;
+import net.sf.jasperreports.export.SimpleWriterExporterOutput;
+import net.sf.jasperreports.export.SimpleXmlExporterOutput;
 
-import java.io.ByteArrayOutputStream;
-
+/**
+ * This class is helper for generate reports with Jasper. <br/>
+ * <b>Class</b>: {@link JasperReportsHelper}<br/>
+ * <b>Copyright</b>: &Copy; 2024 EPS Grau. <br/>
+ * <b>Company</b>: EPS Grau. <br/>
+ *
+ * @author EPS Grau <br/>
+ *     <u>Service Provider</u>: Consultor TI <br/>
+ *     <u>Developed by</u>: <br/>
+ *     <ul>
+ *     <li>Carlos Augusto Nole Machaca</li>
+ *     </ul>
+ *     <u>Changes</u>:<br/>
+ *     <ul>
+ *     <li>Sep 08, 2024 (JAR) Creation class.</li>
+ *     </ul>
+ * @version 1.0
+ */
 public class JasperReportsHelper {
 
-    public static byte[] exportJasperReportBytes(JasperPrint jasperPrint, ReportTypeEnum reportType) throws JRException {
+    /**
+     * Exporta el contenido de un JasperPrint a bytes en el formato indicado por reportType.
+     * Si jasperPrint es null, lanza un JRException con mensaje claro.
+     *
+     * @param jasperPrint  el JasperPrint a exportar; no puede ser null
+     * @param reportType   el tipo de reporte (CSV, XLSX, HTML, XML, DOCX, PDF)
+     * @return arreglo de bytes con el contenido exportado
+     * @throws JRException si ocurre un error en JasperReports, o si jasperPrint es null
+     */
+    public static byte[] exportJasperReportBytes(JasperPrint jasperPrint,
+                                                 ReportTypeEnum reportType) throws JRException {
+        if (jasperPrint == null) {
+            throw new JRException("JasperPrint no puede ser null al exportar reporte.");
+        }
+
         ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
         switch (reportType) {
-            case CSV:
-                // Export to CSV
-                JRCsvExporter csvExporter = new JRCsvExporter();
-                csvExporter.setExporterInput(new SimpleExporterInput(jasperPrint));
-                csvExporter.setExporterOutput(new SimpleWriterExporterOutput(outputStream));
-                csvExporter.exportReport();
-                break;
-            case XLSX:
-                // Export to XLSX
-                JRXlsxExporter xlsxExporter = new JRXlsxExporter();
-                xlsxExporter.setExporterInput(new SimpleExporterInput(jasperPrint));
-                xlsxExporter.setExporterOutput(new SimpleOutputStreamExporterOutput(outputStream));
-                xlsxExporter.exportReport();
-                break;
-            case HTML:
-                // Export to HTML
-                HtmlExporter htmlExporter = new HtmlExporter();
-                htmlExporter.setExporterInput(new SimpleExporterInput(jasperPrint));
-                htmlExporter.setExporterOutput(new SimpleHtmlExporterOutput(outputStream));
-                htmlExporter.exportReport();
-                break;
-            case XML:
-                // Export to XML
-                JRXmlExporter xmlExporter = new JRXmlExporter();
-                xmlExporter.setExporterInput(new SimpleExporterInput(jasperPrint));
-                xmlExporter.setExporterOutput(new SimpleXmlExporterOutput(outputStream));
-                xmlExporter.exportReport();
-                break;
-            case DOCX:
-                // Export to DOCX (RTF format)
-                JRRtfExporter docxExporter = new JRRtfExporter();
-                docxExporter.setExporterInput(new SimpleExporterInput(jasperPrint));
-                docxExporter.setExporterOutput(new SimpleWriterExporterOutput(outputStream));
-                docxExporter.exportReport();
-                break;
-            default:
-                // Export to PDF by default
-                JasperExportManager.exportReportToPdfStream(jasperPrint, outputStream);
-                break;
+          case CSV:
+              // Export to CSV
+              JRCsvExporter csvExporter = new JRCsvExporter();
+              csvExporter.setExporterInput(new SimpleExporterInput(jasperPrint));
+              csvExporter.setExporterOutput(new SimpleWriterExporterOutput(outputStream));
+              csvExporter.exportReport();
+              break;
+          case XLSX:
+              // Export to XLSX
+              JRXlsxExporter xlsxExporter = new JRXlsxExporter();
+              xlsxExporter.setExporterInput(new SimpleExporterInput(jasperPrint));
+              xlsxExporter.setExporterOutput(new SimpleOutputStreamExporterOutput(outputStream));
+              xlsxExporter.exportReport();
+              break;
+          case HTML:
+              // Export to HTML
+              HtmlExporter htmlExporter = new HtmlExporter();
+              htmlExporter.setExporterInput(new SimpleExporterInput(jasperPrint));
+              htmlExporter.setExporterOutput(new SimpleHtmlExporterOutput(outputStream));
+              htmlExporter.exportReport();
+              break;
+          case XML:
+              // Export to XML
+              JRXmlExporter xmlExporter = new JRXmlExporter();
+              xmlExporter.setExporterInput(new SimpleExporterInput(jasperPrint));
+              xmlExporter.setExporterOutput(new SimpleXmlExporterOutput(outputStream));
+              xmlExporter.exportReport();
+              break;
+          case DOCX:
+              // Export to DOCX (RTF format)
+              JRRtfExporter docxExporter = new JRRtfExporter();
+              docxExporter.setExporterInput(new SimpleExporterInput(jasperPrint));
+              docxExporter.setExporterOutput(new SimpleWriterExporterOutput(outputStream));
+              docxExporter.exportReport();
+              break;
+          default:
+              // Export to PDF by default
+              JasperExportManager.exportReportToPdfStream(jasperPrint, outputStream);
+              break;
         }
         return outputStream.toByteArray();
     }
-
 }

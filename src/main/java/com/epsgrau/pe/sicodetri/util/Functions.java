@@ -26,6 +26,13 @@ import java.util.Date;
  */
 public class Functions {
 
+    /**
+     * Convert Date to LocalDate string.
+     *
+     * @param dateIn Date input
+     * @param format Format date
+     * @return String LocalDate
+     */
     public static String convertDateToLocalDateString(Date dateIn, String format) {
         // Convertir Date a Instant
         Instant instant = dateIn.toInstant();

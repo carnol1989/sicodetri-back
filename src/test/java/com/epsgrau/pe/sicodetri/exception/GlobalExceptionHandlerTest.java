@@ -14,6 +14,7 @@ import org.springframework.web.context.request.WebRequest;
 import java.util.Collections;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -45,8 +46,8 @@ class GlobalExceptionHandlerTest {
     }
 
     @Test
-    @DisplayName("testHandlerResourceNotFound")
-    void testHandlerResourceNotFound() {
+    @DisplayName("Handle ResourceNotFoundException when resource is missing")
+    void handleResourceNotFoundWhenResourceIsMissing() {
         // Arrange
         ResourceNotFoundException ex = new ResourceNotFoundException("Resource not found");
         WebRequest request = mock(WebRequest.class);
@@ -57,41 +58,42 @@ class GlobalExceptionHandlerTest {
 
         // Assert
         assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
-        assertEquals("Resource not found", response.getBody().getMessage());
-        assertEquals("Resource details", response.getBody().getDetails());
+        ExceptionResponse body = response.getBody();
+        assertNotNull(body);
+        assertEquals("Resource not found", body.getMessage());
+        assertEquals("Resource details", body.getDetails());
     }
 
     @Test
-    @DisplayName("testHandleValidationExceptions")
-    void testHandleValidationExceptions() {
+    @DisplayName("Handle MethodArgumentNotValidException when validation fails")
+    void handleValidationExceptionsWhenInputIsInvalid() {
         // Arrange
-        // Crear un mock de BindingResult
-        BindingResult bindingResult = mock(BindingResult.class);
+        FieldError fieldError = mock(FieldError.class);
+        when(fieldError.getDefaultMessage()).thenReturn("Validation error");
 
-        // Configurar el mock de MethodArgumentNotValidException para devolver el mock de BindingResult
+        BindingResult bindingResult = mock(BindingResult.class);
+        when(bindingResult.getAllErrors()).thenReturn(Collections.singletonList(fieldError));
+
         MethodArgumentNotValidException ex = mock(MethodArgumentNotValidException.class);
         when(ex.getBindingResult()).thenReturn(bindingResult);
 
-        // Configurar el mock de BindingResult para devolver una lista de errores
         WebRequest request = mock(WebRequest.class);
         when(request.getDescription(false)).thenReturn("Validation details");
-
-        FieldError fieldError = mock(FieldError.class);
-        when(fieldError.getDefaultMessage()).thenReturn("Validation error");
-        when(bindingResult.getAllErrors()).thenReturn(Collections.singletonList(fieldError));
 
         // Act
         ResponseEntity<ExceptionResponse> response = globalExceptionHandler.handleValidationExceptions(ex, request);
 
         // Assert
         assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
-        assertEquals("Validation error; ", response.getBody().getMessage());
-        assertEquals("Validation details", response.getBody().getDetails());
+        ExceptionResponse body = response.getBody();
+        assertNotNull(body);
+        assertEquals("Validation error; ", body.getMessage());
+        assertEquals("Validation details", body.getDetails());
     }
 
     @Test
-    @DisplayName("testHandleMaxSizeException")
-    void testHandleMaxSizeException() {
+    @DisplayName("Handle MaxUploadSizeExceededException when file size limit is exceeded")
+    void handleMaxSizeExceptionWhenFileSizeLimitExceeded() {
         // Arrange
         MaxUploadSizeExceededException ex = new MaxUploadSizeExceededException(1000L);
         WebRequest request = mock(WebRequest.class);
@@ -103,8 +105,10 @@ class GlobalExceptionHandlerTest {
 
         // Assert
         assertEquals(HttpStatus.EXPECTATION_FAILED, response.getStatusCode());
-        assertEquals("Maximum upload size of 1000 bytes exceeded", response.getBody().getMessage());
-        assertEquals("Max size exceeded", response.getBody().getDetails());
+        ExceptionResponse body = response.getBody();
+        assertNotNull(body);
+        assertEquals("Maximum upload size of 1000 bytes exceeded", body.getMessage());
+        assertEquals("Max size exceeded", body.getDetails());
     }
 
 }

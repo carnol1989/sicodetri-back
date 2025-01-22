@@ -1,5 +1,6 @@
 package com.epsgrau.pe.sicodetri.model;
 
+import java.io.Serializable;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -25,7 +26,9 @@ import lombok.NoArgsConstructor;
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-public class FixedAssetDetail {
+public class FixedAssetDetail implements Serializable {
+
+    private static final long serialVersionUID = 1L;
 
     private String description;
     private String fixedAssetBrand;

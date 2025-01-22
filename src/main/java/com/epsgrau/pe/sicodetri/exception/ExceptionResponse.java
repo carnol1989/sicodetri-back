@@ -1,11 +1,10 @@
 package com.epsgrau.pe.sicodetri.exception;
 
 import io.swagger.v3.oas.annotations.media.Schema;
+import java.time.LocalDateTime;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-
-import java.time.LocalDateTime;
 
 /**
  * This class is custom exception response. <br/>
@@ -25,19 +24,21 @@ import java.time.LocalDateTime;
  *     </ul>
  * @version 1.0
  */
-@Schema(description = "Información de la respuesta de error.")
+@Schema(description = "Información detallada sobre errores ocurridos durante "
+    + "la ejecución de la API.")
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
 public class ExceptionResponse {
 
-    @Schema(description = "Fecha y hora del error.")
+    @Schema(description = "Fecha y hora en que ocurrió el error.", example = "2024-08-28T12:01:00")
     private LocalDateTime timestamp;
 
-    @Schema(description = "Mensage del error.")
+    @Schema(description = "Mensage del error.", example = "Error interno "
+        + "del servidor.")
     private String message;
 
-    @Schema(description = "Detalles técnicos del error.")
+    @Schema(description = "Detalles técnicos del error.", example = "Mensaje: NullPointerException"
+        + " en línea 42\nCausa: null")
     private String details;
-
 }

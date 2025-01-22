@@ -2,13 +2,12 @@ package com.epsgrau.pe.sicodetri.repository;
 
 import com.epsgrau.pe.sicodetri.entity.FinancialFixedAsset;
 import jakarta.transaction.Transactional;
+import java.time.LocalDate;
+import java.util.List;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
-
-import java.time.LocalDate;
-import java.util.List;
 
 /**
  * This class is a repository para entity Financial Fixed Asset. <br/>
@@ -33,7 +32,8 @@ public interface FinancialFixedAssetRepository extends JpaRepository<FinancialFi
 
     List<FinancialFixedAsset> findByAccountingPeriod(LocalDate accountingPeriod);
 
-    List<FinancialFixedAsset> findByAccountingPeriodAndFixedAssetAccountingAccountStartingWith(LocalDate accountingPeriod, String accountingAccountPrefix);
+    List<FinancialFixedAsset> findByAccountingPeriodAndFixedAssetAccountingAccountStartingWith(
+        LocalDate accountingPeriod, String accountingAccountPrefix);
 
     List<FinancialFixedAsset> findByMainFixedAssetCode(String mainFixedAssetCode);
 

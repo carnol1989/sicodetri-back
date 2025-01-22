@@ -3,11 +3,10 @@ package com.epsgrau.pe.sicodetri.service.impl;
 import com.epsgrau.pe.sicodetri.entity.TaxDepreciation;
 import com.epsgrau.pe.sicodetri.repository.TaxDepreciationRepository;
 import com.epsgrau.pe.sicodetri.service.TaxDepreciationService;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
-
 import java.util.List;
 import java.util.Optional;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
 
 /**
  * This class implements the operations of the TaxDepreciationService. <br/>

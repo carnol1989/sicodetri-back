@@ -23,5 +23,6 @@ import org.springframework.stereotype.Repository;
  * @version 1.0
  */
 @Repository
-public interface FinancialDepreciationRepository extends JpaRepository<FinancialDepreciation, Long> {
+public interface FinancialDepreciationRepository extends
+    JpaRepository<FinancialDepreciation, Long> {
 }

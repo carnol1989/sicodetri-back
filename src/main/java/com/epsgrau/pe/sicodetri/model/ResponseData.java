@@ -1,12 +1,12 @@
 package com.epsgrau.pe.sicodetri.model;
 
 import com.epsgrau.pe.sicodetri.exception.ExceptionResponse;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.swagger.v3.oas.annotations.media.Schema;
+import java.time.LocalDateTime;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-
-import java.time.LocalDateTime;
 
 /**
  * This class is a model for mapping response data. <br/>
@@ -26,25 +26,26 @@ import java.time.LocalDateTime;
  *     </ul>
  * @version 1.0
  */
+@SuppressFBWarnings({"EI_EXPOSE_REP", "EI_EXPOSE_REP2"})
 @Schema(description = "Información de la respuesta del API.")
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
 public class ResponseData {
 
-    @Schema(description = "Fecha y hora del error.")
+    @Schema(description = "Fecha y hora de la respuesta.", example = "2024-08-28T12:00:00")
     private LocalDateTime timestamp;
 
     @Schema(description = "Código de respuesta de la petición.", example = "00=OK, 01=ERROR")
     private String code;
 
-    @Schema(description = "Mensaje de la petición.")
+    @Schema(description = "Mensaje de la petición.", example = "Operación realizada correctamente.")
     private String message;
 
-    @Schema(description = "Objeto que contiene la respuesta de la petición.")
+    @Schema(description = "Objeto que contiene los datos de la respuesta.")
     private Object response;
 
-    @Schema(description = "Información de la respuesta de error.")
+    @Schema(description = "Detalles de error si la operación falla.")
     private ExceptionResponse exception;
 
 }

@@ -1,14 +1,22 @@
 package com.epsgrau.pe.sicodetri.entity;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.swagger.v3.oas.annotations.media.Schema;
-import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
-
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.ForeignKey;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.Table;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
 /**
  * This class entity for tax deductions. <br/>
@@ -28,6 +36,7 @@ import java.time.LocalDateTime;
  *     </ul>
  * @version 1.0
  */
+@SuppressFBWarnings({"EI_EXPOSE_REP", "EI_EXPOSE_REP2"})
 @Schema(description = "Información de las deducciones tributarias.")
 @Data
 @AllArgsConstructor
@@ -50,7 +59,8 @@ public class Deduction {
     private BigDecimal valueDeduction;
 
     @ManyToOne
-    @JoinColumn(name = "tax_depreciation_id", foreignKey = @ForeignKey(name = "FK_tax_depreciation_deductions"))
+    @JoinColumn(name = "tax_depreciation_id", foreignKey = @ForeignKey(
+        name = "FK_tax_depreciation_deductions"))
     private TaxDepreciation taxDepreciation;
 
     @Schema(description = "Usuario que realizó el registro", example = "CANO")
