@@ -1,7 +1,12 @@
 package com.epsgrau.pe.sicodetri.entity;
 
 import io.swagger.v3.oas.annotations.media.Schema;
-import jakarta.persistence.*;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
@@ -43,7 +48,8 @@ public class TaxTableSunat {
     @Column
     private String accountingAccount;
 
-    @Schema(description = "Descripción de tasa tributaria", example = "Edificaciones y Otras Construcciones")
+    @Schema(description = "Descripción de tasa tributaria",
+        example = "Edificaciones y Otras Construcciones")
     @Column
     @NotNull
     @Size(max = 255, message = "Descripción debe ser máximo de 255 caracteres.")

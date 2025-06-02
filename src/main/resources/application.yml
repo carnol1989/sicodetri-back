@@ -13,7 +13,7 @@ spring:
   jpa:
     show-sql: true
     hibernate:
-      ddl-auto: update
+      ddl-auto: update #create-drop
     defer-datasource-initialization: true
     properties:
       hibernate:
@@ -44,6 +44,12 @@ springdoc:
 
 logging:
   level:
+    root: debug  # Asegúrate de que el nivel general esté en DEBUG
     org:
       hibernate:
         SQL: debug
+        type: trace
+    com:
+      epsgrau:
+        pe:
+          sicodetri: trace

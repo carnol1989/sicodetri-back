@@ -2,7 +2,9 @@ package com.epsgrau.pe.sicodetri.service.impl;
 
 import com.epsgrau.pe.sicodetri.entity.Deduction;
 import com.epsgrau.pe.sicodetri.repository.DeductionRepository;
+import com.epsgrau.pe.sicodetri.util.DataTest;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
@@ -11,7 +13,9 @@ import org.mockito.MockitoAnnotations;
 import java.util.List;
 import java.util.Optional;
 
+import static com.epsgrau.pe.sicodetri.util.DataTest.getDeduction;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.mockito.Mockito.*;
 
 /**
@@ -46,50 +50,86 @@ class DeductionServiceImplTest {
     }
 
     @Test
-    public void testSaveService() {
+    @DisplayName("Save deduction when valid deduction is provided")
+    public void saveDeductionWhenValidDeductionIsProvided() {
+        // Arrange
         Deduction deduction = new Deduction();
+
+        // Act
         deductionService.saveService(deduction);
+
+        // Assert
         verify(repository, times(1)).save(deduction);
     }
 
     @Test
-    public void testUpdateService() {
+    @DisplayName("Update deduction when valid deduction is provided")
+    public void updateDeductionWhenValidDeductionIsProvided() {
+        // Arrange
         Deduction deduction = new Deduction();
+
+        // Act
         deductionService.updateService(deduction);
+
+        // Assert
         verify(repository, times(1)).save(deduction);
     }
 
     @Test
-    public void testDeleteByIdService() {
+    @DisplayName("Delete deduction when valid id is provided")
+    public void deleteDeductionWhenValidIdIsProvided() {
+        // Arrange
         Long id = 1L;
+
+        // Act
         deductionService.deleteByIdService(id);
+
+        // Assert
         verify(repository, times(1)).deleteById(id);
     }
 
     @Test
-    public void testFindByIdService_WhenPresent() {
+    @DisplayName("Return deduction when it exists for given id")
+    public void returnDeductionWhenItExistsForGivenId() {
+        // Arrange
         Long id = 1L;
-        Deduction deduction = new Deduction();
+        Deduction deduction = getDeduction();
         when(repository.findById(id)).thenReturn(Optional.of(deduction));
+
+        // Act
         Deduction result = deductionService.findByIdService(id);
+
+        // Assert
         verify(repository, times(1)).findById(id);
-        assertNotNull(result);
+        assertSame(deduction, result);
     }
 
     @Test
-    public void testFindByIdService_WhenNotPresent() {
+    @DisplayName("Return new deduction when none exists for given id")
+    public void returnNewDeductionWhenNoneExistsForGivenId() {
+        // Arrange
         Long id = 1L;
         when(repository.findById(id)).thenReturn(Optional.empty());
+
+        // Act
         Deduction result = deductionService.findByIdService(id);
+
+        // Assert
         verify(repository, times(1)).findById(id);
         assertNotNull(result);
     }
 
     @Test
-    public void testFindAllService() {
+    @DisplayName("Return all deductions when findAllService is called")
+    public void returnAllDeductionsWhenFindAllServiceIsCalled() {
+        // Arrange
         List<Deduction> deductions = List.of(new Deduction(), new Deduction());
         when(repository.findAll()).thenReturn(deductions);
+
+        // Act
         List<Deduction> result = deductionService.findAllService();
+
+        // Assert
         verify(repository, times(1)).findAll();
         assertNotNull(result);
     }

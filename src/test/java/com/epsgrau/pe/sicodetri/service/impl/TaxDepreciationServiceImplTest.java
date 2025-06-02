@@ -1,5 +1,6 @@
 package com.epsgrau.pe.sicodetri.service.impl;
 
+import static com.epsgrau.pe.sicodetri.util.DataTest.getTaxDepreciation;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
@@ -51,93 +52,91 @@ class TaxDepreciationServiceImplTest {
     }
 
     @Test
-    @DisplayName("testSaveService")
-    void testSaveService() {
-        TaxDepreciation taxDepreciation = DataTest.getTaxDepreciation();
+    @DisplayName("Save taxDepreciation when valid taxDepreciation is provided")
+    void saveTaxDepreciationWhenValidTaxDepreciationIsProvided() {
+        // Arrange
+        TaxDepreciation taxDepreciation = getTaxDepreciation();
 
-        // Call the method under test
+        // Act
         service.saveService(taxDepreciation);
 
-        // Verify interaction with repository
-        verify(repository).save(taxDepreciation);
+        // Assert
+        verify(repository, times(1)).save(taxDepreciation);
     }
 
     @Test
-    @DisplayName("testUpdateService")
-    void testUpdateService() {
-        TaxDepreciation taxDepreciation = DataTest.getTaxDepreciation();
+    @DisplayName("Update taxDepreciation when valid taxDepreciation is provided")
+    void updateTaxDepreciationWhenValidTaxDepreciationIsProvided() {
+        // Arrange
+        TaxDepreciation taxDepreciation = getTaxDepreciation();
 
-        // Call the method under test
+        // Act
         service.updateService(taxDepreciation);
 
-        // Verify interaction with repository
-        verify(repository).save(taxDepreciation);
+        // Assert
+        verify(repository, times(1)).save(taxDepreciation);
     }
 
     @Test
-    @DisplayName("testDeleteByIdService")
-    void testDeleteByIdService() {
-        // Call the method under test
-        service.deleteByIdService(1L);
+    @DisplayName("Delete taxDepreciation when valid id is provided")
+    void deleteTaxDepreciationWhenValidIdIsProvided() {
+        // Arrange
+        Long id = 1L;
 
-        // Verify interaction with repository
-        verify(repository).deleteById(1L);
+        // Act
+        service.deleteByIdService(id);
+
+        // Assert
+        verify(repository, times(1)).deleteById(id);
     }
 
     @Test
-    @DisplayName("testFindByIdService - Found")
-    void testFindByIdServiceFound() {
-        TaxDepreciation taxDepreciation = DataTest.getTaxDepreciation();
+    @DisplayName("Return taxDepreciation when it exists for given id")
+    void returnTaxDepreciationWhenItExistsForGivenId() {
+        // Arrange
+        Long id = 1L;
+        TaxDepreciation taxDepreciation = getTaxDepreciation();
+        when(repository.findById(id)).thenReturn(Optional.of(taxDepreciation));
 
-        // Prepare mock behavior
-        when(repository.findById(1L)).thenReturn(Optional.of(taxDepreciation));
+        // Act
+        TaxDepreciation result = service.findByIdService(id);
 
-        // Call the method under test
-        TaxDepreciation result = service.findByIdService(1L);
-
-        // Verify result
+        // Assert
+        verify(repository).findById(id);
         assertEquals(taxDepreciation, result);
-
-        // Verify interaction with repository
-        verify(repository).findById(1L);
     }
 
     @Test
-    @DisplayName("testFindByIdService - Not Found")
-    void testFindByIdServiceNotFound() {
-        // Prepare mock behavior
+    @DisplayName("Return new taxDepreciation when none exists for given id")
+    void returnNewTaxDepreciationWhenNoneExistsForGivenId() {
+        // Arrange
         when(repository.findById(1L)).thenReturn(Optional.empty());
 
-        // Call the method under test
+        // Act
         TaxDepreciation result = service.findByIdService(1L);
 
-        // Verify result
+        // Assert
+        verify(repository).findById(1L);
         assertNotNull(result);
         assertNull(result.getId());
-
-        // Verify interaction with repository
-        verify(repository).findById(1L);
     }
 
     @Test
-    @DisplayName("testFindAllService")
-    void testFindAllService() {
-        TaxDepreciation taxDepreciation = DataTest.getTaxDepreciation();
-
-        // Prepare mock behavior
+    @DisplayName("Return all taxDepreciations when findAllService is called")
+    void returnAllTaxDepreciationsWhenFindAllServiceIsCalled() {
+        // Arrange
+        TaxDepreciation taxDepreciation = getTaxDepreciation();
         when(repository.findAll()).thenReturn(Collections.singletonList(taxDepreciation));
 
-        // Call the method under test
+        // Act
         List<TaxDepreciation> result = service.findAllService();
 
-        // Verify result
+        // Assert
+        verify(repository).findAll();
         assertNotNull(result);
         assertFalse(result.isEmpty());
         assertEquals(1, result.size());
         assertEquals(taxDepreciation, result.get(0));
-
-        // Verify interaction with repository
-        verify(repository).findAll();
     }
 
 }

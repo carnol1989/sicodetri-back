@@ -20,7 +20,7 @@ import java.util.List;
  *     </ul>
  * @version 1.0
  */
-public interface CrudService<T, ID> {
+public interface CrudService<T, IdT> {
 
     T saveService(T obj);
 
@@ -28,10 +28,9 @@ public interface CrudService<T, ID> {
 
     void updateService(T obj);
 
-    void deleteByIdService(ID id);
+    void deleteByIdService(IdT id);
 
-    T findByIdService(ID id);
+    T findByIdService(IdT id);
 
     List<T> findAllService();
-
 }

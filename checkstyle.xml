@@ -170,7 +170,7 @@
         </module>
         <module name="PackageName">
             <property name="format"
-                      value="com\.bcp\.atlas\.services\.cross\.*(\.[a-z][a-zA-Z0-9]+)*$" />
+                      value="com\.epsgrau\.pe\.sicodetri\.*(\.[a-z][a-zA-Z0-9]+)*$" />
             <message key="name.invalidPattern"
                      value="Package name ''{0}'' must match pattern ''{1}''."/>
         </module>
@@ -247,7 +247,7 @@
                      value="GenericWhitespace ''{0}'' is not preceded with whitespace."/>
         </module>
         <module name="Indentation">
-            <property name="basicOffset" value="2"/>
+            <property name="basicOffset" value="4"/>
             <property name="braceAdjustment" value="2"/>
             <property name="caseIndent" value="2"/>
             <property name="throwsIndent" value="4"/>

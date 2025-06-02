@@ -1,5 +1,6 @@
 package com.epsgrau.pe.sicodetri;
 
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
 import org.mockito.Mockito;
@@ -26,7 +27,8 @@ import org.springframework.boot.SpringApplication;
 class SicodetriApplicationTest {
 
     @Test
-    void testMain() {
+    @DisplayName("Invoke SpringApplication.run when main is executed")
+    void invokeSpringApplicationRunWhenMainIsExecuted() {
         // Arrange
         String[] args = new String[]{};
 

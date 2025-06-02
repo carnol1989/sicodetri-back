@@ -1,10 +1,14 @@
 package com.epsgrau.pe.sicodetri.controller;
 
+import com.epsgrau.pe.sicodetri.dto.FinancialFixedAssetDto;
+import com.epsgrau.pe.sicodetri.dto.ParamReportDto;
 import com.epsgrau.pe.sicodetri.entity.FinancialFixedAsset;
 import com.epsgrau.pe.sicodetri.exception.GlobalExceptionHandler;
+import com.epsgrau.pe.sicodetri.exception.ResourceNotFoundException;
 import com.epsgrau.pe.sicodetri.model.InputData;
 import com.epsgrau.pe.sicodetri.model.ResponseData;
 import com.epsgrau.pe.sicodetri.service.FinancialFixedAssetService;
+import com.epsgrau.pe.sicodetri.service.ReportJasperService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
 import org.junit.jupiter.api.BeforeEach;
@@ -15,6 +19,7 @@ import org.junit.jupiter.params.provider.CsvSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -27,7 +32,9 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.ByteArrayInputStream;
+import java.sql.SQLException;
 import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -70,6 +77,9 @@ class FinancialFixedAssetControllerTest {
     private FinancialFixedAssetService service;
 
     @Mock
+    private ReportJasperService reportJasperService;
+
+    @Mock
     private HttpServletRequest request;
 
     @Mock
@@ -87,33 +97,29 @@ class FinancialFixedAssetControllerTest {
     }
 
     @Test
-    @DisplayName("testUploadInputDataController_Success")
-    void testUploadInputDataController_Success() throws Exception {
+    @DisplayName("Return success response when Excel file is uploaded and processed correctly")
+    void returnSuccessResponseWhenExcelFileIsUploadedAndProcessedCorrectly() throws Exception {
         // Arrange
+        String period = "2022-01-01";
+        String fileName = "test.xlsx";
         ByteArrayInputStream bais = createMockExcelInputStream();
-        MultipartFile file = new MockMultipartFile("file", "test.xlsx",
-                TYPE_XLSX, bais);
+
+        MultipartFile file = new MockMultipartFile("file", fileName, TYPE_XLSX, bais);
         List<InputData> inputDataList = getListInputData();
 
-        when(service.loadExcelFileToObjectService(file, "2022-01-01")).thenReturn(inputDataList);
+        when(service.loadExcelFileToObjectService(file, period)).thenReturn(inputDataList);
 
-        // Crear una sesión simulada
         MockHttpSession session = new MockHttpSession();
 
-        // Establecer la sesión en el request simulado
         MockHttpServletRequestBuilder requestBuilder = multipart(BASE_URI + "/upload")
                 .file((MockMultipartFile) file)
-                .param("period", "2022-01-01")
+                .param("period", period)
                 .session(session);
 
         // Act
-        MvcResult result = mockMvc.perform(requestBuilder)
-                .andReturn(); // Capturar el resultado
+        MvcResult result = mockMvc.perform(requestBuilder).andReturn(); // Capturar el resultado
 
-        // Obtener el contenido de la respuesta
-        String responseContent = result.getResponse().getContentAsString();
-
-        // Validar el contenido de la respuesta usando jsonPath
+        // Assert
         mockMvc.perform(requestBuilder)
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(S_VAL_00))
@@ -126,88 +132,84 @@ class FinancialFixedAssetControllerTest {
     }
 
     @Test
-    @DisplayName("testUploadInputDataController_FailureInvalidFormat")
-    void testUploadInputDataController_FailureInvalidFormat() throws Exception {
+    @DisplayName("Return failure response when uploaded file has invalid format")
+    void returnFailureResponseWhenUploadedFileHasInvalidFormat() throws Exception {
         // Arrange
-        // Crear un MockMultipartFile con un formato inválido
-        MockMultipartFile file = new MockMultipartFile("file", "test.csv", "text/csv", new byte[0]);
+        String period = "2022-01-01";
+        String fileName = "test.csv";
+        String invalidContentType = "text/csv";
 
-        // Simular el comportamiento esperado del servicio cuando se pasa un archivo con un formato no válido
-        when(service.loadExcelFileToObjectService(file, "2022-01-01")).thenThrow(new RuntimeException("Error de formato"));
+        // Act
+        MockMultipartFile file = new MockMultipartFile("file", fileName, invalidContentType, new byte[0]);
+        MockHttpServletRequestBuilder requestBuilder = multipart(BASE_URI + "/upload")
+                .file(file)
+                .param("period", period);
 
-        // Simular el request y llamar al método del controlador
-        MvcResult result = mockMvc.perform(multipart(BASE_URI + "/upload")
-                        .file(file)  // Usa el MockMultipartFile directamente
-                        .param("period", "2022-01-01"))
-                .andReturn();
-
-        // Obtener el contenido de la respuesta
-        String responseContent = result.getResponse().getContentAsString();
-
-        // Validar la respuesta
-        assertEquals(HttpStatus.EXPECTATION_FAILED.value(), result.getResponse().getStatus());
-        assertTrue(responseContent.contains("Formato no permitido. Debe ser"));
+        // Assert
+        mockMvc.perform(requestBuilder)
+                .andExpect(status().isExpectationFailed())
+                .andExpect(jsonPath("$.code").value(S_VAL_01))
+                .andExpect(jsonPath("$.message").value("Formato no permitido. Debe ser .xlsx"))
+                .andExpect(jsonPath("$.exception").exists());
     }
 
     @Test
-    @DisplayName("testUploadInputDataController_FailureException")
-    void testUploadInputDataController_FailureException() throws Exception {
+    @DisplayName("Return failure response when exception is thrown during file upload")
+    void returnFailureResponseWhenExceptionIsThrownDuringFileUpload() throws Exception {
         // Arrange
-        ByteArrayInputStream bais = createMockExcelInputStreamFailed(); // Generar un flujo que simule un error
-        MultipartFile file = new MockMultipartFile("file", "test.xlsx", TYPE_XLSX, bais);
+        String fileName = "test.xlsx";
+        String period = "2022-01-01";
+        ByteArrayInputStream errorInputStream  = createMockExcelInputStreamFailed();
+        MultipartFile file = new MockMultipartFile("file", fileName, TYPE_XLSX, errorInputStream);
 
-        // Configurar el comportamiento del servicio para lanzar una excepción
-        when(service.loadExcelFileToObjectService(file, "2022-01-01")).thenThrow(new RuntimeException("Error al procesar archivo: test.xlsx"));
+        when(service.loadExcelFileToObjectService(file, period))
+                .thenThrow(new RuntimeException("Error al procesar archivo: test.xlsx"));
 
-        // Establecer la sesión en el request simulado
         MockHttpServletRequestBuilder requestBuilder = multipart(BASE_URI + "/upload")
-                .file((MockMultipartFile) file)  // Usa el MockMultipartFile directamente
-                .param("period", "2022-01-01");
+                .file((MockMultipartFile) file)
+                .param("period", period);
 
         // Act
         MvcResult result = mockMvc.perform(requestBuilder)
-                .andReturn(); // Capturar el resultado
+                .andReturn();
 
-        // Obtener el contenido de la respuesta
-        String responseContent = result.getResponse().getContentAsString();
-
-        // Validar la respuesta
+        // Assert
         mockMvc.perform(requestBuilder)
                 .andExpect(status().isExpectationFailed())
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON))
                 .andExpect(jsonPath("$.code").value(S_VAL_01))
                 .andExpect(jsonPath("$.message").value("Error al subir archivo."))
-                .andExpect(jsonPath("$.timestamp").exists()) // Validar que timestamp existe
-                .andExpect(jsonPath("$.exception").exists()) // Validar que `exception` existe
-                .andExpect(jsonPath("$.exception.timestamp").exists()) // Validar campo timestamp del objeto `ExceptionResponse`
-                .andExpect(jsonPath("$.exception.message").exists()) // Validar campo message del objeto `ExceptionResponse`
-                .andExpect(jsonPath("$.exception.details").exists()); // Validar campo details del objeto `ExceptionResponse`
+                .andExpect(jsonPath("$.timestamp").exists())
+                .andExpect(jsonPath("$.exception").exists())
+                .andExpect(jsonPath("$.exception.timestamp").exists())
+                .andExpect(jsonPath("$.exception.message").exists())
+                .andExpect(jsonPath("$.exception.details").exists());
     }
 
     @Test
-    @DisplayName("testSaveFinancialFixedAssetController_Success")
-    void testSaveFinancialFixedAssetController_Success() {
+    @DisplayName("Return created response when input data is stored successfully from session")
+    void returnCreatedResponseWhenInputDataIsStoredSuccessfullyFromSession() {
+        // Arrange
+        String period = "2022-01-01";
         List<InputData> inputDataList = getListInputData();
         when(session.getAttribute(LIST_INPUT_DATA)).thenReturn(inputDataList);
 
-        ResponseEntity<ResponseData> response = controller.saveFinancialFixedAssetController("2022-01-01", session);
+        // Act
+        ResponseEntity<ResponseData> response = controller.saveFinancialFixedAssetController(period, session);
 
+        // Assert
         assertEquals(HttpStatus.CREATED, response.getStatusCode());
         assertEquals(S_VAL_00, response.getBody().getCode());
         assertTrue(response.getBody().getMessage().contains("Información guardada correctamente"));
     }
 
     @Test
-    @DisplayName("testSaveFinancialFixedAssetController_ExceptionHandling")
-    void testSaveFinancialFixedAssetController_ExceptionHandling() {
+    @DisplayName("Return expectation failed when exception is thrown while saving input data")
+    void returnExpectationFailedWhenExceptionIsThrownWhileSavingInputData() {
         // Arrange
         String period = "2024-08-01";
         List<InputData> listInputData = Collections.singletonList(new InputData()); // Simula datos de entrada
-
-        // Configura el mock del session para devolver una lista de InputData
         when(session.getAttribute(LIST_INPUT_DATA)).thenReturn(listInputData);
-
-        // Configura el mock del servicio para lanzar una excepción
         doThrow(new RuntimeException("Test Exception")).when(service).saveAllService(anyString(), anyList());
 
         // Act
@@ -224,52 +226,59 @@ class FinancialFixedAssetControllerTest {
     }
 
     @Test
-    @DisplayName("testSaveFinancialFixedAssetController_Failure")
-    void testSaveFinancialFixedAssetController_Failure() {
-        when(session.getAttribute(LIST_INPUT_DATA)).thenReturn(null);
+    @DisplayName("Return expectation failed when session input data is empty")
+    void returnExpectationFailedWhenSessionInputDataIsEmpty() {
+        // Arrange
+        when(session.getAttribute(LIST_INPUT_DATA)).thenReturn(new ArrayList<>());
 
+        // Act
         ResponseEntity<ResponseData> response = controller.saveFinancialFixedAssetController("2024-08", session);
 
+        // Assert
         assertEquals(HttpStatus.EXPECTATION_FAILED, response.getStatusCode());
         assertEquals(S_VAL_01, response.getBody().getCode());
         assertTrue(response.getBody().getMessage().contains("Error al obtener información de entrada"));
     }
 
     @Test
-    @DisplayName("testGenerateProjectionController_Success")
-    void testGenerateProjectionController_Success() {
+    @DisplayName("Return OK when financial projection is generated successfully")
+    void returnOkWhenFinancialProjectionIsGeneratedSuccessfully() {
+        // Arrange
         String period = "2022-01-01";
+        when(service.findByPeriodAndAccountStartingWithService(any(LocalDate.class), anyString()))
+                .thenReturn(getListFinancialFixedAsset());
 
-        when(service.findByPeriodAndAccountStartingWithService(any(LocalDate.class), anyString())).thenReturn(getListFinancialFixedAsset());
-
+        // Act
         ResponseEntity<ResponseData> response = controller.generateProjectionController(period, S_VAL_332);
 
+        // Assert
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertEquals(S_VAL_00, response.getBody().getCode());
         assertTrue(response.getBody().getMessage().contains("Proyección generada correctamente"));
     }
 
     @Test
-    @DisplayName("testGenerateProjectionController_Failure")
-    void testGenerateProjectionController_Failure() {
+    @DisplayName("Return expectation failed when no data is found for projection generation")
+    void returnExpectationFailedWhenNoDataIsFoundForProjectionGeneration() {
+        // Arrange
         when(service.findByPeriodAndAccountStartingWithService(any(LocalDate.class), anyString())).thenReturn(new ArrayList<>());
 
+        // Act
         ResponseEntity<ResponseData> response = controller.generateProjectionController("2024-08-01", "account");
 
+        // Assert
         assertEquals(HttpStatus.EXPECTATION_FAILED, response.getStatusCode());
         assertEquals(S_VAL_01, response.getBody().getCode());
         assertTrue(response.getBody().getMessage().contains("Error al generar proyección"));
     }
 
     @Test
-    @DisplayName("testGenerateProjectionController_ExceptionHandling")
-    void testGenerateProjectionController_ExceptionHandling() {
+    @DisplayName("Return expectation failed when exception is thrown during projection generation")
+    void returnExpectationFailedWhenExceptionIsThrownDuringProjectionGeneration() {
         // Arrange
         String period = "2024-08-01";
         String account = "account";
         HttpServletRequest request = mock(HttpServletRequest.class);
-
-        // Simulate the service to throw an exception
         when(service.findByPeriodAndAccountStartingWithService(any(LocalDate.class), anyString()))
                 .thenThrow(new RuntimeException("Simulated exception"));
 
@@ -278,7 +287,6 @@ class FinancialFixedAssetControllerTest {
 
         // Assert
         assertEquals(HttpStatus.EXPECTATION_FAILED, response.getStatusCode());
-
         ResponseData responseData = response.getBody();
         assertNotNull(responseData);
         assertEquals(S_VAL_01, responseData.getCode());
@@ -298,12 +306,12 @@ class FinancialFixedAssetControllerTest {
             "3, , , 3321161002, NOT_FOUND, 01, Error al obtener informacion para la cuenta contable", // Caso fallo para N_VAL_3
             "999, 2024-08-01, , , EXPECTATION_FAILED, 01, Error al obtener informacion del activo fijo" // Caso opción inválida
     })
-    @DisplayName("testGetFinancialFixedAssetController")
-    void testGetFinancialFixedAssetController(int option, String period, String mainFixedAssetCode, String accountingAccount,
+    @DisplayName("Return appropriate response for getFinancialFixedAssetController based on option and input")
+    void returnAppropriateResponseForGetFinancialFixedAssetControllerBasedOnOptionAndInput(int option, String period, String mainFixedAssetCode, String accountingAccount,
                                               HttpStatus expectedStatus, String expectedCode, String expectedMessage) {
+        // Arrange
         List<FinancialFixedAsset> financialFixedAssets = getListFinancialFixedAsset();
 
-        // Configuración del mock según el caso
         if (option == N_VAL_1) {
             if (expectedStatus == HttpStatus.OK) {
                 when(service.findByPeriodService(any(LocalDate.class))).thenReturn(financialFixedAssets);
@@ -324,18 +332,18 @@ class FinancialFixedAssetControllerTest {
             }
         }
 
-        // Ejecución del método
+        // Act
         ResponseEntity<ResponseData> response = controller.getFinancialFixedAssetController(option, period, mainFixedAssetCode, accountingAccount);
 
-        // Verificaciones
+        // Assert
         assertEquals(expectedStatus, response.getStatusCode());
         assertEquals(expectedCode, response.getBody().getCode());
         assertTrue(response.getBody().getMessage().contains(expectedMessage));
     }
 
     @Test
-    @DisplayName("testGetFinancialFixedAssetController_ExceptionHandling")
-    void testGetFinancialFixedAssetController_ExceptionHandling() {
+    @DisplayName("Return expectation failed when exception is thrown while getting fixed asset info")
+    void returnExpectationFailedWhenExceptionIsThrownWhileGettingFixedAssetInfo() {
         // Arrange
         int option = 1;
         String period = "2024-08-01";
@@ -362,4 +370,224 @@ class FinancialFixedAssetControllerTest {
         assertNotNull(responseData.getException().getTimestamp());
     }
 
+    @Test
+    @DisplayName("Return file download when reportList non-empty and Jasper devuelve bytes")
+    void returnFileDownloadWhenReportListNonEmptyAndJasperDevuelveBytes() throws Exception {
+        // Arrange
+        String option = "1";
+        String fileType = "xlsx";
+        String year = "2022";
+        String mainCode = "MAIN-123";
+        String accountingAccount = "ACC-001";
+        String startAcquisitionDate = "2022-01-01";
+        String endAcquisitionDate = "2022-12-31";
+        String startDateUse = "2022-02-01";
+        String endDateUse = "2022-11-30";
+
+        // Creamos un resultado simulado no vacío
+        List<FinancialFixedAssetDto> reportList = List.of(new FinancialFixedAssetDto(), new FinancialFixedAssetDto());
+        when(service.callGetReportTaxBookService(any(ParamReportDto.class))).thenReturn(reportList);
+
+        // Simulamos que Jasper devuelve un byte[] no nulo
+        byte[] fakeXlsx = "FAKE XLSX DATA".getBytes();
+        when(reportJasperService.getJasperReportInBytes(
+                eq("rpt_tax_book.jrxml"),
+                eq(fileType),
+                anyMap(),
+                eq(reportList))
+        ).thenReturn(fakeXlsx);
+
+        // Act: Llamamos al endpoint
+        MvcResult mvcResult = mockMvc.perform(get(BASE_URI + "/report")
+                        .param("option", fileType)
+                        .param("fileType", fileType)
+                        .param("year", year)
+                        .param("mainCode", mainCode)
+                        .param("accountingAccount", accountingAccount)
+                        .param("startAcquisitionDate", startAcquisitionDate)
+                        .param("endAcquisitionDate", endAcquisitionDate)
+                        .param("startDateUse", startDateUse)
+                        .param("endDateUse", endDateUse)
+                        .accept(MediaType.APPLICATION_JSON))
+                .andReturn();
+
+        // Assert: debe retornar HTTP 200 y un InputStreamResource con encabezados de descarga
+        int status = mvcResult.getResponse().getStatus();
+        assertEquals(HttpStatus.OK.value(), status);
+
+        assertEquals("application/octet-stream",
+                mvcResult.getResponse().getContentType());
+        String contentDisposition = mvcResult.getResponse().getHeader(HttpHeaders.CONTENT_DISPOSITION);
+        assertTrue(contentDisposition.contains("attachment; filename=Libro_Tributario_Activo_Fijo"));
+        assertTrue(contentDisposition.endsWith(".xlsx"), "El header debe terminar con '.xlsx'");
+
+        // Verificamos que el cuerpo realmente sea un InputStreamResource: basta revisar que haya bytes
+        byte[] responseBody = mvcResult.getResponse().getContentAsByteArray();
+        assertArrayEquals(fakeXlsx, responseBody);
+
+        verify(service, times(1)).callGetReportTaxBookService(any(ParamReportDto.class));
+        verify(reportJasperService, times(1)).getJasperReportInBytes(
+                eq("rpt_tax_book.jrxml"), eq(fileType), anyMap(), eq(reportList)
+        );
+    }
+
+    @Test
+    @DisplayName("Throw ResourceNotFoundException when reportList is empty")
+    void throwResourceNotFoundExceptionWhenReportListIsEmpty() throws SQLException {
+        // Arrange
+        when(service.callGetReportTaxBookService(any(ParamReportDto.class))).thenReturn(Collections.emptyList());
+
+        // Act & Assert
+        ResourceNotFoundException ex = assertThrows(ResourceNotFoundException.class, () -> {
+            controller.callGetReportTaxBookController(
+                    "", "PDF", "2022", "MAIN-123", "ACC-001",
+                    "2022-01-01", "2022-12-31", "2022-02-01", "2022-11-30"
+            );
+        });
+        assertEquals("No hay información para el periodo.", ex.getMessage());
+    }
+
+    @Test
+    @DisplayName("Throw ResourceNotFoundException when Jasper devuelve null")
+    void throwResourceNotFoundExceptionWhenJasperDevuelveNull() throws Exception {
+        // Arrange
+        List<FinancialFixedAssetDto> reportList = List.of(new FinancialFixedAssetDto());
+        when(service.callGetReportTaxBookService(any(ParamReportDto.class))).thenReturn(reportList);
+        when(reportJasperService.getJasperReportInBytes(
+                eq("rpt_tax_book.jrxml"),
+                anyString(),
+                anyMap(),
+                eq(reportList))
+        ).thenReturn(null);
+
+        // Act & Assert
+        ResourceNotFoundException ex = assertThrows(ResourceNotFoundException.class, () -> {
+            controller.callGetReportTaxBookController(
+                    "", "PDF", "2022", "MAIN-123", "ACC-001",
+                    "2022-01-01", "2022-12-31", "2022-02-01", "2022-11-30"
+            );
+        });
+        assertEquals("Error al obtener reporte", ex.getMessage());
+    }
+
+    @Test
+    @DisplayName("Throw ResourceNotFoundException when exception inesperada en Jasper o servicio")
+    void throwResourceNotFoundExceptionWhenExceptionInReportGeneration() throws SQLException {
+        // Arrange
+        when(service.callGetReportTaxBookService(any(ParamReportDto.class)))
+                .thenThrow(new RuntimeException("Error al obtener reporte"));
+
+        // Act & Assert
+        RuntimeException ex = assertThrows(RuntimeException.class, () -> {
+            controller.callGetReportTaxBookController(
+                    "","PDF", "2022", "MAIN-123", "ACC-001",
+                    "2022-01-01", "2022-12-31", "2022-02-01", "2022-11-30"
+            );
+        });
+        assertEquals("Error al obtener reporte", ex.getMessage());
+    }
+
+    @Test
+    @DisplayName("Return OK when period exists and return NOT_FOUND when period has no data")
+    void returnOkWhenPeriodExistsAndReturnNotFoundWhenPeriodHasNoData() {
+        // Arrange: caso OK
+        LocalDate fechaValida = LocalDate.now();
+        when(service.findByPeriodService(any(LocalDate.class))).thenReturn(List.of(new FinancialFixedAsset()));
+
+        // Act
+        ResponseEntity<ResponseData> respOk = controller.getFinancialFixedAssetController(
+                N_VAL_1,
+                fechaValida.format(DateTimeFormatter.ofPattern(FORMATTER_YYYY_MM_DD)),
+                "", "");
+
+        // Assert OK
+        assertEquals(HttpStatus.OK, respOk.getStatusCode());
+        assertEquals(S_VAL_00, respOk.getBody().getCode());
+        assertTrue(respOk.getBody().getMessage().contains("Se obtuvo informacion para el periodo"));
+
+        // Arrange: caso NOT_FOUND
+        when(service.findByPeriodService(any(LocalDate.class))).thenReturn(Collections.emptyList());
+
+        // Act
+        ResponseEntity<ResponseData> respNotFound = controller.getFinancialFixedAssetController(
+                N_VAL_1,
+                fechaValida.format(DateTimeFormatter.ofPattern(FORMATTER_YYYY_MM_DD)),
+                "", "");
+
+        // Assert NOT_FOUND
+        assertEquals(HttpStatus.NOT_FOUND, respNotFound.getStatusCode());
+        assertEquals(S_VAL_01, respNotFound.getBody().getCode());
+        assertTrue(respNotFound.getBody().getMessage().contains("Error al obtener informacion para el periodo"));
+    }
+
+    @Test
+    @DisplayName("Return OK when mainFixedAssetCode exists and return NOT_FOUND when none")
+    void returnOkWhenMainFixedAssetCodeExistsAndReturnNotFoundWhenNone() {
+        // Arrange: caso OK
+        when(service.findByMainFixedAssetCodeService(anyString()))
+                .thenReturn(List.of(new FinancialFixedAsset()));
+
+        // Act
+        ResponseEntity<ResponseData> respOk = controller.getFinancialFixedAssetController(
+                N_VAL_2, "", "ABC123", "");
+
+        // Assert OK
+        assertEquals(HttpStatus.OK, respOk.getStatusCode());
+        assertEquals(S_VAL_00, respOk.getBody().getCode());
+        assertTrue(respOk.getBody().getMessage().contains("Se obtuvo informacion para el código de activo fijo principal"));
+
+        // Arrange: caso NOT_FOUND
+        when(service.findByMainFixedAssetCodeService(anyString())).thenReturn(Collections.emptyList());
+
+        // Act
+        ResponseEntity<ResponseData> respNotFound = controller.getFinancialFixedAssetController(
+                N_VAL_2, "", "ABC123", "");
+
+        // Assert NOT_FOUND
+        assertEquals(HttpStatus.NOT_FOUND, respNotFound.getStatusCode());
+        assertEquals(S_VAL_01, respNotFound.getBody().getCode());
+        assertTrue(respNotFound.getBody().getMessage().contains("Error al obtener informacion para el código de activo fijo principal"));
+    }
+
+    @Test
+    @DisplayName("Return OK when accountingAccount exists and return NOT_FOUND when none")
+    void returnOkWhenAccountingAccountExistsAndReturnNotFoundWhenNone() {
+        // Arrange: caso OK
+        when(service.findByFixedAssetAccountingAccountService(anyString()))
+                .thenReturn(List.of(new FinancialFixedAsset()));
+
+        // Act
+        ResponseEntity<ResponseData> respOk = controller.getFinancialFixedAssetController(
+                N_VAL_3, "", "", "ACC-001");
+
+        // Assert OK
+        assertEquals(HttpStatus.OK, respOk.getStatusCode());
+        assertEquals(S_VAL_00, respOk.getBody().getCode());
+        assertTrue(respOk.getBody().getMessage().contains("Se obtuvo informacion para la cuenta contable"));
+
+        // Arrange: caso NOT_FOUND
+        when(service.findByFixedAssetAccountingAccountService(anyString()))
+                .thenReturn(Collections.emptyList());
+
+        // Act
+        ResponseEntity<ResponseData> respNotFound = controller.getFinancialFixedAssetController(
+                N_VAL_3, "", "", "ACC-001");
+
+        // Assert NOT_FOUND
+        assertEquals(HttpStatus.NOT_FOUND, respNotFound.getStatusCode());
+        assertEquals(S_VAL_01, respNotFound.getBody().getCode());
+        assertTrue(respNotFound.getBody().getMessage().contains("Error al obtener informacion para la cuenta contable"));
+    }
+
+    @Test
+    @DisplayName("Return EXPECTATION_FAILED when option is invalid")
+    void returnExpectationFailedWhenOptionIsInvalid() {
+        ResponseEntity<ResponseData> resp = controller.getFinancialFixedAssetController(
+                999, "2022-01-01", "X", "Y"
+        );
+
+        assertEquals(HttpStatus.EXPECTATION_FAILED, resp.getStatusCode());
+        assertEquals(S_VAL_01, resp.getBody().getCode());
+        assertTrue(resp.getBody().getMessage().contains("Error al obtener informacion del activo fijo"));
+    }
 }

@@ -1,5 +1,6 @@
 package com.epsgrau.pe.sicodetri.exception;
 
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -26,7 +27,8 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 class ResourceNotFoundExceptionTest {
 
     @Test
-    void testConstructorWithMessage() {
+    @DisplayName("Create ResourceNotFoundException with message only")
+    void createResourceNotFoundExceptionWithMessage() {
         // Arrange
         String message = "Resource not found";
 
@@ -34,12 +36,14 @@ class ResourceNotFoundExceptionTest {
         ResourceNotFoundException exception = new ResourceNotFoundException(message);
 
         // Assert
+        assertNotNull(exception);
         assertNotNull(exception, "Exception should not be null");
         assertEquals(message, exception.getMessage(), "Exception message should match");
     }
 
     @Test
-    void testConstructorWithMessageAndCause() {
+    @DisplayName("Create ResourceNotFoundException with message and cause")
+    void createResourceNotFoundExceptionWithMessageAndCause() {
         // Arrange
         String message = "Resource not found";
         Throwable cause = new Throwable("Cause of the exception");

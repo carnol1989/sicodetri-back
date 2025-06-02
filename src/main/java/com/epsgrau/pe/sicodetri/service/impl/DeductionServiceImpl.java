@@ -3,11 +3,10 @@ package com.epsgrau.pe.sicodetri.service.impl;
 import com.epsgrau.pe.sicodetri.entity.Deduction;
 import com.epsgrau.pe.sicodetri.repository.DeductionRepository;
 import com.epsgrau.pe.sicodetri.service.DeductionService;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
-
 import java.util.List;
 import java.util.Optional;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
 
 /**
  * This class implements the operations of the DeductionService. <br/>

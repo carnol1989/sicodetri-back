@@ -4,10 +4,14 @@ import com.epsgrau.pe.sicodetri.entity.Addition;
 import com.epsgrau.pe.sicodetri.entity.Deduction;
 import com.epsgrau.pe.sicodetri.entity.FinancialDepreciation;
 import com.epsgrau.pe.sicodetri.entity.TaxDepreciation;
-import lombok.*;
-
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.time.LocalDate;
 import java.util.List;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+import lombok.ToString;
 
 /**
  * This class is a model for mapping a projection. <br/>
@@ -27,6 +31,7 @@ import java.util.List;
  *     </ul>
  * @version 1.0
  */
+@SuppressFBWarnings({"EI_EXPOSE_REP", "EI_EXPOSE_REP2"})
 @AllArgsConstructor
 @NoArgsConstructor
 @Getter

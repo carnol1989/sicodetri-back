@@ -3,6 +3,7 @@ package com.epsgrau.pe.sicodetri.service.impl;
 import com.epsgrau.pe.sicodetri.entity.FinancialDepreciation;
 import com.epsgrau.pe.sicodetri.repository.FinancialDepreciationRepository;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
@@ -11,7 +12,8 @@ import org.mockito.MockitoAnnotations;
 import java.util.List;
 import java.util.Optional;
 
-import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static com.epsgrau.pe.sicodetri.util.DataTest.getFinancialDepreciation;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 /**
@@ -46,52 +48,88 @@ class FinancialDepreciationServiceImplTest {
     }
 
     @Test
-    public void testSaveService() {
+    @DisplayName("Save financial depreciation when valid object is provided")
+    public void saveFinancialDepreciationWhenValidObjectIsProvided() {
+        // Arrange
         FinancialDepreciation financialDepreciation = new FinancialDepreciation();
+
+        // Act
         financialDepreciationService.saveService(financialDepreciation);
+
+        // Assert
         verify(repository, times(1)).save(financialDepreciation);
     }
 
     @Test
-    public void testUpdateService() {
+    @DisplayName("Update financial depreciation when valid object is provided")
+    public void updateFinancialDepreciationWhenValidObjectIsProvided() {
+        // Arrange
         FinancialDepreciation financialDepreciation = new FinancialDepreciation();
+
+        // Act
         financialDepreciationService.updateService(financialDepreciation);
+
+        // Assert
         verify(repository, times(1)).save(financialDepreciation);
     }
 
     @Test
-    public void testDeleteByIdService() {
+    @DisplayName("Delete financial depreciation when valid id is provided")
+    public void deleteFinancialDepreciationWhenValidIdIsProvided() {
+        // Arrange
         Long id = 1L;
+
+        // Act
         financialDepreciationService.deleteByIdService(id);
+
+        // Assert
         verify(repository, times(1)).deleteById(id);
     }
 
     @Test
-    public void testFindByIdService_WhenPresent() {
+    @DisplayName("Return financial depreciation when it exists for given id")
+    public void returnFinancialDepreciationWhenItExistsForGivenId() {
+        // Arrange
         Long id = 1L;
-        FinancialDepreciation financialDepreciation = new FinancialDepreciation();
+        FinancialDepreciation financialDepreciation = getFinancialDepreciation();
         when(repository.findById(id)).thenReturn(Optional.of(financialDepreciation));
+
+        // Act
         FinancialDepreciation result = financialDepreciationService.findByIdService(id);
+
+        // Assert
         verify(repository, times(1)).findById(id);
-        assertNotNull(result);
+        assertSame(financialDepreciation, result);
     }
 
     @Test
-    public void testFindByIdService_WhenNotPresent() {
+    @DisplayName("Return new financial depreciation when none exists for given id")
+    public void returnNewFinancialDepreciationWhenNoneExistsForGivenId() {
+        // Arrange
         Long id = 1L;
         when(repository.findById(id)).thenReturn(Optional.empty());
+
+        // Act
         FinancialDepreciation result = financialDepreciationService.findByIdService(id);
+
+        // Assert
         verify(repository, times(1)).findById(id);
         assertNotNull(result);
     }
 
     @Test
-    public void testFindAllService() {
+    @DisplayName("Return all financial depreciations when findAllService is called")
+    public void returnAllFinancialDepreciationsWhenFindAllServiceIsCalled() {
+        // Arrange
         List<FinancialDepreciation> financialDepreciations = List.of(new FinancialDepreciation(), new FinancialDepreciation());
         when(repository.findAll()).thenReturn(financialDepreciations);
+
+        // Act
         List<FinancialDepreciation> result = financialDepreciationService.findAllService();
+
+        // Assert
         verify(repository, times(1)).findAll();
-        assertNotNull(result);
+        assertEquals(financialDepreciations, result);
     }
 
 }
