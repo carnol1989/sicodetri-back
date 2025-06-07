@@ -40,4 +40,17 @@ public class ConstantsTest {
     public static String FORMATTER_DD_MM_YYYY = "dd/MM/yyyy";
     public static String FORMATTER_YYYY_MM_DD = "yyyy-MM-dd";
 
+    public static final String SP_TAX_BOOK =
+        "CALL get_report_tax_book(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+    public static final int P_YEAR      = 1;
+    public static final int P_MAIN_CODE = 2;
+    public static final int P_ACCOUNT   = 3;
+    public static final int P_START_ACQ = 4;
+    public static final int P_END_ACQ   = 5;
+    public static final int P_START_USE = 6;
+    public static final int P_END_USE   = 7;
+    public static final int P_OUT_CODE  = 8;
+    public static final int P_OUT_MSG   = 9;
+    public static final int P_OUT_CUR   = 10;
+
 }

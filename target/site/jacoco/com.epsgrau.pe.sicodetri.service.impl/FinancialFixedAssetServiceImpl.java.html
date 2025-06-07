@@ -1,0 +1,653 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>FinancialFixedAssetServiceImpl.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">sicodetri</a> &gt; <a href="index.source.html" class="el_package">com.epsgrau.pe.sicodetri.service.impl</a> &gt; <span class="el_source">FinancialFixedAssetServiceImpl.java</span></div><h1>FinancialFixedAssetServiceImpl.java</h1><pre class="source lang-java linenums">package com.epsgrau.pe.sicodetri.service.impl;
+
+import static com.epsgrau.pe.sicodetri.helper.ExcelHelper.getValueCell;
+import static com.epsgrau.pe.sicodetri.util.Constants.D_VAL_ZERO;
+import static com.epsgrau.pe.sicodetri.util.Constants.FORMATTER_YYYY_MM_DD;
+import static com.epsgrau.pe.sicodetri.util.Constants.LOCAL_DATE_DEFAULT;
+import static com.epsgrau.pe.sicodetri.util.Constants.N_VAL_0;
+import static com.epsgrau.pe.sicodetri.util.Constants.S_DATE_DEFAULT;
+import static com.epsgrau.pe.sicodetri.util.Constants.S_VAL_332;
+import static com.epsgrau.pe.sicodetri.util.Constants._BLANK;
+
+import com.epsgrau.pe.sicodetri.dto.FinancialFixedAssetDto;
+import com.epsgrau.pe.sicodetri.dto.ParamReportDto;
+import com.epsgrau.pe.sicodetri.entity.Addition;
+import com.epsgrau.pe.sicodetri.entity.Deduction;
+import com.epsgrau.pe.sicodetri.entity.FinancialDepreciation;
+import com.epsgrau.pe.sicodetri.entity.FinancialFixedAsset;
+import com.epsgrau.pe.sicodetri.entity.TaxDepreciation;
+import com.epsgrau.pe.sicodetri.entity.TaxTableSunat;
+import com.epsgrau.pe.sicodetri.model.Depreciation;
+import com.epsgrau.pe.sicodetri.model.FixedAssetDetail;
+import com.epsgrau.pe.sicodetri.model.InputData;
+import com.epsgrau.pe.sicodetri.model.Projection;
+import com.epsgrau.pe.sicodetri.repository.FinancialFixedAssetJdbcRepository;
+import com.epsgrau.pe.sicodetri.repository.FinancialFixedAssetRepository;
+import com.epsgrau.pe.sicodetri.service.AdditionService;
+import com.epsgrau.pe.sicodetri.service.DeductionService;
+import com.epsgrau.pe.sicodetri.service.FinancialDepreciationService;
+import com.epsgrau.pe.sicodetri.service.FinancialFixedAssetService;
+import com.epsgrau.pe.sicodetri.service.TaxDepreciationService;
+import com.epsgrau.pe.sicodetri.service.TaxTableSunatService;
+import java.io.IOException;
+import java.math.BigDecimal;
+import java.sql.SQLException;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.Period;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
+import lombok.extern.slf4j.Slf4j;
+import org.apache.poi.ss.usermodel.Cell;
+import org.apache.poi.ss.usermodel.Row;
+import org.apache.poi.ss.usermodel.Sheet;
+import org.apache.poi.ss.usermodel.Workbook;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
+
+/**
+ * This class is the implementation of the service for Financial Fixed Asset. &lt;br/&gt;
+ * &lt;b&gt;Class&lt;/b&gt;: {@link FinancialFixedAssetServiceImpl}&lt;br/&gt;
+ * &lt;b&gt;Copyright&lt;/b&gt;: &amp;Copy; 2024 EPS Grau. &lt;br/&gt;
+ * &lt;b&gt;Company&lt;/b&gt;: EPS Grau. &lt;br/&gt;
+ *
+ * @author EPS Grau &lt;br/&gt;
+ *     &lt;u&gt;Service Provider&lt;/u&gt;: Consultor TI &lt;br/&gt;
+ *     &lt;u&gt;Developed by&lt;/u&gt;: &lt;br/&gt;
+ *     &lt;ul&gt;
+ *     &lt;li&gt;Carlos Augusto Nole Machaca&lt;/li&gt;
+ *     &lt;/ul&gt;
+ *     &lt;u&gt;Changes&lt;/u&gt;:&lt;br/&gt;
+ *     &lt;ul&gt;
+ *     &lt;li&gt;Ago 15, 2024 (JAR) Creation class.&lt;/li&gt;
+ *     &lt;/ul&gt;
+ * @version 1.0
+ */
+<span class="fc" id="L73">@Slf4j</span>
+@Service
+<span class="fc" id="L75">public class FinancialFixedAssetServiceImpl implements FinancialFixedAssetService {</span>
+
+    @Autowired
+    private FinancialFixedAssetRepository repository;
+
+    @Autowired
+    private FinancialFixedAssetJdbcRepository repositoryJdbc;
+
+    @Autowired
+    private FinancialDepreciationService financialDepreciationService;
+
+    @Autowired
+    private TaxDepreciationService taxDepreciationService;
+
+    @Autowired
+    private AdditionService additionService;
+
+    @Autowired
+    private DeductionService deductionService;
+
+    @Autowired
+    private TaxTableSunatService taxTableService;
+
+    @Override
+    public List&lt;InputData&gt; loadExcelFileToObjectService(MultipartFile file, String period) {
+<span class="fc" id="L100">        List&lt;InputData&gt; listInputData = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L101">        try (Workbook workbook = new XSSFWorkbook(file.getInputStream())) {</span>
+<span class="pc bpc" id="L102" title="2 of 4 branches missed.">            if (file.isEmpty() || file.getInputStream().available() == 0) {</span>
+<span class="nc" id="L103">                return listInputData;</span>
+            }
+
+<span class="fc" id="L106">            Sheet sheet = workbook.getSheetAt(0);</span>
+<span class="fc" id="L107">            int physicalNumberOfRows = sheet.getPhysicalNumberOfRows();</span>
+
+<span class="fc bfc" id="L109" title="All 2 branches covered.">            for (Row row : sheet) {</span>
+<span class="fc" id="L110">                int rowNum = row.getRowNum();</span>
+                try {
+                    // Omitir encabezado y filas fuera de rango
+<span class="pc bpc" id="L113" title="1 of 4 branches missed.">                    if (rowNum &lt;= 10 || rowNum &gt;= physicalNumberOfRows) {</span>
+<span class="fc" id="L114">                        continue;</span>
+                    }
+
+<span class="fc" id="L117">                    InputData inputData = new InputData();</span>
+<span class="fc" id="L118">                    inputData.setAccountingPeriod(period);</span>
+<span class="fc" id="L119">                    FixedAssetDetail assetDetail = new FixedAssetDetail();</span>
+<span class="fc" id="L120">                    Depreciation depreciation = new Depreciation();</span>
+
+<span class="fc bfc" id="L122" title="All 2 branches covered.">                    for (Cell cell : row) {</span>
+<span class="fc" id="L123">                        inputData.setRowNum(rowNum);</span>
+<span class="fc" id="L124">                        inputData.setPhysicalNumberOfRows(physicalNumberOfRows);</span>
+<span class="fc" id="L125">                        processCell(cell, inputData, assetDetail, depreciation);</span>
+<span class="fc" id="L126">                    }</span>
+
+<span class="fc" id="L128">                    inputData.setFixedAssetDetail(assetDetail);</span>
+<span class="fc" id="L129">                    inputData.setDepreciation(depreciation);</span>
+<span class="fc" id="L130">                    listInputData.add(inputData);</span>
+<span class="nc" id="L131">                } catch (Exception e) {</span>
+<span class="nc" id="L132">                    String msgError = &quot;Error al obtener información de la fila (&quot; + rowNum</span>
+<span class="nc" id="L133">                        + &quot;): \nCausa: &quot; + e.getCause() + &quot;\nMensaje: &quot; + e.getMessage();</span>
+<span class="nc" id="L134">                    log.error(msgError);</span>
+<span class="nc" id="L135">                    throw new RuntimeException(msgError);</span>
+<span class="fc" id="L136">                }</span>
+<span class="fc" id="L137">            }</span>
+<span class="pc" id="L138">        } catch (IOException e) {</span>
+<span class="fc" id="L139">            throw new RuntimeException(&quot;Failed to parse Excel file: &quot; + e.getMessage(), e);</span>
+<span class="fc" id="L140">        }</span>
+<span class="fc" id="L141">        return listInputData;</span>
+    }
+
+    private void processCell(Cell cell, InputData inputData, FixedAssetDetail assetDetail,
+                             Depreciation depreciation) {
+<span class="fc" id="L146">        int columnIndex = cell.getColumnIndex();</span>
+<span class="fc" id="L147">        String cellValue = getCellValue(cell);</span>
+
+<span class="pc bpc" id="L149" title="3 of 33 branches missed.">        switch (columnIndex) {</span>
+<span class="fc" id="L150">          case 0 -&gt; inputData.setMainFixedAssetCode(cellValue);</span>
+<span class="fc" id="L151">          case 1 -&gt; inputData.setFixedAssetCodeComponent(cellValue);</span>
+<span class="fc" id="L152">          case 2 -&gt; inputData.setFixedAssetAccountingAccount(cellValue);</span>
+<span class="fc" id="L153">          case 3 -&gt; assetDetail.setDescription(cellValue);</span>
+<span class="fc" id="L154">          case 4 -&gt; assetDetail.setFixedAssetBrand(cellValue);</span>
+<span class="fc" id="L155">          case 5 -&gt; assetDetail.setFixedAssetModel(cellValue);</span>
+<span class="fc" id="L156">          case 6 -&gt; assetDetail.setFixedAssetSerialNumberAndOrPlate(cellValue);</span>
+<span class="fc" id="L157">          case 7 -&gt; inputData.setInitialBalance(cellValue);</span>
+<span class="fc" id="L158">          case 8 -&gt; inputData.setAcquisitionsAdditions(cellValue);</span>
+<span class="fc" id="L159">          case 9 -&gt; inputData.setImprovements(cellValue);</span>
+<span class="fc" id="L160">          case 10 -&gt; inputData.setTransfersAndOrReclassifications(cellValue);</span>
+<span class="fc" id="L161">          case 11 -&gt; inputData.setWithdrawalsAndOrRetirements(cellValue);</span>
+<span class="fc" id="L162">          case 12 -&gt; inputData.setOtherAdjustments(cellValue);</span>
+<span class="fc" id="L163">          case 13 -&gt; inputData.setBookValueOfFixedAssets(cellValue);</span>
+<span class="fc" id="L164">          case 14 -&gt; inputData.setInflationAdjustment(cellValue);</span>
+<span class="fc" id="L165">          case 15 -&gt; inputData.setAdjustedValueOfFixedAssets(cellValue);</span>
+<span class="fc" id="L166">          case 16 -&gt; inputData.setAcquisitionDate(formatDate(cellValue));</span>
+<span class="fc" id="L167">          case 17 -&gt; inputData.setStartDateFixedAssetUsage(formatDate(cellValue));</span>
+<span class="fc" id="L168">          case 18 -&gt; inputData.setRetirementDate(formatDate(cellValue));</span>
+<span class="fc" id="L169">          case 19 -&gt; depreciation.setAppliedMethod(cellValue);</span>
+<span class="fc" id="L170">          case 20 -&gt; depreciation.setAuthorizationDocumentNumber(cellValue);</span>
+<span class="fc" id="L171">          case 21 -&gt; inputData.setUsefulLifeYears(cellValue);</span>
+<span class="fc" id="L172">          case 22 -&gt; inputData.setAccumulatedDepreciationTheEndPrevious(cellValue);</span>
+<span class="fc" id="L173">          case 23 -&gt; inputData.setCurrentDepreciation(cellValue);</span>
+<span class="fc" id="L174">          case 24 -&gt; inputData.setCurrentDepreciationRelatedWithdrawalsRetirements(cellValue);</span>
+<span class="fc" id="L175">          case 25 -&gt; inputData.setCurrentDepreciationRelatedOtherAdjustments(cellValue);</span>
+<span class="fc" id="L176">          case 26 -&gt; inputData.setAccumulatedHistoricalDepreciation(cellValue);</span>
+<span class="fc" id="L177">          case 27 -&gt; inputData.setDepreciationInflationAdjustment(cellValue);</span>
+<span class="fc" id="L178">          case 28 -&gt; inputData.setAccumulatedDepreciationAdjustedInflation(cellValue);</span>
+<span class="fc" id="L179">          case 30 -&gt; inputData.setNetFixedAssets(cellValue);</span>
+<span class="nc" id="L180">          case 31 -&gt; inputData.setHistoricalCost(cellValue);</span>
+<span class="nc" id="L181">          case 32 -&gt; inputData.setRevaluedAmount(cellValue);</span>
+          default -&gt; {
+          }
+        }
+<span class="fc" id="L185">    }</span>
+
+    private String getCellValue(Cell cell) {
+<span class="fc" id="L188">        Object value = getValueCell(cell);</span>
+<span class="pc bpc" id="L189" title="1 of 2 branches missed.">        return value != null ? String.valueOf(value) : _BLANK;</span>
+    }
+
+    private String formatDate(String date) {
+<span class="fc bfc" id="L193" title="All 2 branches covered.">        if (date.contains(&quot;/&quot;)) {</span>
+<span class="fc" id="L194">            String[] dateParts = date.split(&quot;/&quot;);</span>
+<span class="fc" id="L195">            return dateParts[2] + &quot;-&quot; + dateParts[1] + &quot;-&quot; + dateParts[0];</span>
+<span class="pc bpc" id="L196" title="1 of 2 branches missed.">        } else if (date.contains(&quot;-&quot;)) {</span>
+<span class="nc" id="L197">            return date;</span>
+        }
+<span class="fc" id="L199">        return S_DATE_DEFAULT;</span>
+    }
+
+    @Override
+    @Transactional
+    public void saveAllService(String accountingPeriod, List&lt;InputData&gt; listInputData) {
+<span class="fc" id="L205">        List&lt;FinancialFixedAsset&gt; list = getListFinancialFixedAsset(accountingPeriod,</span>
+            listInputData);
+<span class="fc" id="L207">        repository.saveAll(list);</span>
+<span class="fc" id="L208">    }</span>
+
+    /**
+     * Get List of financial fixed asset.
+     *
+     * @param accountingPeriod Accounting period
+     * @param listInputData List input data
+     * @return List of FinancialFixedAsset
+     */
+    public static List&lt;FinancialFixedAsset&gt; getListFinancialFixedAsset(String accountingPeriod,
+        List&lt;InputData&gt; listInputData) {
+<span class="fc" id="L219">        List&lt;FinancialFixedAsset&gt; list = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L220">        DateTimeFormatter formatter = DateTimeFormatter.ofPattern(FORMATTER_YYYY_MM_DD);</span>
+<span class="fc bfc" id="L221" title="All 2 branches covered.">        if (listInputData == null) {</span>
+<span class="fc" id="L222">            throw new IllegalArgumentException(&quot;listInputData nulo&quot;);</span>
+        }
+<span class="fc bfc" id="L224" title="All 2 branches covered.">        for (InputData itemInputData : listInputData) {</span>
+<span class="pc bpc" id="L225" title="1 of 2 branches missed.">            if (itemInputData == null) {</span>
+<span class="nc" id="L226">                throw new IllegalArgumentException(&quot;InputData nulo&quot;);</span>
+            }
+            try {
+<span class="fc bfc" id="L229" title="All 2 branches covered.">                if (itemInputData.getAccountingPeriod() == null) {</span>
+<span class="fc" id="L230">                    throw new IllegalArgumentException(&quot;Periodo contable nulo&quot;);</span>
+                }
+
+<span class="pc bpc" id="L233" title="1 of 2 branches missed.">                if (itemInputData.getAccountingPeriod() != null</span>
+<span class="fc bfc" id="L234" title="All 2 branches covered.">                    &amp;&amp; accountingPeriod.equals(itemInputData.getAccountingPeriod())) {</span>
+<span class="fc" id="L235">                    FinancialFixedAsset itemFinancialFixedAsset = new FinancialFixedAsset();</span>
+<span class="fc" id="L236">                    int rowNum = itemInputData.getRowNum();</span>
+
+                    // Validar y parsear fechas
+<span class="fc" id="L239">                    itemFinancialFixedAsset.setAccountingPeriod(</span>
+<span class="fc" id="L240">                        parseDate(itemInputData.getAccountingPeriod(), formatter,</span>
+                            rowNum, &quot;accountingPeriod&quot;));
+<span class="fc" id="L242">                    itemFinancialFixedAsset.setAcquisitionDate(</span>
+<span class="fc" id="L243">                        parseDate(itemInputData.getAcquisitionDate(), formatter,</span>
+                            rowNum, &quot;acquisitionDate&quot;)); //16
+<span class="fc" id="L245">                    itemFinancialFixedAsset.setStartDateFixedAssetUsage(</span>
+<span class="fc" id="L246">                        parseDate(itemInputData.getStartDateFixedAssetUsage(), formatter,</span>
+                            rowNum, &quot;startDateFixedAssetUsage&quot;)); //17
+<span class="fc" id="L248">                    itemFinancialFixedAsset.setRetirementDate(</span>
+<span class="fc" id="L249">                        parseDate(itemInputData.getRetirementDate(), formatter,</span>
+                            rowNum, &quot;retirementDate&quot;)); //18
+
+                    // Parseo numérico (BigDecimal) con validación
+<span class="fc" id="L253">                    itemFinancialFixedAsset.setInitialBalance(</span>
+<span class="fc" id="L254">                        parseBigDecimal(itemInputData.getInitialBalance(),</span>
+                            rowNum, &quot;initialBalance&quot;)); //7
+<span class="fc" id="L256">                    itemFinancialFixedAsset.setAcquisitionsAdditions(</span>
+<span class="fc" id="L257">                        parseBigDecimal(itemInputData.getAcquisitionsAdditions(),</span>
+                            rowNum, &quot;acquisitionsAdditions&quot;)); //8
+<span class="fc" id="L259">                    itemFinancialFixedAsset.setImprovements(</span>
+<span class="fc" id="L260">                        parseBigDecimal(itemInputData.getImprovements(),</span>
+                            rowNum, &quot;improvements&quot;)); //9
+<span class="fc" id="L262">                    itemFinancialFixedAsset.setTransfersAndOrReclassifications(</span>
+<span class="fc" id="L263">                        parseBigDecimal(itemInputData.getTransfersAndOrReclassifications(),</span>
+                            rowNum, &quot;transfersAndOrReclassifications&quot;)); //10
+<span class="fc" id="L265">                    itemFinancialFixedAsset.setWithdrawalsAndOrRetirements(</span>
+<span class="fc" id="L266">                        parseBigDecimal(itemInputData.getWithdrawalsAndOrRetirements(),</span>
+                            rowNum, &quot;withDrawalsAndOrRetirements&quot;)); //11
+<span class="fc" id="L268">                    itemFinancialFixedAsset.setOtherAdjustments(</span>
+<span class="fc" id="L269">                        parseBigDecimal(itemInputData.getOtherAdjustments(),</span>
+                            rowNum, &quot;otherAdjustments&quot;)); //12
+<span class="fc" id="L271">                    itemFinancialFixedAsset.setBookValueOfFixedAssets(</span>
+<span class="fc" id="L272">                        parseBigDecimal(itemInputData.getBookValueOfFixedAssets(),</span>
+                            rowNum, &quot;bookValueOfFixedAssets&quot;)); //13
+<span class="fc" id="L274">                    itemFinancialFixedAsset.setInflationAdjustment(</span>
+<span class="fc" id="L275">                        parseBigDecimal(itemInputData.getInflationAdjustment(),</span>
+                            rowNum, &quot;inflationAdjustment&quot;)); //14
+<span class="fc" id="L277">                    itemFinancialFixedAsset.setAdjustedValueOfFixedAssets(</span>
+<span class="fc" id="L278">                        parseBigDecimal(itemInputData.getAdjustedValueOfFixedAssets(),</span>
+                            rowNum, &quot;adjustedValueOfFixedAssets&quot;)); //15
+<span class="fc" id="L280">                    itemFinancialFixedAsset.setAccumulatedDepreciationTheEndPrevious(</span>
+<span class="fc" id="L281">                        parseBigDecimal(itemInputData.getAccumulatedDepreciationTheEndPrevious(),</span>
+                            rowNum, &quot;accumulatedDepreciationTheEndPrevious&quot;)); //22
+<span class="fc" id="L283">                    itemFinancialFixedAsset.setCurrentDepreciation(parseBigDecimal(</span>
+<span class="fc" id="L284">                        itemInputData.getCurrentDepreciation(),</span>
+                        rowNum, &quot;currentDepreciation&quot;)); //23
+<span class="fc" id="L286">                    itemFinancialFixedAsset.setCurrentDepreciationRelatedWithdrawalsRetirements(</span>
+<span class="fc" id="L287">                        parseBigDecimal(</span>
+<span class="fc" id="L288">                            itemInputData.getCurrentDepreciationRelatedWithdrawalsRetirements(),</span>
+                            rowNum, &quot;currentDepreciationRelatedWithDrawalsRetirements&quot;)); //24
+<span class="fc" id="L290">                    itemFinancialFixedAsset.setCurrentDepreciationRelatedOtherAdjustments(</span>
+<span class="fc" id="L291">                        parseBigDecimal(</span>
+<span class="fc" id="L292">                            itemInputData.getCurrentDepreciationRelatedOtherAdjustments(),</span>
+                            rowNum, &quot;currentDepreciationRelatedOtherAdjustments&quot;)); //25
+<span class="fc" id="L294">                    itemFinancialFixedAsset.setAccumulatedHistoricalDepreciation(parseBigDecimal(</span>
+<span class="fc" id="L295">                        itemInputData.getAccumulatedHistoricalDepreciation(), rowNum,</span>
+                        &quot;accumulatedHistoricalDepreciation&quot;)); //26
+<span class="fc" id="L297">                    itemFinancialFixedAsset.setDepreciationInflationAdjustment(parseBigDecimal(</span>
+<span class="fc" id="L298">                        itemInputData.getDepreciationInflationAdjustment(), rowNum,</span>
+                        &quot;depreciationInflationAdjustment&quot;)); //27
+<span class="fc" id="L300">                    itemFinancialFixedAsset.setAccumulatedDepreciationAdjustedInflation(</span>
+<span class="fc" id="L301">                        parseBigDecimal(</span>
+<span class="fc" id="L302">                            itemInputData.getAccumulatedDepreciationAdjustedInflation(),</span>
+                            rowNum, &quot;accumulatedDepreciationAdjustedInflation&quot;)); //28
+<span class="fc" id="L304">                    itemFinancialFixedAsset.setNetFixedAssets(parseBigDecimal(</span>
+<span class="fc" id="L305">                        itemInputData.getNetFixedAssets(), rowNum, &quot;netFixedAssets&quot;)); //30</span>
+<span class="fc" id="L306">                    itemFinancialFixedAsset.setHistoricalCost(parseBigDecimal(</span>
+<span class="fc" id="L307">                        itemInputData.getHistoricalCost(), rowNum, &quot;historicalCost&quot;)); //31</span>
+<span class="fc" id="L308">                    itemFinancialFixedAsset.setRevaluedAmount(parseBigDecimal(</span>
+<span class="fc" id="L309">                        itemInputData.getRevaluedAmount(), rowNum, &quot;revaluedAmount&quot;)); //32</span>
+
+                    // Parseo numérico (Double) con validación
+<span class="fc" id="L312">                    itemFinancialFixedAsset.setUsefulLifeYears(parseDouble(</span>
+<span class="fc" id="L313">                        itemInputData.getUsefulLifeYears(), rowNum, &quot;usefulLifeYears&quot;)); //21</span>
+
+<span class="fc" id="L315">                    itemFinancialFixedAsset.setMainFixedAssetCode(defaultString(</span>
+<span class="fc" id="L316">                        itemInputData.getMainFixedAssetCode())); //0</span>
+<span class="fc" id="L317">                    itemFinancialFixedAsset.setFixedAssetCodeComponent(defaultString(</span>
+<span class="fc" id="L318">                        itemInputData.getFixedAssetCodeComponent())); //1</span>
+<span class="fc" id="L319">                    itemFinancialFixedAsset.setFixedAssetAccountingAccount(defaultString(</span>
+<span class="fc" id="L320">                        itemInputData.getFixedAssetAccountingAccount())); //2</span>
+
+                    // Anidado: Detalle
+<span class="pc bpc" id="L323" title="1 of 2 branches missed.">                    if (itemInputData.getFixedAssetDetail() != null) {</span>
+<span class="fc" id="L324">                        itemFinancialFixedAsset.setDescription(defaultString(</span>
+<span class="fc" id="L325">                            itemInputData.getFixedAssetDetail().getDescription())); //3</span>
+<span class="fc" id="L326">                        itemFinancialFixedAsset.setFixedAssetBrand(defaultString(</span>
+<span class="fc" id="L327">                            itemInputData.getFixedAssetDetail().getFixedAssetBrand())); //4</span>
+<span class="fc" id="L328">                        itemFinancialFixedAsset.setFixedAssetModel(defaultString(</span>
+<span class="fc" id="L329">                            itemInputData.getFixedAssetDetail().getFixedAssetModel())); //5</span>
+<span class="fc" id="L330">                        itemFinancialFixedAsset.setFixedAssetSerialNumberAndOrPlate(defaultString(</span>
+<span class="fc" id="L331">                            itemInputData.getFixedAssetDetail()</span>
+<span class="fc" id="L332">                                .getFixedAssetSerialNumberAndOrPlate())); //6</span>
+                    }
+
+                    // Anidado: Método de depreciación
+<span class="pc bpc" id="L336" title="1 of 2 branches missed.">                    if (itemInputData.getDepreciation() != null) {</span>
+<span class="fc" id="L337">                        itemFinancialFixedAsset.setAppliedMethod(defaultString(</span>
+<span class="fc" id="L338">                            itemInputData.getDepreciation().getAppliedMethod())); //19</span>
+<span class="fc" id="L339">                        itemFinancialFixedAsset.setAuthorizationDocumentNumber(defaultString(</span>
+<span class="fc" id="L340">                            itemInputData.getDepreciation().getAuthorizationDocumentNumber())); //20</span>
+                    }
+
+<span class="fc" id="L343">                    itemFinancialFixedAsset.setRowNum(rowNum);</span>
+<span class="fc" id="L344">                    itemFinancialFixedAsset.setPhysicalNumberOfRows(</span>
+<span class="fc" id="L345">                        itemInputData.getPhysicalNumberOfRows());</span>
+<span class="fc" id="L346">                    itemFinancialFixedAsset.setAddedBy(&quot;CARNOL&quot;);</span>
+<span class="fc" id="L347">                    itemFinancialFixedAsset.setAdditionDate(LocalDateTime.now());</span>
+<span class="fc" id="L348">                    list.add(itemFinancialFixedAsset);</span>
+                }
+<span class="fc" id="L350">            } catch (IllegalArgumentException e) {</span>
+<span class="fc" id="L351">                throw new RuntimeException(&quot;Error en la fila &quot; + itemInputData.getRowNum()</span>
+<span class="fc" id="L352">                    + &quot;: &quot; + e.getMessage(), e);</span>
+<span class="fc" id="L353">            }</span>
+<span class="fc" id="L354">        }</span>
+<span class="fc" id="L355">        return list;</span>
+    }
+
+    /**
+     * Validate and analyze dates.
+     *
+     * @param dateStr Date string
+     * @param formatter Formatter
+     * @param rowNum Row num
+     * @param fieldName Field name
+     * @return LocalDate
+     */
+    private static LocalDate parseDate(String dateStr, DateTimeFormatter formatter,
+                                       int rowNum, String fieldName) {
+<span class="pc bpc" id="L369" title="2 of 4 branches missed.">        if (dateStr == null || dateStr.isBlank()) {</span>
+<span class="nc" id="L370">            return LOCAL_DATE_DEFAULT;</span>
+        }
+        try {
+<span class="fc" id="L373">            return LocalDate.parse(dateStr, formatter);</span>
+<span class="fc" id="L374">        } catch (DateTimeParseException e) {</span>
+<span class="fc" id="L375">            throw new IllegalArgumentException(&quot;Formato de fecha inválido en '&quot; + fieldName</span>
+                + &quot;' (fila &quot; + rowNum + &quot;): '&quot; + dateStr + &quot;'&quot;);
+        }
+    }
+
+    /**
+     * Numerical (BigDecimal) parsing with validation.
+     *
+     * @param value String for parse
+     * @param rowNum Row num
+     * @param fieldName Field name
+     * @return BigDecimal
+     */
+    private static BigDecimal parseBigDecimal(String value, int rowNum, String fieldName) {
+<span class="pc bpc" id="L389" title="1 of 4 branches missed.">        if (value == null || value.isBlank()) {</span>
+<span class="fc" id="L390">            return BigDecimal.ZERO;</span>
+        }
+        try {
+            // 1. Elimina separadores de miles (comas)
+<span class="fc" id="L394">            String normalizedValue = value.replace(&quot;,&quot;, &quot;&quot;);</span>
+
+            // 2. Reemplaza &quot;- 0&quot; o cualquier &quot;- &lt;espacio&gt;&lt;dígitos&gt;&quot; por &quot;-&lt;dígitos&gt;&quot;
+<span class="fc" id="L397">            normalizedValue = normalizedValue.replaceAll(&quot;-\\s+(\\d+)&quot;, &quot;-$1&quot;);</span>
+
+<span class="fc" id="L399">            return new BigDecimal(normalizedValue);</span>
+<span class="fc" id="L400">        } catch (NumberFormatException e) {</span>
+<span class="fc" id="L401">            throw new IllegalArgumentException(&quot;Número inválido en '&quot; + fieldName + &quot;' (fila &quot;</span>
+                + rowNum + &quot;): '&quot; + value + &quot;'&quot;);
+        }
+    }
+
+    /**
+     * Numerical (Double) parsing with validation.
+     *
+     * @param value String
+     * @param rowNum Row num
+     * @param fieldName Field name
+     * @return Double
+     */
+    private static Double parseDouble(String value, int rowNum, String fieldName) {
+<span class="pc bpc" id="L415" title="2 of 4 branches missed.">        if (value == null || value.isBlank()) {</span>
+<span class="nc" id="L416">            return D_VAL_ZERO;</span>
+        }
+        try {
+<span class="fc" id="L419">            String normalizedValue = value.replace(&quot;,&quot;, &quot;&quot;);</span>
+
+<span class="fc" id="L421">            normalizedValue = normalizedValue.replaceAll(&quot;-\\s+(\\d+(\\.\\d+)?)&quot;, &quot;-$1&quot;);</span>
+
+<span class="fc" id="L423">            return Double.parseDouble(normalizedValue);</span>
+<span class="fc" id="L424">        } catch (NumberFormatException e) {</span>
+<span class="fc" id="L425">            throw new IllegalArgumentException(&quot;Número double inválido en '&quot; + fieldName</span>
+                + &quot;' (fila &quot; + rowNum + &quot;): '&quot; + value + &quot;'&quot;);
+        }
+    }
+
+    /**
+     * Validate string and return default value.
+     *
+     * @param value String
+     * @return String
+     */
+    private static String defaultString(String value) {
+<span class="pc bpc" id="L437" title="1 of 2 branches missed.">        return (value != null) ? value : _BLANK;</span>
+    }
+
+    @Override
+    public void updateService(FinancialFixedAsset obj) {
+<span class="fc" id="L442">        repository.save(obj);</span>
+<span class="fc" id="L443">    }</span>
+
+    @Override
+    public void deleteByIdService(Long id) {
+<span class="fc" id="L447">        repository.deleteById(id);</span>
+<span class="fc" id="L448">    }</span>
+
+    @Override
+    public void deleteByAccountingPeriod(LocalDate period) {
+<span class="fc" id="L452">        repository.deleteByAccountingPeriod(period);</span>
+<span class="fc" id="L453">    }</span>
+
+    @Transactional
+    @Modifying
+    @Override
+    public void generateTemporayDeductionsService(LocalDate accountingPeriod,
+                                                  List&lt;FinancialFixedAsset&gt; fixedAssets) {
+<span class="fc" id="L460">        TaxTableSunat taxTable = taxTableService.findByAccountigAccountService(S_VAL_332);</span>
+<span class="fc bfc" id="L461" title="All 2 branches covered.">        if (taxTable == null) {</span>
+<span class="fc" id="L462">            return; // Si no hay tabla de impuestos, no se puede proceder</span>
+        }
+
+<span class="fc bfc" id="L465" title="All 2 branches covered.">        for (FinancialFixedAsset fixedAsset : fixedAssets) {</span>
+<span class="pc bpc" id="L466" title="1 of 2 branches missed.">            if (isEligibleForDepreciation(fixedAsset)) {</span>
+<span class="fc" id="L467">                processAssetDepreciation(fixedAsset, accountingPeriod, taxTable);</span>
+            }
+<span class="fc" id="L469">        }</span>
+<span class="fc" id="L470">    }</span>
+
+    private boolean isEligibleForDepreciation(FinancialFixedAsset fixedAsset) {
+<span class="pc bpc" id="L473" title="1 of 2 branches missed.">        return !fixedAsset.getAcquisitionDate().equals(LOCAL_DATE_DEFAULT)</span>
+<span class="pc bpc" id="L474" title="1 of 2 branches missed.">            &amp;&amp; fixedAsset.getInitialBalance().compareTo(BigDecimal.ZERO) &gt; N_VAL_0</span>
+<span class="pc bpc" id="L475" title="1 of 2 branches missed.">            &amp;&amp; fixedAsset.getRevaluedAmount().compareTo(BigDecimal.ZERO) == N_VAL_0;</span>
+    }
+
+    private void processAssetDepreciation(FinancialFixedAsset fixedAsset,
+        LocalDate accountingPeriod, TaxTableSunat taxTable) {
+<span class="fc" id="L480">        TaxDepreciation taxDepreciationMonth = new TaxDepreciation();</span>
+<span class="fc" id="L481">        taxDepreciationMonth.setNetTaxValue(BigDecimal.ZERO);</span>
+<span class="fc" id="L482">        taxDepreciationMonth.setFirst(true);</span>
+<span class="fc" id="L483">        taxDepreciationMonth.setLast(false);</span>
+
+<span class="fc" id="L485">        Projection projection = new Projection();</span>
+<span class="fc" id="L486">        projection.setAccountigPeriod(accountingPeriod);</span>
+<span class="fc" id="L487">        projection.setAccountigPeriodNext(accountingPeriod);</span>
+<span class="fc" id="L488">        List&lt;FinancialDepreciation&gt; financialDepreciationList = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L489">        projection.setFinancialDepreciationList(financialDepreciationList);</span>
+<span class="fc" id="L490">        projection.setTaxDepreciation(taxDepreciationMonth);</span>
+<span class="fc" id="L491">        List&lt;TaxDepreciation&gt; taxDepreciationList = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L492">        projection.setTaxDepreciationList(taxDepreciationList);</span>
+<span class="fc" id="L493">        List&lt;Addition&gt; additionList = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L494">        projection.setAdditionList(additionList);</span>
+<span class="fc" id="L495">        List&lt;Deduction&gt; deductionList = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L496">        projection.setDeductionList(deductionList);</span>
+
+<span class="fc" id="L498">        LocalDate acquisitionDate = fixedAsset.getAcquisitionDate();</span>
+<span class="fc" id="L499">        int numberYearsPassed = Period.between(acquisitionDate, accountingPeriod).getYears();</span>
+<span class="fc" id="L500">        int remainingYears = fixedAsset.getUsefulLifeYears().intValue() - numberYearsPassed;</span>
+<span class="fc bfc" id="L501" title="All 2 branches covered.">        for (int year = 0; year &lt; remainingYears; year++) {</span>
+<span class="fc" id="L502">            projection = processYearDepreciation(fixedAsset, projection, taxTable);</span>
+        }
+
+<span class="fc" id="L505">        financialDepreciationService.saveAllService(projection.getFinancialDepreciationList());</span>
+<span class="fc" id="L506">        taxDepreciationService.saveAllService(projection.getTaxDepreciationList());</span>
+<span class="fc" id="L507">        deductionService.saveAllService(projection.getDeductionList());</span>
+<span class="fc" id="L508">        additionService.saveAllService(projection.getAdditionList());</span>
+<span class="fc" id="L509">    }</span>
+
+    private Projection processYearDepreciation(FinancialFixedAsset fixedAsset,
+                                               Projection projection,
+                                              TaxTableSunat taxTable) {
+<span class="fc bfc" id="L514" title="All 2 branches covered.">        for (int month = 0; month &lt; 12; month++) {</span>
+<span class="fc" id="L515">            FinancialDepreciation financialDepreciation = createFinancialDepreciation(fixedAsset,</span>
+<span class="fc" id="L516">                projection.getAccountigPeriodNext());</span>
+<span class="fc" id="L517">            projection.getFinancialDepreciationList().add(financialDepreciation);</span>
+
+<span class="fc" id="L519">            TaxDepreciation taxDepreciation = createTaxDepreciation(fixedAsset,</span>
+<span class="fc" id="L520">                projection.getAccountigPeriodNext(),</span>
+<span class="fc" id="L521">                    projection.getAccountigPeriod(), projection.getTaxDepreciation(), taxTable);</span>
+<span class="fc" id="L522">            projection.getTaxDepreciationList().add(taxDepreciation);</span>
+
+<span class="fc" id="L524">            BigDecimal valueAdditionOrDeduction = BigDecimal.ZERO;</span>
+
+<span class="fc" id="L526">            if (taxDepreciation.getValueDepreciation()</span>
+<span class="pc bpc" id="L527" title="1 of 2 branches missed.">                .compareTo(financialDepreciation.getValueDepreciation()) &gt; 0</span>
+<span class="fc bfc" id="L528" title="All 2 branches covered.">                &amp;&amp; taxDepreciation.getNetTaxValue().compareTo(BigDecimal.ZERO) &gt; 0) {</span>
+<span class="fc" id="L529">                valueAdditionOrDeduction = taxDepreciation.getValueDepreciation()</span>
+<span class="fc" id="L530">                    .subtract(financialDepreciation.getValueDepreciation());</span>
+<span class="fc" id="L531">                Deduction deduction = createDeduction(projection.getAccountigPeriodNext(),</span>
+                    taxDepreciation, valueAdditionOrDeduction);
+<span class="fc" id="L533">                projection.getDeductionList().add(deduction);</span>
+<span class="fc" id="L534">            } else if (projection.getTaxDepreciation().getNetTaxValue()</span>
+<span class="fc bfc" id="L535" title="All 2 branches covered.">                .compareTo(BigDecimal.ZERO) &gt; 0</span>
+<span class="pc bpc" id="L536" title="1 of 2 branches missed.">                &amp;&amp; taxDepreciation.getNetTaxValue().compareTo(BigDecimal.ZERO) == 0) {</span>
+<span class="fc" id="L537">                valueAdditionOrDeduction = taxDepreciation.getValueDepreciation()</span>
+<span class="fc" id="L538">                    .subtract(financialDepreciation.getValueDepreciation());</span>
+<span class="fc" id="L539">                Deduction deduction = createDeduction(projection.getAccountigPeriodNext(),</span>
+                    taxDepreciation, valueAdditionOrDeduction);
+<span class="fc" id="L541">                projection.getDeductionList().add(deduction);</span>
+<span class="fc" id="L542">            } else {</span>
+<span class="fc" id="L543">                valueAdditionOrDeduction = financialDepreciation.getValueDepreciation();</span>
+<span class="fc" id="L544">                Addition addition = createAddition(projection.getAccountigPeriodNext(),</span>
+                    taxDepreciation, valueAdditionOrDeduction);
+<span class="fc" id="L546">                projection.getAdditionList().add(addition);</span>
+            }
+
+<span class="fc" id="L549">            projection.setAccountigPeriodNext(projection.getAccountigPeriodNext().plusMonths(1));</span>
+<span class="fc" id="L550">            projection.setTaxDepreciation(taxDepreciation);</span>
+        }
+<span class="fc" id="L552">        projection.setAccountigPeriodNext(projection.getAccountigPeriodNext()</span>
+<span class="fc" id="L553">            .plusYears(1).minusMonths(12)); // Ajusta el periodo al siguiente año</span>
+<span class="fc" id="L554">        return projection;</span>
+    }
+
+    private FinancialDepreciation createFinancialDepreciation(FinancialFixedAsset fixedAsset,
+                                                              LocalDate accountingPeriod) {
+<span class="fc" id="L559">        FinancialDepreciation financialDepreciation = new FinancialDepreciation();</span>
+<span class="fc" id="L560">        financialDepreciation.setFinancialFixedAsset(fixedAsset);</span>
+<span class="fc" id="L561">        financialDepreciation.setAccountingPeriod(accountingPeriod);</span>
+<span class="fc" id="L562">        financialDepreciation.calculateDepreciation(fixedAsset);</span>
+<span class="fc" id="L563">        financialDepreciation.setAddedBy(&quot;CARNOL&quot;);</span>
+<span class="fc" id="L564">        financialDepreciation.setAdditionDate(LocalDateTime.now());</span>
+<span class="fc" id="L565">        return financialDepreciation;</span>
+    }
+
+    private TaxDepreciation createTaxDepreciation(FinancialFixedAsset fixedAsset,
+                                                  LocalDate accountingPeriodNext,
+                                                  LocalDate accountingPeriod,
+                                                  TaxDepreciation taxDepreciationOld,
+                                                  TaxTableSunat taxTable) {
+<span class="fc" id="L573">        TaxDepreciation taxDepreciation = new TaxDepreciation();</span>
+<span class="fc" id="L574">        taxDepreciation.setFinancialFixedAsset(fixedAsset);</span>
+<span class="fc" id="L575">        taxDepreciation.setAccountingPeriod(accountingPeriodNext);</span>
+<span class="fc" id="L576">        taxDepreciation.calculateDepreciation(fixedAsset, taxTable,</span>
+            accountingPeriod, taxDepreciationOld);
+<span class="fc" id="L578">        taxDepreciation.setAddedBy(&quot;CARNOL&quot;);</span>
+<span class="fc" id="L579">        taxDepreciation.setAdditionDate(LocalDateTime.now());</span>
+<span class="fc" id="L580">        taxDepreciation.setFirst(false);</span>
+<span class="fc" id="L581">        return taxDepreciation;</span>
+    }
+
+    private Addition createAddition(LocalDate accountingPeriod, TaxDepreciation taxDepreciation,
+                                    BigDecimal valueAddition) {
+<span class="fc" id="L586">        Addition addition = new Addition();</span>
+<span class="fc" id="L587">        addition.setAccountingPeriod(accountingPeriod);</span>
+<span class="fc" id="L588">        addition.setTaxDepreciation(taxDepreciation);</span>
+<span class="fc" id="L589">        addition.setValueAddition(valueAddition);</span>
+<span class="fc" id="L590">        addition.setAddedBy(&quot;CARNOL&quot;);</span>
+<span class="fc" id="L591">        addition.setAdditionDate(LocalDateTime.now());</span>
+<span class="fc" id="L592">        return addition;</span>
+    }
+
+    private Deduction createDeduction(LocalDate accountingPeriod, TaxDepreciation taxDepreciation,
+                                      BigDecimal valueDeduction) {
+<span class="fc" id="L597">        Deduction deduction = new Deduction();</span>
+<span class="fc" id="L598">        deduction.setAccountingPeriod(accountingPeriod);</span>
+<span class="fc" id="L599">        deduction.setTaxDepreciation(taxDepreciation);</span>
+<span class="fc" id="L600">        deduction.setValueDeduction(valueDeduction);</span>
+<span class="fc" id="L601">        deduction.setAddedBy(&quot;CARNOL&quot;);</span>
+<span class="fc" id="L602">        deduction.setAdditionDate(LocalDateTime.now());</span>
+<span class="fc" id="L603">        return deduction;</span>
+    }
+
+    @Override
+    public FinancialFixedAsset findByIdService(Long id) {
+<span class="fc" id="L608">        Optional&lt;FinancialFixedAsset&gt; optionalFinancialFixedAsset = repository.findById(id);</span>
+<span class="fc" id="L609">        return optionalFinancialFixedAsset.orElseGet(FinancialFixedAsset::new);</span>
+    }
+
+    @Override
+    public List&lt;FinancialFixedAsset&gt; findByMainFixedAssetCodeService(String mainFixedAssetCode) {
+<span class="fc" id="L614">        return new ArrayList&lt;&gt;(repository.findByMainFixedAssetCode(mainFixedAssetCode));</span>
+    }
+
+    @Override
+    public List&lt;FinancialFixedAsset&gt; findByFixedAssetAccountingAccountService(
+        String accountingAccount) {
+<span class="fc" id="L620">        return new ArrayList&lt;&gt;(repository.findByFixedAssetAccountingAccount(accountingAccount));</span>
+    }
+
+    @Override
+    public List&lt;FinancialFixedAsset&gt; findAllService() {
+<span class="fc" id="L625">        return new ArrayList&lt;&gt;(repository.findAll());</span>
+    }
+
+    @Override
+    public List&lt;FinancialFixedAsset&gt; findByPeriodService(LocalDate period) {
+<span class="fc" id="L630">        return new ArrayList&lt;&gt;(repository.findByAccountingPeriod(period));</span>
+    }
+
+    @Override
+    public List&lt;FinancialFixedAsset&gt; findByPeriodAndAccountStartingWithService(LocalDate period,
+                                                                               String account) {
+<span class="fc" id="L636">        return new ArrayList&lt;&gt;(repository</span>
+<span class="fc" id="L637">            .findByAccountingPeriodAndFixedAssetAccountingAccountStartingWith(period, account));</span>
+    }
+
+    @Override
+    public List&lt;FinancialFixedAssetDto&gt; callGetReportTaxBookService(ParamReportDto params)
+        throws SQLException {
+<span class="nc" id="L643">        return repositoryJdbc.callGetReportTaxBookJdbc(params);</span>
+    }
+
+    @Override
+    public List&lt;FinancialFixedAssetDto&gt; callGetReportDetailFinancialAndTaxDepreciationService(
+        ParamReportDto params) {
+<span class="nc" id="L649">        return repositoryJdbc.callGetReportDetailFinancialAndTaxDepreciationJdbc(params);</span>
+    }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.8.202204050719</span></div></body></html>

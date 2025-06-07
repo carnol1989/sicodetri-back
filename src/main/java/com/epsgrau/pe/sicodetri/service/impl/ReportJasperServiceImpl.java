@@ -7,6 +7,7 @@ import com.epsgrau.pe.sicodetri.util.enums.ReportTypeEnum;
 import java.io.FileNotFoundException;
 import java.util.List;
 import java.util.Map;
+import net.sf.jasperreports.engine.JREmptyDataSource;
 import net.sf.jasperreports.engine.JRException;
 import net.sf.jasperreports.engine.JasperCompileManager;
 import net.sf.jasperreports.engine.JasperFillManager;
@@ -38,16 +39,23 @@ import org.springframework.util.ResourceUtils;
 public class ReportJasperServiceImpl implements ReportJasperService {
 
     @Override
-    public byte[] getJasperReportInBytes(String templateReport, String fileType,
-        Map<String, Object> parameters, List<FinancialFixedAssetDto> dataSource)
+    public byte[] getJasperReportInBytes(String optionReport, String templateReport,
+        String fileType, Map<String, Object> parameters, List<FinancialFixedAssetDto> dataSource)
         throws FileNotFoundException, JRException {
         JRBeanCollectionDataSource beanCollectionDataSource =
             new JRBeanCollectionDataSource(dataSource);
         String path = ResourceUtils.getFile("classpath:reports/"
             + templateReport).getAbsolutePath();
         JasperReport jasperReport = JasperCompileManager.compileReport(path);
-        JasperPrint jasperPrint = JasperFillManager.fillReport(jasperReport, parameters,
-            beanCollectionDataSource);
+        JasperPrint jasperPrint;
+        if (optionReport.equals("2")) {
+            parameters.put("financialFixedAssetList", beanCollectionDataSource);
+            jasperPrint = JasperFillManager.fillReport(jasperReport, parameters,
+                new JREmptyDataSource());
+        } else {
+            jasperPrint = JasperFillManager.fillReport(jasperReport,
+                parameters, beanCollectionDataSource);
+        }
         ReportTypeEnum reportType = ReportTypeEnum.getReportTypeByCode(fileType);
         return JasperReportsHelper.exportJasperReportBytes(jasperPrint, reportType);
     }

@@ -33,6 +33,8 @@ import lombok.ToString;
 @ToString
 public class FinancialFixedAssetDto {
 
+    private Integer id;
+    private LocalDate accountingPeriod;
     private String mainFixedAssetCode;
     private String fixedAssetCodeComponent;
     private String fixedAssetAccountingAccount;
@@ -60,6 +62,12 @@ public class FinancialFixedAssetDto {
     private BigDecimal currentDepreciationRelatedWithdrawalsRetirements;
     private BigDecimal currentDepreciationRelatedOtherAdjustments;
     private BigDecimal historicalAccumulatedDepreciation;
+    private BigDecimal valueDepreciationFinancial;
+    private BigDecimal valueDepreciationTax;
+    private BigDecimal annualNetTaxValuePriorPeriod;
+    private BigDecimal netTaxValue;
+    private BigDecimal valueAddition;
+    private BigDecimal valueDeduction;
     private BigDecimal netFixedAssets;
 
     private String errorCode;

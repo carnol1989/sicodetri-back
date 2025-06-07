@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ReportJasperServiceImpl.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">sicodetri</a> &gt; <a href="index.source.html" class="el_package">com.epsgrau.pe.sicodetri.service.impl</a> &gt; <span class="el_source">ReportJasperServiceImpl.java</span></div><h1>ReportJasperServiceImpl.java</h1><pre class="source lang-java linenums">package com.epsgrau.pe.sicodetri.service.impl;
+
+import com.epsgrau.pe.sicodetri.dto.FinancialFixedAssetDto;
+import com.epsgrau.pe.sicodetri.helper.JasperReportsHelper;
+import com.epsgrau.pe.sicodetri.service.ReportJasperService;
+import com.epsgrau.pe.sicodetri.util.enums.ReportTypeEnum;
+import java.io.FileNotFoundException;
+import java.util.List;
+import java.util.Map;
+import net.sf.jasperreports.engine.JREmptyDataSource;
+import net.sf.jasperreports.engine.JRException;
+import net.sf.jasperreports.engine.JasperCompileManager;
+import net.sf.jasperreports.engine.JasperFillManager;
+import net.sf.jasperreports.engine.JasperPrint;
+import net.sf.jasperreports.engine.JasperReport;
+import net.sf.jasperreports.engine.data.JRBeanCollectionDataSource;
+import org.springframework.stereotype.Service;
+import org.springframework.util.ResourceUtils;
+
+/**
+ * This class implementation for ReportJasperService. &lt;br/&gt;
+ * &lt;b&gt;Class&lt;/b&gt;: {@link ReportJasperServiceImpl}&lt;br/&gt;
+ * &lt;b&gt;Copyright&lt;/b&gt;: &amp;Copy; 2024 EPS Grau. &lt;br/&gt;
+ * &lt;b&gt;Company&lt;/b&gt;: EPS Grau. &lt;br/&gt;
+ *
+ * @author EPS Grau &lt;br/&gt;
+ *     &lt;u&gt;Service Provider&lt;/u&gt;: Consultor TI &lt;br/&gt;
+ *     &lt;u&gt;Developed by&lt;/u&gt;: &lt;br/&gt;
+ *     &lt;ul&gt;
+ *     &lt;li&gt;Carlos Augusto Nole Machaca&lt;/li&gt;
+ *     &lt;/ul&gt;
+ *     &lt;u&gt;Changes&lt;/u&gt;:&lt;br/&gt;
+ *     &lt;ul&gt;
+ *     &lt;li&gt;Sep 08, 2024 (JAR) Creation class.&lt;/li&gt;
+ *     &lt;/ul&gt;
+ * @version 1.0
+ */
+@Service
+<span class="fc" id="L39">public class ReportJasperServiceImpl implements ReportJasperService {</span>
+
+    @Override
+    public byte[] getJasperReportInBytes(String optionReport, String templateReport,
+        String fileType, Map&lt;String, Object&gt; parameters, List&lt;FinancialFixedAssetDto&gt; dataSource)
+        throws FileNotFoundException, JRException {
+<span class="fc" id="L45">        JRBeanCollectionDataSource beanCollectionDataSource =</span>
+            new JRBeanCollectionDataSource(dataSource);
+<span class="fc" id="L47">        String path = ResourceUtils.getFile(&quot;classpath:reports/&quot;</span>
+<span class="fc" id="L48">            + templateReport).getAbsolutePath();</span>
+<span class="fc" id="L49">        JasperReport jasperReport = JasperCompileManager.compileReport(path);</span>
+        JasperPrint jasperPrint;
+<span class="pc bpc" id="L51" title="1 of 2 branches missed.">        if (optionReport.equals(&quot;2&quot;)) {</span>
+<span class="nc" id="L52">            parameters.put(&quot;financialFixedAssetList&quot;, beanCollectionDataSource);</span>
+<span class="nc" id="L53">            jasperPrint = JasperFillManager.fillReport(jasperReport, parameters,</span>
+                new JREmptyDataSource());
+        } else {
+<span class="fc" id="L56">            jasperPrint = JasperFillManager.fillReport(jasperReport,</span>
+                parameters, beanCollectionDataSource);
+        }
+<span class="fc" id="L59">        ReportTypeEnum reportType = ReportTypeEnum.getReportTypeByCode(fileType);</span>
+<span class="fc" id="L60">        return JasperReportsHelper.exportJasperReportBytes(jasperPrint, reportType);</span>
+    }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.8.202204050719</span></div></body></html>

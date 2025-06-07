@@ -28,4 +28,7 @@ public interface FinancialFixedAssetJdbcRepository {
     public List<FinancialFixedAssetDto> callGetReportTaxBookJdbc(ParamReportDto params)
         throws SQLException;
 
+    List<FinancialFixedAssetDto> callGetReportDetailFinancialAndTaxDepreciationJdbc(
+        ParamReportDto params);
+
 }

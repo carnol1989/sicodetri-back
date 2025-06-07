@@ -42,6 +42,7 @@ class ReportJasperServiceImplTest {
     @DisplayName("Return report bytes when template is valid and data provided")
     void returnReportBytesWhenTemplateIsValid() throws Exception {
         // Arrange
+        String option = "1";
         String templateName = "dummy.jrxml";
         String fileType = "PDF";
         Map<String, Object> parameters = Collections.singletonMap("PARAM_KEY", "PARAM_VALUE");
@@ -84,10 +85,11 @@ class ReportJasperServiceImplTest {
 
             // Act
             byte[] actualBytes = service.getJasperReportInBytes(
-                    templateName,
-                    fileType,
-                    parameters,
-                    dataSource
+                option,
+                templateName,
+                fileType,
+                parameters,
+                dataSource
             );
 
             // Assert
@@ -118,6 +120,7 @@ class ReportJasperServiceImplTest {
             FileNotFoundException ex = assertThrows(
                     FileNotFoundException.class,
                     () -> service.getJasperReportInBytes(
+                        "1",
                             missingTemplate,
                             "PDF",
                             Collections.emptyMap(),
@@ -152,6 +155,7 @@ class ReportJasperServiceImplTest {
             JRException ex = assertThrows(
                     JRException.class,
                     () -> service.getJasperReportInBytes(
+                        "1",
                             badTemplate,
                             "PDF",
                             Collections.emptyMap(),
@@ -195,6 +199,7 @@ class ReportJasperServiceImplTest {
             JRException ex = assertThrows(
                     JRException.class,
                     () -> service.getJasperReportInBytes(
+                        "1",
                             templateName,
                             "PDF",
                             Collections.emptyMap(),
@@ -241,6 +246,7 @@ class ReportJasperServiceImplTest {
             IllegalArgumentException ex = assertThrows(
                     IllegalArgumentException.class,
                     () -> service.getJasperReportInBytes(
+                        "1",
                             templateName,
                             invalidFileType,
                             Collections.emptyMap(),

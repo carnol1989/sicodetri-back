@@ -58,4 +58,7 @@ public interface FinancialFixedAssetService {
     List<FinancialFixedAssetDto> callGetReportTaxBookService(ParamReportDto params)
         throws SQLException;
 
+    List<FinancialFixedAssetDto> callGetReportDetailFinancialAndTaxDepreciationService(
+        ParamReportDto params);
+
 }
