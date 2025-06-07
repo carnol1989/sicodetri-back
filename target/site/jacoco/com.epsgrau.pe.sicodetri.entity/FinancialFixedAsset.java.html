@@ -1,0 +1,271 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>FinancialFixedAsset.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">sicodetri</a> &gt; <a href="index.source.html" class="el_package">com.epsgrau.pe.sicodetri.entity</a> &gt; <span class="el_source">FinancialFixedAsset.java</span></div><h1>FinancialFixedAsset.java</h1><pre class="source lang-java linenums">package com.epsgrau.pe.sicodetri.entity;
+
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.persistence.CascadeType;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.OneToMany;
+import jakarta.persistence.Table;
+import jakarta.persistence.Transient;
+import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.util.List;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+import lombok.ToString;
+
+/**
+ * This class entity for Financial Fixed Asset. &lt;br/&gt;
+ * &lt;b&gt;Class&lt;/b&gt;: {@link FinancialFixedAsset}&lt;br/&gt;
+ * &lt;b&gt;Copyright&lt;/b&gt;: &amp;Copy; 2024 EPS Grau. &lt;br/&gt;
+ * &lt;b&gt;Company&lt;/b&gt;: EPS Grau. &lt;br/&gt;
+ *
+ * @author EPS Grau &lt;br/&gt;
+ *     &lt;u&gt;Service Provider&lt;/u&gt;: Consultor TI &lt;br/&gt;
+ *     &lt;u&gt;Developed by&lt;/u&gt;: &lt;br/&gt;
+ *     &lt;ul&gt;
+ *     &lt;li&gt;Carlos Augusto Nole Machaca&lt;/li&gt;
+ *     &lt;/ul&gt;
+ *     &lt;u&gt;Changes&lt;/u&gt;:&lt;br/&gt;
+ *     &lt;ul&gt;
+ *     &lt;li&gt;Ago 15, 2024 (JAR) Creation class.&lt;/li&gt;
+ *     &lt;/ul&gt;
+ * @version 1.0
+ */
+@SuppressFBWarnings({&quot;EI_EXPOSE_REP&quot;, &quot;EI_EXPOSE_REP2&quot;})
+@Schema(description = &quot;Información de los Activos Fijos.&quot;)
+@AllArgsConstructor
+@NoArgsConstructor
+@Getter
+@Setter
+@Entity
+@Table(name = &quot;financial_fixed_asset&quot;)
+public class FinancialFixedAsset {
+
+    @Schema(description = &quot;Identificador del modelo&quot;, example = &quot;1&quot;)
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    @Schema(description = &quot;Periodo contable&quot;, example = &quot;2022-01-01&quot;)
+    @Column
+    private LocalDate accountingPeriod;
+
+    @Schema(description = &quot;Código activo fijo principal&quot;, example = &quot;22.01.010862&quot;)
+    @Column
+    private String mainFixedAssetCode; //0
+
+    @Schema(description = &quot;Código activo fijo componente&quot;, example = &quot;&quot;)
+    @Column
+    private String fixedAssetCodeComponent; //1
+
+    @Schema(description = &quot;Código contable del activo fijo&quot;, example = &quot;3321161001&quot;)
+    @Column
+    private String fixedAssetAccountingAccount; //2
+
+    @Schema(description = &quot;Detalle del Activo Fijo: Descripción del activo fijo&quot;,
+        example = &quot;CONSTRUCCION DE EDIFICIO PTAP CURUMUY&quot;)
+    @Column(length = 500)
+    private String description; //3
+
+    @Schema(description = &quot;Detalle del Activo Fijo: Marca del activo fijo&quot;, example = &quot;NINGUNA&quot;)
+    @Column(length = 500)
+    private String fixedAssetBrand; //4
+
+    @Schema(description = &quot;Detalle del Activo Fijo: Modelo del activo fijo&quot;,
+        example = &quot;NINGUNO&quot;)
+    @Column(length = 500)
+    private String fixedAssetModel; //5
+
+    @Schema(description = &quot;Detalle del Activo Fijo: Número de serie y/o placa &quot;
+        + &quot;del activo fijo&quot;, example = &quot;/&quot;)
+    @Column(length = 500)
+    private String fixedAssetSerialNumberAndOrPlate; //6
+
+    @Schema(description = &quot;Saldo inicial&quot;, example = &quot;27,493,700.65&quot;)
+    @Column(precision = 20, scale = 4)
+    private BigDecimal initialBalance; //7
+
+    @Schema(description = &quot;Adquisiciones adiciones&quot;, example = &quot;0&quot;)
+    @Column(precision = 20, scale = 4)
+    private BigDecimal acquisitionsAdditions; //8
+
+    @Schema(description = &quot;Mejoras&quot;, example = &quot;0&quot;)
+    @Column(precision = 20, scale = 4)
+    private BigDecimal improvements; //9
+
+    @Schema(description = &quot;Transferencias y/o reclasificaciones&quot;, example = &quot;0&quot;)
+    @Column(precision = 20, scale = 4)
+    private BigDecimal transfersAndOrReclassifications; //10
+
+    @Schema(description = &quot;Retiros y/o bajas&quot;, example = &quot;0&quot;)
+    @Column(precision = 20, scale = 4)
+    private BigDecimal withdrawalsAndOrRetirements; //11
+
+    @Schema(description = &quot;Otros ajustes&quot;, example = &quot;0&quot;)
+    @Column(precision = 20, scale = 4)
+    private BigDecimal otherAdjustments; //12
+
+    @Schema(description = &quot;Valor en libros del Activo Fijo&quot;, example = &quot;27,493,700.65&quot;)
+    @Column(precision = 20, scale = 4)
+    private BigDecimal bookValueOfFixedAssets; //13
+
+    @Schema(description = &quot;Ajuste por inflación&quot;, example = &quot;0&quot;)
+    @Column(precision = 20, scale = 4)
+    private BigDecimal inflationAdjustment; //14
+
+    @Schema(description = &quot;Valor ajustado del activo fijo&quot;, example = &quot;27,493,700.65&quot;)
+    @Column(precision = 20, scale = 4)
+    private BigDecimal adjustedValueOfFixedAssets; //15
+
+    @Schema(description = &quot;Fecha de adquisición&quot;, example = &quot;2007-12-31&quot;)
+    @Column
+    private LocalDate acquisitionDate; //16
+
+    @Schema(description = &quot;Fecha de inicio del uso del Activo Fijo&quot;, example = &quot;2007-12-31&quot;)
+    @Column
+    private LocalDate startDateFixedAssetUsage; //17
+
+    @Schema(description = &quot;Fecha de retiro&quot;)
+    @Column
+    private LocalDate retirementDate; //18
+
+    @Schema(description = &quot;Depreciación: Método aplicado&quot;, example = &quot;LINEA RECTA&quot;)
+    @Column
+    private String appliedMethod; //19
+
+    @Schema(description = &quot;Depreciación: N° de documento de autorización&quot;, example = &quot;1&quot;)
+    @Column
+    private String authorizationDocumentNumber; //20
+
+    @Schema(description = &quot;Años de vida util&quot;, example = &quot;30&quot;)
+    @Column
+    private Double usefulLifeYears; //21
+
+    @Schema(description = &quot;Depreciación acumulada al cierre del ejercicio anterior&quot;,
+        example = &quot;12,830,393.57&quot;)
+    @Column(precision = 20, scale = 4)
+    private BigDecimal accumulatedDepreciationTheEndPrevious; //22
+
+    @Schema(description = &quot;Depreciación del ejercicio&quot;, example = &quot;916,456.68&quot;)
+    @Column(precision = 20, scale = 4)
+    private BigDecimal currentDepreciation; //23
+
+    @Schema(description = &quot;Depreciación del ejercicio relacionada con los &quot;
+        + &quot;retiros y/o bajas&quot;, example = &quot;0&quot;)
+    @Column(precision = 20, scale = 4)
+    private BigDecimal currentDepreciationRelatedWithdrawalsRetirements; //24
+
+    @Schema(description = &quot;Depreciación del ejercicio relacionada con &quot;
+        + &quot;otros ajuste&quot;, example = &quot;0&quot;)
+    @Column(precision = 20, scale = 4)
+    private BigDecimal currentDepreciationRelatedOtherAdjustments; //25
+
+    @Schema(description = &quot;Depreciación acumulada histórica&quot;, example = &quot;13,746,850.25&quot;)
+    @Column(precision = 20, scale = 4)
+    private BigDecimal accumulatedHistoricalDepreciation; //26
+
+    @Schema(description = &quot;Ajuste por inflación de la depreciación&quot;, example = &quot;0&quot;)
+    @Column(precision = 20, scale = 4)
+    private BigDecimal depreciationInflationAdjustment; //27
+
+    @Schema(description = &quot;Depreciación acumulada ajustada por inflación&quot;,
+        example = &quot;13,746,850.25&quot;)
+    @Column(precision = 20, scale = 4)
+    private BigDecimal accumulatedDepreciationAdjustedInflation; //28
+
+    @Schema(description = &quot;Activo Fijo Neto&quot;, example = &quot;13,746,850.40&quot;)
+    @Column(precision = 20, scale = 4)
+    private BigDecimal netFixedAssets; //30
+
+    @Schema(description = &quot;Costo histórico&quot;, example = &quot;20,143,512.00&quot;)
+    @Column(precision = 20, scale = 4)
+    private BigDecimal historicalCost; //31
+
+    @Schema(description = &quot;Valor revaluado&quot;, example = &quot;7,350,188.65&quot;)
+    @Column(precision = 20, scale = 4)
+    private BigDecimal revaluedAmount; //32
+
+    @Transient
+    private int rowNum;
+
+    @Transient
+    private int physicalNumberOfRows;
+
+    @OneToMany(mappedBy = &quot;financialFixedAsset&quot;, cascade = CascadeType.ALL, orphanRemoval = true)
+    @ToString.Exclude
+    private List&lt;FinancialDepreciation&gt; depreciacionFinancieraList;
+
+    @OneToMany(mappedBy = &quot;financialFixedAsset&quot;, cascade = CascadeType.ALL, orphanRemoval = true)
+    @ToString.Exclude
+    private List&lt;TaxDepreciation&gt; depreciacionTributariaList;
+
+    @Schema(description = &quot;Usuario que realizó el registro&quot;, example = &quot;CANO&quot;)
+    @Column
+    private String addedBy;
+
+    @Schema(description = &quot;Fecha y hora del registro&quot;, example = &quot;2018-02-27T12:26:30.107&quot;)
+    @Column
+    private LocalDateTime additionDate;
+
+    @Schema(description = &quot;Usuario que realizó una modificación&quot;, example = &quot;WIJI&quot;)
+    @Column
+    private String modifiedBy;
+
+    @Schema(description = &quot;Fecha y hora de la modificación&quot;, example = &quot;2018-02-28T12:26:30.107&quot;)
+    @Column
+    private LocalDateTime modificationDate;
+
+    @Override
+    public String toString() {
+<span class="nc" id="L228">        return &quot;FinancialFixedAsset{&quot;</span>
+            + &quot;id=&quot; + id
+            + &quot;, accountingPeriod=&quot; + accountingPeriod
+            + &quot;, mainFixedAssetCode='&quot; + mainFixedAssetCode + '\''
+            + &quot;, fixedAssetCodeComponent='&quot; + fixedAssetCodeComponent + '\''
+            + &quot;, fixedAssetAccountingAccount='&quot; + fixedAssetAccountingAccount + '\''
+            + &quot;, description='&quot; + description + '\''
+            + &quot;, fixedAssetBrand='&quot; + fixedAssetBrand + '\''
+            + &quot;, fixedAssetModel='&quot; + fixedAssetModel + '\''
+            + &quot;, fixedAssetSerialNumberAndOrPlate='&quot; + fixedAssetSerialNumberAndOrPlate + '\''
+            + &quot;, initialBalance=&quot; + initialBalance
+            + &quot;, acquisitionsAdditions=&quot; + acquisitionsAdditions
+            + &quot;, improvements=&quot; + improvements
+            + &quot;, transfersAndOrReclassifications=&quot; + transfersAndOrReclassifications
+            + &quot;, withdrawalsAndOrRetirements=&quot; + withdrawalsAndOrRetirements
+            + &quot;, otherAdjustments=&quot; + otherAdjustments
+            + &quot;, bookValueOfFixedAssets=&quot; + bookValueOfFixedAssets
+            + &quot;, inflationAdjustment=&quot; + inflationAdjustment
+            + &quot;, adjustedValueOfFixedAssets=&quot; + adjustedValueOfFixedAssets
+            + &quot;, acquisitionDate=&quot; + acquisitionDate
+            + &quot;, startDateFixedAssetUsage=&quot; + startDateFixedAssetUsage
+            + &quot;, retirementDate=&quot; + retirementDate
+            + &quot;, appliedMethod='&quot; + appliedMethod + '\''
+            + &quot;, authorizationDocumentNumber='&quot; + authorizationDocumentNumber + '\''
+            + &quot;, usefulLifeYears=&quot; + usefulLifeYears
+            + &quot;, accumulatedDepreciationTheEndPrevious=&quot; + accumulatedDepreciationTheEndPrevious
+            + &quot;, currentDepreciation=&quot; + currentDepreciation
+            + &quot;, currentDepreciationRelatedWithdrawalsRetirements=&quot;
+            + currentDepreciationRelatedWithdrawalsRetirements
+            + &quot;, currentDepreciationRelatedOtherAdjustments=&quot;
+            + currentDepreciationRelatedOtherAdjustments
+            + &quot;, accumulatedHistoricalDepreciation=&quot;
+            + accumulatedHistoricalDepreciation
+            + &quot;, depreciationInflationAdjustment=&quot; + depreciationInflationAdjustment
+            + &quot;, accumulatedDepreciationAdjustedInflation=&quot;
+            + accumulatedDepreciationAdjustedInflation
+            + &quot;, netFixedAssets=&quot; + netFixedAssets
+            + &quot;, historicalCost=&quot; + historicalCost
+            + &quot;, revaluedAmount=&quot; + revaluedAmount
+            + &quot;, rowNum=&quot; + rowNum
+            + &quot;, physicalNumberOfRows=&quot; + physicalNumberOfRows + '}';
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.8.202204050719</span></div></body></html>

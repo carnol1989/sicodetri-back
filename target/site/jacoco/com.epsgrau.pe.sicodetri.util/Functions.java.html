@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>Functions.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">sicodetri</a> &gt; <a href="index.source.html" class="el_package">com.epsgrau.pe.sicodetri.util</a> &gt; <span class="el_source">Functions.java</span></div><h1>Functions.java</h1><pre class="source lang-java linenums">package com.epsgrau.pe.sicodetri.util;
+
+import static com.epsgrau.pe.sicodetri.util.Constants.LOCAL_DATE_DEFAULT;
+import static com.epsgrau.pe.sicodetri.util.Constants.N_VAL_0;
+import static com.epsgrau.pe.sicodetri.util.Constants._BLANK;
+
+import java.math.BigDecimal;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
+import java.util.Date;
+
+/**
+ * This class is a util for functions. &lt;br/&gt;
+ * &lt;b&gt;Class&lt;/b&gt;: {@link Functions}&lt;br/&gt;
+ * &lt;b&gt;Copyright&lt;/b&gt;: &amp;Copy; 2024 EPS Grau. &lt;br/&gt;
+ * &lt;b&gt;Company&lt;/b&gt;: EPS Grau. &lt;br/&gt;
+ *
+ * @author EPS Grau &lt;br/&gt;
+ *     &lt;u&gt;Service Provider&lt;/u&gt;: Consultor TI &lt;br/&gt;
+ *     &lt;u&gt;Developed by&lt;/u&gt;: &lt;br/&gt;
+ *     &lt;ul&gt;
+ *     &lt;li&gt;Carlos Augusto Nole Machaca&lt;/li&gt;
+ *     &lt;/ul&gt;
+ *     &lt;u&gt;Changes&lt;/u&gt;:&lt;br/&gt;
+ *     &lt;ul&gt;
+ *     &lt;li&gt;Ago 17, 2024 (JAR) Creation class.&lt;/li&gt;
+ *     &lt;/ul&gt;
+ * @version 1.0
+ */
+<span class="nc" id="L34">public class Functions {</span>
+
+    /**
+     * Convert Date to LocalDate string.
+     *
+     * @param dateIn Date input
+     * @param format Format date
+     * @return String LocalDate
+     */
+    public static String convertDateToLocalDateString(Date dateIn, String format) {
+        // Convertir Date a Instant
+<span class="fc" id="L45">        Instant instant = dateIn.toInstant();</span>
+
+        // Convertir Instant a LocalDate utilizando la zona horaria del sistema
+<span class="fc" id="L48">        LocalDate localDate = instant.atZone(ZoneId.systemDefault()).toLocalDate();</span>
+
+        // Definir el formato deseado para la salida
+<span class="fc" id="L51">        DateTimeFormatter formatter = DateTimeFormatter.ofPattern(format);</span>
+
+        // Formatear el LocalDate a una cadena con el formato deseado
+<span class="fc" id="L54">        String dateFormat = localDate.format(formatter);</span>
+
+<span class="fc" id="L56">        String[] dateSplit = dateFormat.split(&quot;/&quot;);</span>
+<span class="fc" id="L57">        String dateNew = dateSplit[2] + &quot;-&quot; + dateSplit[1] + &quot;-&quot; + dateSplit[0];</span>
+
+<span class="fc" id="L59">        return dateNew;</span>
+    }
+
+    /**
+     * If the column string is null, returns BLANK; otherwise, the value.
+     *
+     * @param rs ResultSet
+     * @param column Column name
+     * @return String
+     * @throws SQLException SQL Exception
+     */
+    public static String getStringOrDefault(ResultSet rs, String column) throws SQLException {
+<span class="fc" id="L71">        String val = rs.getString(column);</span>
+<span class="fc bfc" id="L72" title="All 2 branches covered.">        return (val != null) ? val : _BLANK;</span>
+    }
+
+    /**
+     * If the column's BigDecimal is null, returns BigDecimal.ZERO; otherwise, the value.
+     *
+     * @param rs ResultSet
+     * @param column Column name
+     * @return BigDecimal
+     * @throws SQLException SQL Exception
+     */
+    public static BigDecimal getBigDecimalOrDefault(ResultSet rs, String column)
+        throws SQLException {
+<span class="fc" id="L85">        BigDecimal val = rs.getBigDecimal(column);</span>
+<span class="fc bfc" id="L86" title="All 2 branches covered.">        return (val != null) ? val : BigDecimal.ZERO;</span>
+    }
+
+    public static Integer getIntegerOrDefault(ResultSet rs, String column) throws SQLException {
+<span class="fc" id="L90">        Integer val = rs.getInt(column);</span>
+<span class="pc bpc" id="L91" title="1 of 2 branches missed.">        return (val != null) ? val : N_VAL_0;</span>
+    }
+
+    /**
+     * If the date column is null, returns LOCAL_DATE_DEFAULT; otherwise, converts it to LocalDate.
+     *
+     * @param rs ResultSet
+     * @param column Column name
+     * @return LocalDate
+     * @throws SQLException SQL Exception
+     */
+    public static LocalDate getDateOrDefault(ResultSet rs, String column) throws SQLException {
+<span class="fc" id="L103">        java.sql.Date d = rs.getDate(column);</span>
+<span class="fc bfc" id="L104" title="All 2 branches covered.">        return (d != null) ? d.toLocalDate() : LOCAL_DATE_DEFAULT;</span>
+    }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.8.202204050719</span></div></body></html>

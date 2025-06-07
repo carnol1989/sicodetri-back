@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>GlobalExceptionHandler.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">sicodetri</a> &gt; <a href="index.source.html" class="el_package">com.epsgrau.pe.sicodetri.exception</a> &gt; <span class="el_source">GlobalExceptionHandler.java</span></div><h1>GlobalExceptionHandler.java</h1><pre class="source lang-java linenums">package com.epsgrau.pe.sicodetri.exception;
+
+import java.time.LocalDateTime;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.annotation.ControllerAdvice;
+import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.ResponseStatus;
+import org.springframework.web.context.request.WebRequest;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
+
+/**
+ * This class is handler exceptions centrally. &lt;br/&gt;
+ * &lt;b&gt;Class&lt;/b&gt;: {@link GlobalExceptionHandler}&lt;br/&gt;
+ * &lt;b&gt;Copyright&lt;/b&gt;: &amp;Copy; 2024 EPS Grau. &lt;br/&gt;
+ * &lt;b&gt;Company&lt;/b&gt;: EPS Grau. &lt;br/&gt;
+ *
+ * @author EPS Grau &lt;br/&gt;
+ *     &lt;u&gt;Service Provider&lt;/u&gt;: Consultor TI &lt;br/&gt;
+ *     &lt;u&gt;Developed by&lt;/u&gt;: &lt;br/&gt;
+ *     &lt;ul&gt;
+ *     &lt;li&gt;Carlos Augusto Nole Machaca&lt;/li&gt;
+ *     &lt;/ul&gt;
+ *     &lt;u&gt;Changes&lt;/u&gt;:&lt;br/&gt;
+ *     &lt;ul&gt;
+ *     &lt;li&gt;Ago 15, 2024 (JAR) Creation class.&lt;/li&gt;
+ *     &lt;/ul&gt;
+ * @version 1.0
+ */
+@ControllerAdvice
+<span class="fc" id="L32">public class GlobalExceptionHandler {</span>
+
+    /**
+     * Handler resource not found.
+     *
+     * @param ex Object exception
+     * @param request Object WebRequest
+     * @return ReponseEntity of ExceptionResponse
+     */
+    @ExceptionHandler(ResourceNotFoundException.class)
+    @ResponseStatus(HttpStatus.NOT_FOUND)
+    public ResponseEntity&lt;ExceptionResponse&gt; handlerResourceNotFound(ResourceNotFoundException ex,
+                                                                     WebRequest request) {
+<span class="fc" id="L45">        ExceptionResponse er = new ExceptionResponse(LocalDateTime.now(), ex.getMessage(),</span>
+<span class="fc" id="L46">            request.getDescription(false));</span>
+<span class="fc" id="L47">        return new ResponseEntity&lt;ExceptionResponse&gt;(er, HttpStatus.NOT_FOUND);</span>
+    }
+
+    /**
+     * Handle validation exceptions.
+     *
+     * @param ex Object exception
+     * @param request Object WebRequest
+     * @return ReponseEntity of ExceptionResponse
+     */
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    public ResponseEntity&lt;ExceptionResponse&gt; handleValidationExceptions(
+        MethodArgumentNotValidException ex, WebRequest request) {
+<span class="fc" id="L61">        StringBuilder errors = new StringBuilder();</span>
+<span class="fc" id="L62">        ex.getBindingResult().getAllErrors().forEach((error) -&gt; {</span>
+<span class="fc" id="L63">            errors.append(error.getDefaultMessage()).append(&quot;; &quot;);</span>
+<span class="fc" id="L64">        });</span>
+<span class="fc" id="L65">        ExceptionResponse er = new ExceptionResponse(LocalDateTime.now(), errors.toString(),</span>
+<span class="fc" id="L66">            request.getDescription(false));</span>
+<span class="fc" id="L67">        return new ResponseEntity&lt;ExceptionResponse&gt;(er, HttpStatus.BAD_REQUEST);</span>
+    }
+
+    /**
+     * Handle max size exception.
+     *
+     * @param ex Object exception
+     * @param request Object WebRequest
+     * @return ReponseEntity of ExceptionResponse
+     */
+    @ExceptionHandler(MaxUploadSizeExceededException.class)
+    public ResponseEntity&lt;ExceptionResponse&gt; handleMaxSizeException(
+        MaxUploadSizeExceededException ex, WebRequest request) {
+<span class="fc" id="L80">        ExceptionResponse er = new ExceptionResponse(LocalDateTime.now(), ex.getMessage(),</span>
+<span class="fc" id="L81">            request.getDescription(false));</span>
+<span class="fc" id="L82">        return new ResponseEntity&lt;ExceptionResponse&gt;(er, HttpStatus.EXPECTATION_FAILED);</span>
+    }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.8.202204050719</span></div></body></html>

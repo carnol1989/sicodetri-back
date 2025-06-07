@@ -1,0 +1,501 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>FinancialFixedAssetController.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">sicodetri</a> &gt; <a href="index.source.html" class="el_package">com.epsgrau.pe.sicodetri.controller</a> &gt; <span class="el_source">FinancialFixedAssetController.java</span></div><h1>FinancialFixedAssetController.java</h1><pre class="source lang-java linenums">package com.epsgrau.pe.sicodetri.controller;
+
+import static com.epsgrau.pe.sicodetri.helper.ExcelHelper.hasExcelFormat;
+import static com.epsgrau.pe.sicodetri.util.Constants.COMPANY_NAME;
+import static com.epsgrau.pe.sicodetri.util.Constants.COMPANY_NAME_VALUE;
+import static com.epsgrau.pe.sicodetri.util.Constants.N_VAL_1;
+import static com.epsgrau.pe.sicodetri.util.Constants.N_VAL_2;
+import static com.epsgrau.pe.sicodetri.util.Constants.N_VAL_3;
+import static com.epsgrau.pe.sicodetri.util.Constants.PERIOD;
+import static com.epsgrau.pe.sicodetri.util.Constants.RUC;
+import static com.epsgrau.pe.sicodetri.util.Constants.RUC_VALUE;
+
+import com.epsgrau.pe.sicodetri.dto.FinancialFixedAssetDto;
+import com.epsgrau.pe.sicodetri.dto.ParamReportDto;
+import com.epsgrau.pe.sicodetri.entity.FinancialFixedAsset;
+import com.epsgrau.pe.sicodetri.exception.ExceptionResponse;
+import com.epsgrau.pe.sicodetri.exception.ResourceNotFoundException;
+import com.epsgrau.pe.sicodetri.model.InputData;
+import com.epsgrau.pe.sicodetri.model.ResponseData;
+import com.epsgrau.pe.sicodetri.service.FinancialFixedAssetService;
+import com.epsgrau.pe.sicodetri.service.ReportJasperService;
+import com.epsgrau.pe.sicodetri.strategy.ReportStrategy;
+import com.epsgrau.pe.sicodetri.strategy.ReportStrategyFactory;
+import com.epsgrau.pe.sicodetri.util.Constants;
+import com.epsgrau.pe.sicodetri.util.enums.ReportTypeEnum;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpSession;
+import java.io.ByteArrayInputStream;
+import java.io.FileNotFoundException;
+import java.sql.SQLException;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import lombok.extern.slf4j.Slf4j;
+import net.sf.jasperreports.engine.JRException;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.io.InputStreamResource;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
+
+/**
+ * This class provide the endpoints for Fixed Asset. &lt;br/&gt;
+ * &lt;b&gt;Class&lt;/b&gt;: {@link FinancialFixedAssetController}&lt;br/&gt;
+ * &lt;b&gt;Copyright&lt;/b&gt;: &amp;Copy; 2024 EPS Grau. &lt;br/&gt;
+ * &lt;b&gt;Company&lt;/b&gt;: EPS Grau. &lt;br/&gt;
+ *
+ * @author EPS Grau &lt;br/&gt;
+ *     &lt;u&gt;Service Provider&lt;/u&gt;: Consultor TI &lt;br/&gt;
+ *     &lt;u&gt;Developed by&lt;/u&gt;: &lt;br/&gt;
+ *     &lt;ul&gt;
+ *     &lt;li&gt;Carlos Augusto Nole Machaca&lt;/li&gt;
+ *     &lt;/ul&gt;
+ *     &lt;u&gt;Changes&lt;/u&gt;:&lt;br/&gt;
+ *     &lt;ul&gt;
+ *     &lt;li&gt;Ago 17, 2024 (JAR) Creation class.&lt;/li&gt;
+ *     &lt;/ul&gt;
+ * @version 1.0
+ */
+@Tag(name = &quot;Financial Fixed Asset&quot;, description = &quot;Gestión de activos fijos &quot;
+    + &quot;financieros y sus proyecciones&quot;)
+<span class="fc" id="L80">@Slf4j</span>
+@RestController
+@RequestMapping(&quot;/api/v1/financial-fixed-assets&quot;)
+<span class="fc" id="L83">public class FinancialFixedAssetController {</span>
+
+    @Autowired
+    private FinancialFixedAssetService service;
+
+    @Autowired
+    private ReportJasperService reportJasperService;
+
+    @Autowired
+    private ReportStrategyFactory reportStrategyFactory;
+
+    /**
+     * Handles internal exceptions to build a ResponseEntity with error code.
+     *
+     * @param messageError Message of error
+     * @param e            Object Exception
+     * @param statusCode   HttpStatus Code
+     * @return ResponseEntity of ResponseData
+     */
+    private ResponseEntity&lt;ResponseData&gt; handleException(String messageError, Exception e,
+                                                         HttpStatus statusCode) {
+<span class="fc" id="L104">        ResponseData responseData = new ResponseData();</span>
+<span class="fc" id="L105">        responseData.setTimestamp(LocalDateTime.now());</span>
+<span class="fc" id="L106">        responseData.setCode(Constants.S_VAL_01);</span>
+<span class="fc" id="L107">        responseData.setMessage(messageError);</span>
+<span class="fc" id="L108">        ExceptionResponse exceptionResponse = new ExceptionResponse();</span>
+<span class="fc" id="L109">        exceptionResponse.setMessage(messageError);</span>
+<span class="fc" id="L110">        exceptionResponse.setDetails(&quot;Mensaje: &quot; + e.getMessage() + &quot;\nCausa: &quot; + e.getCause());</span>
+<span class="fc" id="L111">        exceptionResponse.setTimestamp(LocalDateTime.now());</span>
+<span class="fc" id="L112">        responseData.setException(exceptionResponse);</span>
+<span class="fc" id="L113">        return ResponseEntity.status(statusCode)</span>
+<span class="fc" id="L114">            .contentType(MediaType.APPLICATION_JSON)</span>
+<span class="fc" id="L115">            .body(responseData);</span>
+    }
+
+    /**
+     * Upload excel file with data assets.
+     *
+     * @param file Excel file input
+     * @param period Accounting period
+     * @param request Object request
+     * @return ResponseEntity of ResponseData
+     */
+    @Operation(summary = &quot;Cargar archivo Excel con datos de activos fijos (Formato 7)&quot;)
+    @ApiResponses(
+        value = {
+            @ApiResponse(
+                responseCode = &quot;200&quot;,
+                description = &quot;Archivo subido correctamente.&quot;,
+                content = {
+                    @Content(mediaType = &quot;application/json&quot;,
+                        schema = @Schema(implementation = ResponseData.class))
+                }),
+            @ApiResponse(
+                responseCode = &quot;417&quot;,
+                description = &quot;Error al cargar archivo.&quot;,
+                content = @Content)
+        }
+    )
+    @PostMapping(value = &quot;/upload&quot;, produces = &quot;application/json&quot;)
+    public ResponseEntity&lt;ResponseData&gt; uploadInputDataController(
+        @Parameter(description = &quot;Archivo Excel de entrada&quot;)
+        @RequestParam(&quot;file&quot;) MultipartFile file,
+        @Parameter(description = &quot;Periodo contable&quot;, example = &quot;2022-01-01&quot;)
+        @RequestParam(name = &quot;period&quot;) String period,
+        HttpServletRequest request) {
+<span class="fc bfc" id="L149" title="All 2 branches covered.">        if (!hasExcelFormat(file)) {</span>
+<span class="fc" id="L150">            return buildResponseWithError(&quot;Formato no permitido. Debe ser .xlsx&quot;,</span>
+<span class="fc" id="L151">                HttpStatus.EXPECTATION_FAILED, file.getOriginalFilename());</span>
+        }
+
+        try {
+<span class="fc" id="L155">            List&lt;InputData&gt; listInputData = service.loadExcelFileToObjectService(file, period);</span>
+<span class="fc" id="L156">            log.info(&quot;Cantidad registros leidos: {}&quot;, listInputData.size());</span>
+<span class="fc" id="L157">            request.getSession().setAttribute(Constants.LIST_INPUT_DATA, listInputData);</span>
+<span class="fc" id="L158">            return buildResponse(&quot;Archivo subido correctamente: &quot; + file.getOriginalFilename(),</span>
+<span class="fc" id="L159">                listInputData.size(), HttpStatus.OK);</span>
+<span class="fc" id="L160">        } catch (Exception e) {</span>
+<span class="fc" id="L161">            return handleException(&quot;Error al subir archivo.&quot;, e, HttpStatus.EXPECTATION_FAILED);</span>
+        }
+    }
+
+    /**
+     * Save asset from Excel file.
+     *
+     * @param period Accounting period
+     * @param session Object session
+     * @return ResponseEntity of ResponseData
+     */
+    @Operation(summary = &quot;Guardar activos fijos desde la sesión&quot;)
+    @ApiResponses(
+        value = {
+            @ApiResponse(
+                responseCode = &quot;201&quot;,
+                description = &quot;Información guardada correctamente.&quot;,
+                content = {
+                    @Content(mediaType = &quot;application/json&quot;,
+                        schema = @Schema(implementation = ResponseData.class))
+                }),
+            @ApiResponse(
+                responseCode = &quot;417&quot;,
+                description = &quot;Error al guardar la información.&quot;, content = @Content)
+        }
+    )
+    @PostMapping
+    public ResponseEntity&lt;ResponseData&gt; saveFinancialFixedAssetController(
+        @Parameter(description = &quot;Periodo contable&quot;, example = &quot;2022-01-01&quot;)
+        @RequestParam(name = &quot;period&quot;) String period,
+        HttpSession session) {
+<span class="fc" id="L192">        String messageError = &quot;Error al obtener información de entrada &quot;</span>
+            + &quot;para el periodo &quot; + period;
+<span class="fc" id="L194">        List&lt;InputData&gt; listInputData = (List&lt;InputData&gt;) session</span>
+<span class="fc" id="L195">            .getAttribute(Constants.LIST_INPUT_DATA);</span>
+<span class="pc bpc" id="L196" title="1 of 4 branches missed.">        if (listInputData == null || listInputData.isEmpty()) {</span>
+<span class="fc" id="L197">            return buildResponseWithError(messageError, HttpStatus.EXPECTATION_FAILED, period);</span>
+        }
+<span class="fc" id="L199">        log.info(&quot;Cantidad registros a guardar: {}&quot;, listInputData.size());</span>
+        try {
+<span class="fc" id="L201">            LocalDate periodDate = LocalDate.parse(period, DateTimeFormatter</span>
+<span class="fc" id="L202">                .ofPattern(Constants.FORMATTER_YYYY_MM_DD));</span>
+<span class="fc" id="L203">            service.deleteByAccountingPeriod(periodDate);</span>
+<span class="fc" id="L204">            service.saveAllService(period, listInputData);</span>
+<span class="fc" id="L205">            return buildResponse(&quot;Información guardada correctamente para el periodo: &quot; + period,</span>
+<span class="fc" id="L206">                listInputData.size(), HttpStatus.CREATED);</span>
+<span class="fc" id="L207">        } catch (Exception e) {</span>
+<span class="fc" id="L208">            return handleException(messageError, e, HttpStatus.EXPECTATION_FAILED);</span>
+        }
+    }
+
+    /**
+     * Generate projection of temporary deductions.
+     *
+     * @param period Accounting period
+     * @param account Accounting account
+     * @return ResponseEntity of ResponseData
+     */
+    @Operation(summary = &quot;Generar proyección de deducciones temporales&quot;)
+    @ApiResponses(value = {
+        @ApiResponse(
+            responseCode = &quot;200&quot;,
+            description = &quot;Proyección generada correctamente.&quot;,
+            content = {
+                @Content(mediaType = &quot;application/json&quot;,
+                    schema = @Schema(implementation = ResponseData.class))}),
+        @ApiResponse(
+            responseCode = &quot;417&quot;,
+            description = &quot;Error al generar proyección.&quot;,
+            content = @Content)
+    })
+    @PostMapping(&quot;/projection&quot;)
+    public ResponseEntity&lt;ResponseData&gt; generateProjectionController(
+        @Parameter(description = &quot;Periodo contable&quot;, example = &quot;2022-01-01&quot;)
+        @RequestParam(name = &quot;period&quot;) String period,
+        @Parameter(description = &quot;Cuenta contable que inicia con&quot;, example = &quot;332&quot;)
+        @RequestParam(name = &quot;account&quot;) String account) {
+<span class="fc" id="L238">        String messageError = &quot;Error al generar proyección.&quot;;</span>
+        try {
+<span class="fc" id="L240">            LocalDate periodDate = LocalDate.parse(period,</span>
+<span class="fc" id="L241">                DateTimeFormatter.ofPattern(Constants.FORMATTER_YYYY_MM_DD));</span>
+
+<span class="fc" id="L243">            List&lt;FinancialFixedAsset&gt; listFinancialFixedAsset =</span>
+<span class="fc" id="L244">                service.findByPeriodAndAccountStartingWithService(periodDate, account);</span>
+<span class="fc" id="L245">            log.info(&quot;listFinancialFixedAsset: {}&quot;, listFinancialFixedAsset.size());</span>
+
+<span class="fc bfc" id="L247" title="All 2 branches covered.">            if (listFinancialFixedAsset.isEmpty()) {</span>
+<span class="fc" id="L248">                return buildResponseWithError(messageError, HttpStatus.EXPECTATION_FAILED, period);</span>
+            }
+
+<span class="fc" id="L251">            service.generateTemporayDeductionsService(periodDate, listFinancialFixedAsset);</span>
+<span class="fc" id="L252">            return buildResponse(&quot;Proyección generada correctamente.&quot;,</span>
+<span class="fc" id="L253">                listFinancialFixedAsset.size(), HttpStatus.OK);</span>
+<span class="fc" id="L254">        } catch (Exception e) {</span>
+<span class="fc" id="L255">            return handleException(messageError, e, HttpStatus.EXPECTATION_FAILED);</span>
+        }
+    }
+
+    /**
+     * Get information of assets.
+     *
+     * @param option Option search
+     * @param period Accounting period
+     * @param mainFixedAssetCode Main fixed asset code
+     * @param accountingAccount Accounting account
+     * @return ResponseEntity of ResponseData
+     */
+    @Operation(summary = &quot;Obtener información de activos fijos.&quot;)
+    @ApiResponses(value = {
+        @ApiResponse(
+            responseCode = &quot;200&quot;,
+            description = &quot;Se obtuvo informacion para el periodo.&quot;,
+            content = {
+                @Content(mediaType = &quot;application/json&quot;,
+                    schema = @Schema(implementation = ResponseData.class))}),
+        @ApiResponse(
+            responseCode = &quot;404&quot;,
+            description = &quot;Error al obtener informacion para el periodo.&quot;,
+            content = @Content)
+    })
+    @GetMapping(&quot;/{option}&quot;)
+    public ResponseEntity&lt;ResponseData&gt; getFinancialFixedAssetController(
+        @Parameter(description = &quot;Opción de búsqueda (1 = periodo, 2 = código activo fijo, &quot;
+            + &quot;3 = cuenta contable)&quot;) @PathVariable int option,
+        @Parameter(description = &quot;Periodo contable&quot;, example = &quot;2022-01-01&quot;)
+        @RequestParam String period,
+        @Parameter(description = &quot;Código activo fijo principal&quot;, example = &quot;22.01.010862&quot;)
+        @RequestParam String mainFixedAssetCode,
+        @Parameter(description = &quot;Cuenta contable&quot;, example = &quot;3321161001&quot;)
+        @RequestParam String accountingAccount) {
+        try {
+<span class="fc bfc" id="L292" title="All 4 branches covered.">            switch (option) {</span>
+              case N_VAL_1:
+<span class="fc" id="L294">                  return handleFindByPeriod(period);</span>
+              case N_VAL_2:
+<span class="fc" id="L296">                  return handleFindByMainFixedAssetCode(mainFixedAssetCode);</span>
+              case N_VAL_3:
+<span class="fc" id="L298">                  return handleFindByAccountingAccount(accountingAccount);</span>
+              default:
+<span class="fc" id="L300">                  return buildResponseWithError(&quot;Error al obtener informacion &quot;</span>
+                      + &quot;del activo fijo.&quot;, HttpStatus.EXPECTATION_FAILED, &quot;&quot;);
+            }
+<span class="fc" id="L303">        } catch (Exception e) {</span>
+<span class="fc" id="L304">            String message = &quot;Error al obtener informacion del activo fijo: &quot; + accountingAccount;</span>
+<span class="fc" id="L305">            String detailError = &quot;Mensaje: &quot; + e.getMessage() + &quot;\nCausa: &quot; + e.getCause();</span>
+<span class="fc" id="L306">            return buildResponseWithError(message, HttpStatus.EXPECTATION_FAILED, detailError);</span>
+        }
+    }
+
+    /**
+     * Get report Tax Book Fixed.
+     *
+     * @param option Option report
+     * @param fileType File type
+     * @param year Accounting year
+     * @param mainCode Main code
+     * @param accountingAccount Accounting account
+     * @param startAcquisitionDate Start acquisition date
+     * @param endAcquisitionDate End acquisition date
+     * @param startDateUse Start date use
+     * @param endDateUse End date use
+     * @return ResponseEntity of report
+     */
+    @Operation(summary = &quot;Obtener reporte del Libro Tributario.&quot;)
+    @ApiResponses(value = {
+        @ApiResponse(
+            responseCode = &quot;200&quot;,
+            description = &quot;Se obtuvo informacion para el periodo.&quot;,
+            content = {
+                @Content(mediaType = &quot;application/json&quot;,
+                    schema = @Schema(implementation = ResponseData.class))}),
+        @ApiResponse(
+            responseCode = &quot;404&quot;,
+            description = &quot;Error al obtener informacion para el periodo.&quot;,
+            content = @Content)
+    })
+    @GetMapping(value = &quot;/report&quot;, produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity&lt;?&gt; callGetReportsController(
+        @Parameter(description = &quot;Opción de búsqueda (1 = periodo, 2 = código activo fijo, &quot;
+            + &quot;3 = cuenta contable)&quot;) @RequestParam(&quot;option&quot;) String option,
+        @Parameter(description = &quot;Tipo archivo a generar&quot;, example = &quot;xlsx&quot;)
+        @RequestParam(&quot;fileType&quot;) String fileType,
+        @Parameter(description = &quot;Año del periodo contable&quot;, example = &quot;2022&quot;)
+        @RequestParam String year,
+        @Parameter(description = &quot;Código activo fijo principal&quot;, example = &quot;22.01.010862&quot;)
+        @RequestParam String mainCode,
+        @Parameter(description = &quot;Código contable del activo fijo&quot;, example = &quot;3321161001&quot;)
+        @RequestParam String accountingAccount,
+        @Parameter(description = &quot;Fecha de inicio de adquisición del Activo Fijo&quot;,
+            example = &quot;2007-12-01&quot;) @RequestParam String startAcquisitionDate,
+        @Parameter(description = &quot;Fecha de fin de adquisición del Activo Fijo&quot;,
+            example = &quot;2007-12-31&quot;) @RequestParam String endAcquisitionDate,
+        @Parameter(description = &quot;Fecha de incio de uso del Activo Fijo&quot;, example = &quot;2007-12-01&quot;)
+        @RequestParam String startDateUse,
+        @Parameter(description = &quot;Fecha de fin de uso del Activo Fijo&quot;, example = &quot;2007-12-31&quot;)
+        @RequestParam String endDateUse) throws JRException, FileNotFoundException, SQLException {
+        try {
+<span class="fc" id="L358">            ParamReportDto params = new ParamReportDto(Integer.parseInt(year), mainCode,</span>
+                accountingAccount, startAcquisitionDate, endAcquisitionDate, startDateUse,
+                endDateUse);
+
+<span class="fc" id="L362">            ReportStrategy strategy = reportStrategyFactory.getStrategy(option);</span>
+<span class="fc" id="L363">            List&lt;FinancialFixedAssetDto&gt; reportList = strategy.generateReport(params);</span>
+<span class="fc" id="L364">            log.debug(&quot;reportList: {}&quot;, reportList.size());</span>
+
+<span class="fc bfc" id="L366" title="All 2 branches covered.">            if (reportList.isEmpty()) {</span>
+<span class="fc" id="L367">                throw new ResourceNotFoundException(&quot;No hay información para el periodo.&quot;);</span>
+            }
+
+<span class="fc" id="L370">            Map&lt;String, Object&gt; parameters = new HashMap&lt;&gt;();</span>
+<span class="fc" id="L371">            parameters.put(COMPANY_NAME, COMPANY_NAME_VALUE);</span>
+<span class="fc" id="L372">            parameters.put(PERIOD, year);</span>
+<span class="fc" id="L373">            parameters.put(RUC, RUC_VALUE);</span>
+<span class="fc" id="L374">            byte[] data = reportJasperService.getJasperReportInBytes(</span>
+<span class="fc" id="L375">                option, strategy.getTemplate(), fileType, parameters,</span>
+                reportList
+            );
+
+<span class="fc bfc" id="L379" title="All 2 branches covered.">            if (data == null) {</span>
+<span class="fc" id="L380">                throw new ResourceNotFoundException(&quot;Error al obtener reporte&quot;);</span>
+            }
+
+<span class="fc" id="L383">            ReportTypeEnum reportType = ReportTypeEnum.getReportTypeByCode(fileType);</span>
+<span class="fc" id="L384">            String fileName = strategy.getBaseFileName() + LocalDateTime.now()</span>
+<span class="fc" id="L385">                + reportType.getExtension();</span>
+<span class="fc" id="L386">            ByteArrayInputStream bis = new ByteArrayInputStream(data);</span>
+
+<span class="fc" id="L388">            HttpHeaders headers = new HttpHeaders();</span>
+<span class="fc" id="L389">            headers.setContentType(new MediaType(&quot;application&quot;, &quot;force-download&quot;));</span>
+<span class="fc" id="L390">            headers.set(HttpHeaders.CONTENT_DISPOSITION, &quot;attachment; filename=&quot; + fileName);</span>
+<span class="fc" id="L391">            headers.setContentLength(data.length);</span>
+
+<span class="fc" id="L393">            InputStreamResource resource = new InputStreamResource(bis);</span>
+<span class="fc" id="L394">            return ResponseEntity.ok()</span>
+<span class="fc" id="L395">                .headers(headers)</span>
+<span class="fc" id="L396">                .contentType(MediaType.APPLICATION_OCTET_STREAM)</span>
+<span class="fc" id="L397">                .body(resource);</span>
+<span class="fc" id="L398">        } catch (ResourceNotFoundException rnfe) {</span>
+<span class="fc" id="L399">            throw rnfe;</span>
+        }
+    }
+
+    /**
+     * Handle find by period.
+     *
+     * @param period Accounting period
+     * @return ResponseEntity of ResponseData
+     */
+    private ResponseEntity&lt;ResponseData&gt; handleFindByPeriod(String period) {
+<span class="fc" id="L410">        DateTimeFormatter formatter = DateTimeFormatter.ofPattern(Constants.FORMATTER_YYYY_MM_DD);</span>
+<span class="fc" id="L411">        LocalDate periodDate = LocalDate.parse(period, formatter);</span>
+<span class="fc" id="L412">        List&lt;FinancialFixedAsset&gt; listFinancialFixedAsset = service.findByPeriodService(periodDate);</span>
+
+<span class="fc bfc" id="L414" title="All 4 branches covered.">        if (listFinancialFixedAsset != null &amp;&amp; !listFinancialFixedAsset.isEmpty()) {</span>
+<span class="fc" id="L415">            return buildResponse(&quot;Se obtuvo informacion para el periodo: &quot;</span>
+                + period, listFinancialFixedAsset, HttpStatus.OK);
+        } else {
+<span class="fc" id="L418">            return buildResponseWithError(&quot;Error al obtener informacion para el periodo: &quot;</span>
+                + period, HttpStatus.NOT_FOUND, &quot;&quot;);
+        }
+    }
+
+    /**
+     * Handle find by main fixed asset code.
+     *
+     * @param mainFixedAssetCode Main fixed asset code
+     * @return ResponseEntity of ResponseData
+     */
+    private ResponseEntity&lt;ResponseData&gt; handleFindByMainFixedAssetCode(String mainFixedAssetCode) {
+<span class="fc" id="L430">        List&lt;FinancialFixedAsset&gt; listFinancialFixedAsset =</span>
+<span class="fc" id="L431">            service.findByMainFixedAssetCodeService(mainFixedAssetCode);</span>
+
+<span class="fc bfc" id="L433" title="All 4 branches covered.">        if (listFinancialFixedAsset != null &amp;&amp; !listFinancialFixedAsset.isEmpty()) {</span>
+<span class="fc" id="L434">            return buildResponse(&quot;Se obtuvo informacion para el código de activo fijo principal: &quot;</span>
+                + mainFixedAssetCode, listFinancialFixedAsset, HttpStatus.OK);
+        } else {
+<span class="fc" id="L437">            return buildResponseWithError(&quot;Error al obtener informacion para el código de &quot;</span>
+                + &quot;activo fijo principal: &quot; + mainFixedAssetCode, HttpStatus.NOT_FOUND, &quot;&quot;);
+        }
+    }
+
+    /**
+     * Handle find by accountign account.
+     *
+     * @param accountingAccount Accounting account
+     * @return ResponseEntity of ResponseData
+     */
+    private ResponseEntity&lt;ResponseData&gt; handleFindByAccountingAccount(String accountingAccount) {
+<span class="fc" id="L449">        List&lt;FinancialFixedAsset&gt; listFinancialFixedAsset =</span>
+<span class="fc" id="L450">            service.findByFixedAssetAccountingAccountService(accountingAccount);</span>
+
+<span class="fc bfc" id="L452" title="All 4 branches covered.">        if (listFinancialFixedAsset != null &amp;&amp; !listFinancialFixedAsset.isEmpty()) {</span>
+<span class="fc" id="L453">            return buildResponse(&quot;Se obtuvo informacion para la cuenta contable: &quot;</span>
+                + accountingAccount, listFinancialFixedAsset, HttpStatus.OK);
+        } else {
+<span class="fc" id="L456">            return buildResponseWithError(&quot;Error al obtener informacion para la cuenta contable: &quot;</span>
+                + accountingAccount, HttpStatus.NOT_FOUND, &quot;&quot;);
+        }
+    }
+
+    /**
+     * Build response.
+     *
+     * @param message Message
+     * @param obj Object response
+     * @param statusCode HttpStatusCode
+     * @return ResponseEntity of ResponseData
+     */
+    private ResponseEntity&lt;ResponseData&gt; buildResponse(String message,
+                                                       Object obj,
+                                                       HttpStatus statusCode) {
+<span class="fc" id="L472">        ResponseData responseData = new ResponseData();</span>
+<span class="fc" id="L473">        responseData.setTimestamp(LocalDateTime.now());</span>
+<span class="fc" id="L474">        responseData.setMessage(message);</span>
+<span class="fc" id="L475">        responseData.setResponse(obj);</span>
+<span class="fc" id="L476">        responseData.setCode(Constants.S_VAL_00);</span>
+<span class="fc" id="L477">        return ResponseEntity.status(statusCode)</span>
+<span class="fc" id="L478">            .contentType(MediaType.APPLICATION_JSON)</span>
+<span class="fc" id="L479">            .body(responseData);</span>
+    }
+
+    /**
+     * Build response with error.
+     *
+     * @param message Message
+     * @param status HttpStatusCode
+     * @param details Details error
+     * @return ResponseEntity of ResponseData
+     */
+    private ResponseEntity&lt;ResponseData&gt; buildResponseWithError(String message,
+                                                                HttpStatus status,
+                                                                String details) {
+<span class="fc" id="L493">        ResponseData responseData = new ResponseData();</span>
+<span class="fc" id="L494">        responseData.setTimestamp(LocalDateTime.now());</span>
+<span class="fc" id="L495">        responseData.setMessage(message);</span>
+<span class="fc" id="L496">        responseData.setCode(Constants.S_VAL_01);</span>
+<span class="fc" id="L497">        responseData.setException(new ExceptionResponse(LocalDateTime.now(), message, details));</span>
+<span class="fc" id="L498">        return new ResponseEntity&lt;&gt;(responseData, status);</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.8.202204050719</span></div></body></html>
