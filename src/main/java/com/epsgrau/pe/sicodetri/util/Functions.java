@@ -1,5 +1,12 @@
 package com.epsgrau.pe.sicodetri.util;
 
+import static com.epsgrau.pe.sicodetri.util.Constants.LOCAL_DATE_DEFAULT;
+import static com.epsgrau.pe.sicodetri.util.Constants.N_VAL_0;
+import static com.epsgrau.pe.sicodetri.util.Constants._BLANK;
+
+import java.math.BigDecimal;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
@@ -50,6 +57,51 @@ public class Functions {
         String dateNew = dateSplit[2] + "-" + dateSplit[1] + "-" + dateSplit[0];
 
         return dateNew;
+    }
+
+    /**
+     * If the column string is null, returns BLANK; otherwise, the value.
+     *
+     * @param rs ResultSet
+     * @param column Column name
+     * @return String
+     * @throws SQLException SQL Exception
+     */
+    public static String getStringOrDefault(ResultSet rs, String column) throws SQLException {
+        String val = rs.getString(column);
+        return (val != null) ? val : _BLANK;
+    }
+
+    /**
+     * If the column's BigDecimal is null, returns BigDecimal.ZERO; otherwise, the value.
+     *
+     * @param rs ResultSet
+     * @param column Column name
+     * @return BigDecimal
+     * @throws SQLException SQL Exception
+     */
+    public static BigDecimal getBigDecimalOrDefault(ResultSet rs, String column)
+        throws SQLException {
+        BigDecimal val = rs.getBigDecimal(column);
+        return (val != null) ? val : BigDecimal.ZERO;
+    }
+
+    public static Integer getIntegerOrDefault(ResultSet rs, String column) throws SQLException {
+        Integer val = rs.getInt(column);
+        return (val != null) ? val : N_VAL_0;
+    }
+
+    /**
+     * If the date column is null, returns LOCAL_DATE_DEFAULT; otherwise, converts it to LocalDate.
+     *
+     * @param rs ResultSet
+     * @param column Column name
+     * @return LocalDate
+     * @throws SQLException SQL Exception
+     */
+    public static LocalDate getDateOrDefault(ResultSet rs, String column) throws SQLException {
+        java.sql.Date d = rs.getDate(column);
+        return (d != null) ? d.toLocalDate() : LOCAL_DATE_DEFAULT;
     }
 
 }

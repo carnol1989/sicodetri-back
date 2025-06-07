@@ -19,6 +19,8 @@ import com.epsgrau.pe.sicodetri.model.InputData;
 import com.epsgrau.pe.sicodetri.model.ResponseData;
 import com.epsgrau.pe.sicodetri.service.FinancialFixedAssetService;
 import com.epsgrau.pe.sicodetri.service.ReportJasperService;
+import com.epsgrau.pe.sicodetri.strategy.ReportStrategy;
+import com.epsgrau.pe.sicodetri.strategy.ReportStrategyFactory;
 import com.epsgrau.pe.sicodetri.util.Constants;
 import com.epsgrau.pe.sicodetri.util.enums.ReportTypeEnum;
 import io.swagger.v3.oas.annotations.Operation;
@@ -85,6 +87,9 @@ public class FinancialFixedAssetController {
 
     @Autowired
     private ReportJasperService reportJasperService;
+
+    @Autowired
+    private ReportStrategyFactory reportStrategyFactory;
 
     /**
      * Handles internal exceptions to build a ResponseEntity with error code.
@@ -330,7 +335,7 @@ public class FinancialFixedAssetController {
             content = @Content)
     })
     @GetMapping(value = "/report", produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<?> callGetReportTaxBookController(
+    public ResponseEntity<?> callGetReportsController(
         @Parameter(description = "Opción de búsqueda (1 = periodo, 2 = código activo fijo, "
             + "3 = cuenta contable)") @RequestParam("option") String option,
         @Parameter(description = "Tipo archivo a generar", example = "xlsx")
@@ -348,64 +353,50 @@ public class FinancialFixedAssetController {
         @Parameter(description = "Fecha de incio de uso del Activo Fijo", example = "2007-12-01")
         @RequestParam String startDateUse,
         @Parameter(description = "Fecha de fin de uso del Activo Fijo", example = "2007-12-31")
-        @RequestParam String endDateUse) {
+        @RequestParam String endDateUse) throws JRException, FileNotFoundException, SQLException {
         try {
-            // 1. Construir parámetros
-            ReportTypeEnum reportType = ReportTypeEnum.getReportTypeByCode(fileType);
-            ParamReportDto params = new ParamReportDto();
-            params.setYear(Integer.parseInt(year));
-            params.setMainCode(mainCode);
-            params.setAccountingAccount(accountingAccount);
-            params.setStartAcquisitionDate(startAcquisitionDate);
-            params.setEndAcquisitionDate(endAcquisitionDate);
-            params.setStartDateUse(startDateUse);
-            params.setEndDateUse(endDateUse);
+            ParamReportDto params = new ParamReportDto(Integer.parseInt(year), mainCode,
+                accountingAccount, startAcquisitionDate, endAcquisitionDate, startDateUse,
+                endDateUse);
 
-            // 2. Llamar al servicio para obtener lista de DTOs
-            List<FinancialFixedAssetDto> reportList = service.callGetReportTaxBookService(params);
+            ReportStrategy strategy = reportStrategyFactory.getStrategy(option);
+            List<FinancialFixedAssetDto> reportList = strategy.generateReport(params);
+            log.debug("reportList: {}", reportList.size());
 
-            // 3. Si la lista está vacía, lanzar excepción que NO se captura aquí
             if (reportList.isEmpty()) {
                 throw new ResourceNotFoundException("No hay información para el periodo.");
             }
 
-            log.info("reportList: {}", reportList.size());
-
-            // 4. Generar el reporte con Jasper y devolver binario
             Map<String, Object> parameters = new HashMap<>();
             parameters.put(COMPANY_NAME, COMPANY_NAME_VALUE);
             parameters.put(PERIOD, year);
             parameters.put(RUC, RUC_VALUE);
-            byte[] data = reportJasperService.getJasperReportInBytes("rpt_tax_book.jrxml",
-                fileType, parameters, reportList);
-            if (data != null) {
-                ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream(data);
-                InputStreamResource resource = new InputStreamResource(byteArrayInputStream);
-                String fileName = "Libro_Tributario_Activo_Fijo" + "_"
-                    + LocalDateTime.now() + reportType.getExtension();
-                HttpHeaders headers = new HttpHeaders();
-                headers.setContentType(new MediaType("application", "force-download"));
-                headers.set(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=" + fileName);
-                return ResponseEntity.ok()
-                    .headers(headers)
-                    .contentType(MediaType.APPLICATION_OCTET_STREAM)
-                    .body(resource);
-            } else {
+            byte[] data = reportJasperService.getJasperReportInBytes(
+                option, strategy.getTemplate(), fileType, parameters,
+                reportList
+            );
+
+            if (data == null) {
                 throw new ResourceNotFoundException("Error al obtener reporte");
             }
+
+            ReportTypeEnum reportType = ReportTypeEnum.getReportTypeByCode(fileType);
+            String fileName = strategy.getBaseFileName() + LocalDateTime.now()
+                + reportType.getExtension();
+            ByteArrayInputStream bis = new ByteArrayInputStream(data);
+
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(new MediaType("application", "force-download"));
+            headers.set(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=" + fileName);
+            headers.setContentLength(data.length);
+
+            InputStreamResource resource = new InputStreamResource(bis);
+            return ResponseEntity.ok()
+                .headers(headers)
+                .contentType(MediaType.APPLICATION_OCTET_STREAM)
+                .body(resource);
         } catch (ResourceNotFoundException rnfe) {
             throw rnfe;
-        } catch (SQLException e) {
-            log.error("Error SQLException: {}\nCausa: {}\nError Code: {}"
-                    + "\nSQL State: {}", e.getMessage(), e.getCause(),
-                e.getErrorCode(), e.getSQLState());
-            throw new RuntimeException("Error al obtener reporte");
-        } catch (JRException e) {
-            log.error("Error JRException: {}\nCausa: {}", e.getMessage(), e.getCause());
-            throw new RuntimeException("Error al obtener reporte");
-        } catch (FileNotFoundException e) {
-            log.error("Error SQLException: {}\nCausa: {}", e.getMessage(), e.getCause());
-            throw new RuntimeException("Error al obtener reporte");
         }
     }
 

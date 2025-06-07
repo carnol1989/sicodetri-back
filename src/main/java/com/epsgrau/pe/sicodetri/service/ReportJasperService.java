@@ -26,8 +26,8 @@ import net.sf.jasperreports.engine.JRException;
  */
 public interface ReportJasperService {
 
-    byte[] getJasperReportInBytes(String templateReport, String fileType, Map<String,
-        Object> parameters, List<FinancialFixedAssetDto> dataSource) throws FileNotFoundException,
-        JRException;
+    byte[] getJasperReportInBytes(String optionReport, String templateReport, String fileType,
+        Map<String, Object> parameters, List<FinancialFixedAssetDto> dataSource)
+        throws FileNotFoundException, JRException;
 
 }

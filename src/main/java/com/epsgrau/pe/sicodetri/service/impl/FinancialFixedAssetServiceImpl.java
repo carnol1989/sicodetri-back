@@ -643,4 +643,10 @@ public class FinancialFixedAssetServiceImpl implements FinancialFixedAssetServic
         return repositoryJdbc.callGetReportTaxBookJdbc(params);
     }
 
+    @Override
+    public List<FinancialFixedAssetDto> callGetReportDetailFinancialAndTaxDepreciationService(
+        ParamReportDto params) {
+        return repositoryJdbc.callGetReportDetailFinancialAndTaxDepreciationJdbc(params);
+    }
+
 }

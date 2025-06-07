@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>InputData.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">sicodetri</a> &gt; <a href="index.source.html" class="el_package">com.epsgrau.pe.sicodetri.model</a> &gt; <span class="el_source">InputData.java</span></div><h1>InputData.java</h1><pre class="source lang-java linenums">package com.epsgrau.pe.sicodetri.model;
+
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import java.io.Serializable;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+/**
+ * This class is a model for mapping data of excel file. &lt;br/&gt;
+ * &lt;b&gt;Class&lt;/b&gt;: {@link InputData}&lt;br/&gt;
+ * &lt;b&gt;Copyright&lt;/b&gt;: &amp;Copy; 2024 EPS Grau. &lt;br/&gt;
+ * &lt;b&gt;Company&lt;/b&gt;: EPS Grau. &lt;br/&gt;
+ *
+ * @author EPS Grau &lt;br/&gt;
+ *     &lt;u&gt;Service Provider&lt;/u&gt;: Consultor TI &lt;br/&gt;
+ *     &lt;u&gt;Developed by&lt;/u&gt;: &lt;br/&gt;
+ *     &lt;ul&gt;
+ *     &lt;li&gt;Carlos Augusto Nole Machaca&lt;/li&gt;
+ *     &lt;/ul&gt;
+ *     &lt;u&gt;Changes&lt;/u&gt;:&lt;br/&gt;
+ *     &lt;ul&gt;
+ *     &lt;li&gt;Ago 15, 2024 (JAR) Creation class.&lt;/li&gt;
+ *     &lt;/ul&gt;
+ * @version 1.0
+ */
+@SuppressFBWarnings({&quot;EI_EXPOSE_REP&quot;, &quot;EI_EXPOSE_REP2&quot;})
+@Getter
+@Setter
+@AllArgsConstructor
+@NoArgsConstructor
+public class InputData implements Serializable {
+
+    private static final long serialVersionUID = 1L;
+
+    private String accountingPeriod;
+    private String mainFixedAssetCode; //0
+    private String fixedAssetCodeComponent; //1
+    private String fixedAssetAccountingAccount; //2
+    private FixedAssetDetail fixedAssetDetail; //3 al 6
+    private String initialBalance; //7
+    private String acquisitionsAdditions; //8
+    private String improvements; //9
+    private String transfersAndOrReclassifications; //10
+    private String withdrawalsAndOrRetirements; //11
+    private String otherAdjustments; //12
+    private String bookValueOfFixedAssets; //13
+    private String inflationAdjustment; //14
+    private String adjustedValueOfFixedAssets; //15
+    private String acquisitionDate; //16
+    private String startDateFixedAssetUsage; //17
+    private String retirementDate; //18
+    private Depreciation depreciation; //19 y 20
+    private String usefulLifeYears; //21
+    private String accumulatedDepreciationTheEndPrevious; //22
+    private String currentDepreciation; //23
+    private String currentDepreciationRelatedWithdrawalsRetirements; //24
+    private String currentDepreciationRelatedOtherAdjustments; //25
+    private String accumulatedHistoricalDepreciation; //26
+    private String depreciationInflationAdjustment; //27
+    private String accumulatedDepreciationAdjustedInflation; //28
+    private String netFixedAssets; //30
+    private String historicalCost; //31
+    private String revaluedAmount; //32
+    private int rowNum;
+    private int physicalNumberOfRows;
+
+    @Override
+    public String toString() {
+<span class="nc" id="L71">        return &quot;InputData{&quot;</span>
+            + &quot;accountingPeriod='&quot; + accountingPeriod + '\''
+            + &quot;, mainFixedAssetCode='&quot; + mainFixedAssetCode + '\''
+            + &quot;, fixedAssetCodeComponent='&quot; + fixedAssetCodeComponent + '\''
+            + &quot;, fixedAssetAccountingAccount='&quot; + fixedAssetAccountingAccount + '\''
+            + &quot;, fixedAssetDetail=&quot; + fixedAssetDetail + '\''
+            + &quot;, initialBalance='&quot; + initialBalance + '\''
+            + &quot;, acquisitionsAdditions='&quot; + acquisitionsAdditions + '\''
+            + &quot;, improvements='&quot; + improvements + '\''
+            + &quot;, transfersAndOrReclassifications='&quot; + transfersAndOrReclassifications + '\''
+            + &quot;, withdrawalsAndOrRetirements='&quot; + withdrawalsAndOrRetirements + '\''
+            + &quot;, otherAdjustments='&quot; + otherAdjustments + '\''
+            + &quot;, bookValueOfFixedAssets='&quot; + bookValueOfFixedAssets + '\''
+            + &quot;, inflationAdjustment='&quot; + inflationAdjustment + '\''
+            + &quot;, adjustedValueOfFixedAssets='&quot; + adjustedValueOfFixedAssets + '\''
+            + &quot;, acquisitionDate='&quot; + acquisitionDate + '\''
+            + &quot;, startDateFixedAssetUsage='&quot; + startDateFixedAssetUsage + '\''
+            + &quot;, retirementDate='&quot; + retirementDate + '\''
+            + &quot;, depreciation=&quot; + depreciation
+            + &quot;, usefulLifeYears='&quot; + usefulLifeYears + '\''
+            + &quot;, accumulatedDepreciationTheEndPrevious='&quot; + accumulatedDepreciationTheEndPrevious
+            + '\'' + &quot;, currentDepreciation='&quot; + currentDepreciation + '\''
+            + &quot;, currentDepreciationRelatedWithdrawalsRetirements='&quot;
+            + currentDepreciationRelatedWithdrawalsRetirements
+            + '\'' + &quot;, currentDepreciationRelatedOtherAdjustments='&quot;
+            + currentDepreciationRelatedOtherAdjustments
+            + '\'' + &quot;, accumulatedHistoricalDepreciation='&quot;
+            + accumulatedHistoricalDepreciation + '\'' + &quot;, depreciationInflationAdjustment='&quot;
+            + depreciationInflationAdjustment + '\''
+            + &quot;, accumulatedDepreciationAdjustedInflation='&quot;
+            + accumulatedDepreciationAdjustedInflation + '\'' + &quot;, netFixedAssets='&quot;
+            + netFixedAssets + '\'' + &quot;, historicalCost='&quot; + historicalCost + '\''
+            + &quot;, revaluedAmount='&quot; + revaluedAmount + '\''
+            + &quot;, rowNum=&quot; + rowNum
+            + &quot;, physicalNumberOfRows=&quot; + physicalNumberOfRows
+            + '}';
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.8.202204050719</span></div></body></html>

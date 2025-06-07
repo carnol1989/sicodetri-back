@@ -1,44 +1,5 @@
 package com.epsgrau.pe.sicodetri.controller;
 
-import com.epsgrau.pe.sicodetri.dto.FinancialFixedAssetDto;
-import com.epsgrau.pe.sicodetri.dto.ParamReportDto;
-import com.epsgrau.pe.sicodetri.entity.FinancialFixedAsset;
-import com.epsgrau.pe.sicodetri.exception.GlobalExceptionHandler;
-import com.epsgrau.pe.sicodetri.exception.ResourceNotFoundException;
-import com.epsgrau.pe.sicodetri.model.InputData;
-import com.epsgrau.pe.sicodetri.model.ResponseData;
-import com.epsgrau.pe.sicodetri.service.FinancialFixedAssetService;
-import com.epsgrau.pe.sicodetri.service.ReportJasperService;
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpSession;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.CsvSource;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
-import org.springframework.mock.web.MockHttpSession;
-import org.springframework.mock.web.MockMultipartFile;
-import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.MvcResult;
-import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
-import org.springframework.test.web.servlet.setup.MockMvcBuilders;
-import org.springframework.web.multipart.MultipartFile;
-
-import java.io.ByteArrayInputStream;
-import java.sql.SQLException;
-import java.time.LocalDate;
-import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-
 import static com.epsgrau.pe.sicodetri.helper.FileExcelHelperTest.*;
 import static com.epsgrau.pe.sicodetri.util.ConstantsTest.*;
 import static com.epsgrau.pe.sicodetri.util.DataTest.getListFinancialFixedAsset;
@@ -48,6 +9,43 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+
+import com.epsgrau.pe.sicodetri.dto.FinancialFixedAssetDto;
+import com.epsgrau.pe.sicodetri.dto.ParamReportDto;
+import com.epsgrau.pe.sicodetri.entity.FinancialFixedAsset;
+import com.epsgrau.pe.sicodetri.exception.GlobalExceptionHandler;
+import com.epsgrau.pe.sicodetri.model.InputData;
+import com.epsgrau.pe.sicodetri.model.ResponseData;
+import com.epsgrau.pe.sicodetri.service.FinancialFixedAssetService;
+import com.epsgrau.pe.sicodetri.service.ReportJasperService;
+import com.epsgrau.pe.sicodetri.strategy.ReportStrategy;
+import com.epsgrau.pe.sicodetri.strategy.ReportStrategyFactory;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpSession;
+import lombok.extern.slf4j.Slf4j;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
+import org.springframework.http.*;
+import org.springframework.mock.web.MockHttpSession;
+import org.springframework.mock.web.MockMultipartFile;
+import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.MvcResult;
+import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
+import org.springframework.test.web.servlet.setup.MockMvcBuilders;
+import org.springframework.web.multipart.MultipartFile;
+import java.io.ByteArrayInputStream;
+import java.sql.SQLException;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 
 /**
  * This class test for FinancialFixedAssetController. <br/>
@@ -67,6 +65,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  *     </ul>
  * @version 1.0
  */
+@Slf4j
 class FinancialFixedAssetControllerTest {
 
     public static String BASE_URI = "/api/v1/financial-fixed-assets";
@@ -78,6 +77,12 @@ class FinancialFixedAssetControllerTest {
 
     @Mock
     private ReportJasperService reportJasperService;
+
+    @Mock
+    private ReportStrategyFactory reportStrategyFactory;
+
+    @Mock
+    private ReportStrategy reportStrategy;
 
     @Mock
     private HttpServletRequest request;
@@ -371,120 +376,214 @@ class FinancialFixedAssetControllerTest {
     }
 
     @Test
-    @DisplayName("Return file download when reportList non-empty and Jasper devuelve bytes")
-    void returnFileDownloadWhenReportListNonEmptyAndJasperDevuelveBytes() throws Exception {
+    @DisplayName("Return file download when reportList non-empty and strategy + Jasper devuelven bytes")
+    void returnFileDownloadWhenReportListNonEmptyAndJasperDevuelvenBytes() throws Exception {
         // Arrange
-        String option = "1";
-        String fileType = "xlsx";
-        String year = "2022";
-        String mainCode = "MAIN-123";
+        String option            = "1";
+        String fileType          = "xlsx";
+        String year              = "2022";
+        String mainCode          = "MAIN-123";
         String accountingAccount = "ACC-001";
-        String startAcquisitionDate = "2022-01-01";
-        String endAcquisitionDate = "2022-12-31";
-        String startDateUse = "2022-02-01";
-        String endDateUse = "2022-11-30";
+        String startAcqDate      = "2022-01-01";
+        String endAcqDate        = "2022-12-31";
+        String startDateUse      = "2022-02-01";
+        String endDateUse        = "2022-11-30";
 
-        // Creamos un resultado simulado no vacío
-        List<FinancialFixedAssetDto> reportList = List.of(new FinancialFixedAssetDto(), new FinancialFixedAssetDto());
-        when(service.callGetReportTaxBookService(any(ParamReportDto.class))).thenReturn(reportList);
+        // 1) Stub de la fábrica/estrategia
+        when(reportStrategyFactory.getStrategy(eq(option))).thenReturn(reportStrategy);
+        when(reportStrategy.getTemplate()).thenReturn("rpt_tax_book.jrxml");
+        when(reportStrategy.getBaseFileName()).thenReturn("Libro_Tributario_Activo_Fijo_");
 
-        // Simulamos que Jasper devuelve un byte[] no nulo
+        // 2) Stub de la lista que devuelve la estrategia
+        List<FinancialFixedAssetDto> reportList = List.of(
+            new FinancialFixedAssetDto(), new FinancialFixedAssetDto()
+        );
+        when(reportStrategy.generateReport(any(ParamReportDto.class)))
+            .thenReturn(reportList);
+
+        // 3) Stub de Jasper
         byte[] fakeXlsx = "FAKE XLSX DATA".getBytes();
         when(reportJasperService.getJasperReportInBytes(
-                eq("rpt_tax_book.jrxml"),
-                eq(fileType),
-                anyMap(),
-                eq(reportList))
+            eq(option),
+            eq("rpt_tax_book.jrxml"),
+            eq(fileType),
+            anyMap(),
+            eq(reportList))
         ).thenReturn(fakeXlsx);
 
-        // Act: Llamamos al endpoint
+        // Act: llamamos al endpoint GET /report
         MvcResult mvcResult = mockMvc.perform(get(BASE_URI + "/report")
-                        .param("option", fileType)
-                        .param("fileType", fileType)
-                        .param("year", year)
-                        .param("mainCode", mainCode)
-                        .param("accountingAccount", accountingAccount)
-                        .param("startAcquisitionDate", startAcquisitionDate)
-                        .param("endAcquisitionDate", endAcquisitionDate)
-                        .param("startDateUse", startDateUse)
-                        .param("endDateUse", endDateUse)
-                        .accept(MediaType.APPLICATION_JSON))
-                .andReturn();
+                .param("option", option)
+                .param("fileType", fileType)
+                .param("year", year)
+                .param("mainCode", mainCode)
+                .param("accountingAccount", accountingAccount)
+                .param("startAcquisitionDate", startAcqDate)
+                .param("endAcquisitionDate", endAcqDate)
+                .param("startDateUse", startDateUse)
+                .param("endDateUse", endDateUse)
+            )
+            .andExpect(status().isOk())
+            .andReturn();
 
-        // Assert: debe retornar HTTP 200 y un InputStreamResource con encabezados de descarga
-        int status = mvcResult.getResponse().getStatus();
-        assertEquals(HttpStatus.OK.value(), status);
+        // Extraemos el header Content-Disposition y parseamos
+        String headerValue = mvcResult.getResponse().getHeader(HttpHeaders.CONTENT_DISPOSITION);
+        assertNotNull(headerValue, "Content-Disposition no debe ser null");
+        ContentDisposition cd = ContentDisposition.parse(headerValue);
 
-        assertEquals("application/octet-stream",
-                mvcResult.getResponse().getContentType());
-        String contentDisposition = mvcResult.getResponse().getHeader(HttpHeaders.CONTENT_DISPOSITION);
-        assertTrue(contentDisposition.contains("attachment; filename=Libro_Tributario_Activo_Fijo"));
-        assertTrue(contentDisposition.endsWith(".xlsx"), "El header debe terminar con '.xlsx'");
+        // Aserciones sobre el filename
+        assertEquals("attachment", cd.getType(), "El tipo debe ser 'form-data'");
+        String filename = cd.getFilename();
+        assertNotNull(filename, "Filename no debe ser null");
+        assertTrue(filename.startsWith("Libro_Tributario_Activo_Fijo_"),
+            "El nombre de archivo debe comenzar con el prefijo correcto");
+        assertTrue(filename.endsWith(".xlsx"),
+            "El nombre de archivo debe terminar en '.xlsx'");
 
-        // Verificamos que el cuerpo realmente sea un InputStreamResource: basta revisar que haya bytes
-        byte[] responseBody = mvcResult.getResponse().getContentAsByteArray();
-        assertArrayEquals(fakeXlsx, responseBody);
+        // Verificamos que el cuerpo sea nuestro fakeXlsx
+        byte[] body = mvcResult.getResponse().getContentAsByteArray();
+        assertArrayEquals(fakeXlsx, body, "El contenido del cuerpo debe ser el arreglo de bytes simulado");
 
-        verify(service, times(1)).callGetReportTaxBookService(any(ParamReportDto.class));
-        verify(reportJasperService, times(1)).getJasperReportInBytes(
-                eq("rpt_tax_book.jrxml"), eq(fileType), anyMap(), eq(reportList)
+        // Verificaciones de mocks, usando matchers en todos los parámetros
+        verify(reportStrategyFactory).getStrategy(eq(option));
+        verify(reportStrategy).generateReport(any(ParamReportDto.class));
+        verify(reportJasperService).getJasperReportInBytes(
+            eq(option),
+            eq("rpt_tax_book.jrxml"),
+            eq(fileType),
+            anyMap(),
+            eq(reportList)
         );
     }
 
     @Test
     @DisplayName("Throw ResourceNotFoundException when reportList is empty")
-    void throwResourceNotFoundExceptionWhenReportListIsEmpty() throws SQLException {
+    void throwResourceNotFoundExceptionWhenReportListIsEmpty() throws Exception {
         // Arrange
-        when(service.callGetReportTaxBookService(any(ParamReportDto.class))).thenReturn(Collections.emptyList());
+        String option = "1";
+        when(reportStrategyFactory.getStrategy(eq(option)))
+            .thenReturn(reportStrategy);
+        when(reportStrategy.generateReport(any(ParamReportDto.class)))
+            .thenReturn(Collections.emptyList());
 
         // Act & Assert
-        ResourceNotFoundException ex = assertThrows(ResourceNotFoundException.class, () -> {
-            controller.callGetReportTaxBookController(
-                    "", "PDF", "2022", "MAIN-123", "ACC-001",
-                    "2022-01-01", "2022-12-31", "2022-02-01", "2022-11-30"
-            );
-        });
-        assertEquals("No hay información para el periodo.", ex.getMessage());
+        mockMvc.perform(get(BASE_URI + "/report")
+                .param("option", option)
+                .param("fileType", "PDF")
+                .param("year", "2022")
+                .param("mainCode", "A")
+                .param("accountingAccount", "B")
+                .param("startAcquisitionDate", "2022-01-01")
+                .param("endAcquisitionDate",   "2022-12-31")
+                .param("startDateUse",         "2022-02-01")
+                .param("endDateUse",           "2022-11-30")
+                .accept(MediaType.APPLICATION_JSON)
+            )
+            .andExpect(status().isNotFound())
+            .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+            // ahora ya sí podemos leer $.message
+            .andExpect(jsonPath("$.message")
+                .value("No hay información para el periodo."));
+
+        // y por si acaso:
+        verify(reportStrategyFactory).getStrategy(eq(option));
+        verify(reportStrategy).generateReport(any(ParamReportDto.class));
+        verifyNoMoreInteractions(reportJasperService);
     }
 
     @Test
-    @DisplayName("Throw ResourceNotFoundException when Jasper devuelve null")
-    void throwResourceNotFoundExceptionWhenJasperDevuelveNull() throws Exception {
+    @DisplayName("Throw ResourceNotFoundException when Jasper return null")
+    void throwResourceNotFoundExceptionWhenJasperReturnNull() throws Exception {
         // Arrange
+        String option = "1";
+
+        // 1) Fábrica → estrategia mockeada
+        when(reportStrategyFactory.getStrategy(option)).thenReturn(reportStrategy);
+
+        // 2) Estrategia → lista NO vacía
         List<FinancialFixedAssetDto> reportList = List.of(new FinancialFixedAssetDto());
-        when(service.callGetReportTaxBookService(any(ParamReportDto.class))).thenReturn(reportList);
+        when(reportStrategy.generateReport(any(ParamReportDto.class)))
+            .thenReturn(reportList);
+
+        // 3) **Muy importante**: indicamos qué template y fileName maneja la estrategia
+        when(reportStrategy.getTemplate()).thenReturn("rpt_tax_book.jrxml");
+        when(reportStrategy.getBaseFileName()).thenReturn("Libro_Tributario_Activo_Fijo_");
+
+        // 4) Jasper devuelve null → forzamos el 404
         when(reportJasperService.getJasperReportInBytes(
-                eq("rpt_tax_book.jrxml"),
-                anyString(),
-                anyMap(),
-                eq(reportList))
-        ).thenReturn(null);
+            anyString(),//option
+            anyString(),    // templateReport
+            anyString(),    // fileType
+            anyMap(),       // parameters
+            anyList()       // dataSource
+        )).thenReturn(null);
 
         // Act & Assert
-        ResourceNotFoundException ex = assertThrows(ResourceNotFoundException.class, () -> {
-            controller.callGetReportTaxBookController(
-                    "", "PDF", "2022", "MAIN-123", "ACC-001",
-                    "2022-01-01", "2022-12-31", "2022-02-01", "2022-11-30"
-            );
-        });
-        assertEquals("Error al obtener reporte", ex.getMessage());
+        mockMvc.perform(get(BASE_URI + "/report")
+                .param("option",               option)
+                .param("fileType",             "PDF")
+                .param("year",                 "2022")
+                .param("mainCode",             "MAIN-123")
+                .param("accountingAccount",    "ACC-001")
+                .param("startAcquisitionDate", "2022-01-01")
+                .param("endAcquisitionDate",   "2022-12-31")
+                .param("startDateUse",         "2022-02-01")
+                .param("endDateUse",           "2022-11-30")
+                .accept(MediaType.APPLICATION_JSON)
+            )
+            .andExpect(status().isNotFound())
+            .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+            // Aquí el GlobalExceptionHandler ya no envuelve en ResponseData con 'code',
+            // sino que construye un JSON con timestamp, message y details:
+            .andExpect(jsonPath("$.timestamp").exists())
+            .andExpect(jsonPath("$.message").value("Error al obtener reporte"))
+            .andExpect(jsonPath("$.details").exists());
+
+        // Verificaciones de invocaciones
+        verify(reportStrategyFactory).getStrategy(option);
+        verify(reportStrategy).generateReport(any(ParamReportDto.class));
+        // Ahora sí coincide: primero argumento = "rpt_tax_book.jrxml"
+        verify(reportJasperService).getJasperReportInBytes(
+            eq(option),
+            eq("rpt_tax_book.jrxml"),
+            eq("PDF"),
+            anyMap(),
+            eq(reportList)
+        );
     }
 
     @Test
     @DisplayName("Throw ResourceNotFoundException when exception inesperada en Jasper o servicio")
     void throwResourceNotFoundExceptionWhenExceptionInReportGeneration() throws SQLException {
         // Arrange
-        when(service.callGetReportTaxBookService(any(ParamReportDto.class)))
-                .thenThrow(new RuntimeException("Error al obtener reporte"));
+        String option            = "1";
+        // 1) Stub de la fábrica para devolver tu estrategia mockeada
+        when(reportStrategyFactory.getStrategy(option)).thenReturn(reportStrategy);
+        // 2) Stub de la estrategia para que su generateReport lance RuntimeException
+        when(reportStrategy.generateReport(any(ParamReportDto.class)))
+            .thenThrow(new RuntimeException("Simulated failure"));
 
         // Act & Assert
         RuntimeException ex = assertThrows(RuntimeException.class, () -> {
-            controller.callGetReportTaxBookController(
-                    "","PDF", "2022", "MAIN-123", "ACC-001",
-                    "2022-01-01", "2022-12-31", "2022-02-01", "2022-11-30"
+            controller.callGetReportsController(
+                option,
+                "PDF",
+                "2022",
+                "MAIN-123",
+                "ACC-001",
+                "2022-01-01",
+                "2022-12-31",
+                "2022-02-01",
+                "2022-11-30"
             );
-        });
-        assertEquals("Error al obtener reporte", ex.getMessage());
+        }, "Si la estrategia falla, debe lanzarse RuntimeException desde el wrapper del controlador");
+
+        // El wrapper en el controlador usa exactamente este mensaje:
+        assertEquals("Simulated failure", ex.getMessage());
+
+        // Verificamos que realmente se invocó la estrategia
+        verify(reportStrategyFactory).getStrategy(option);
+        verify(reportStrategy).generateReport(any(ParamReportDto.class));
     }
 
     @Test

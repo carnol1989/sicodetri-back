@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<checkstyle version="9.3">
+<file name="C:\Intellij_2023.2.4\TFM\sicodetri\src\main\java\com\epsgrau\pe\sicodetri\config\CorsConfig.java">
+</file>
+<file name="C:\Intellij_2023.2.4\TFM\sicodetri\src\main\java\com\epsgrau\pe\sicodetri\config\OpenApiConfig.java">
+</file>
+<file name="C:\Intellij_2023.2.4\TFM\sicodetri\src\main\java\com\epsgrau\pe\sicodetri\controller\FinancialFixedAssetController.java">
+</file>
+<file name="C:\Intellij_2023.2.4\TFM\sicodetri\src\main\java\com\epsgrau\pe\sicodetri\controller\TaxTableSunatController.java">
+</file>
+<file name="C:\Intellij_2023.2.4\TFM\sicodetri\src\main\java\com\epsgrau\pe\sicodetri\dto\FinancialFixedAssetDto.java">
+</file>
+<file name="C:\Intellij_2023.2.4\TFM\sicodetri\src\main\java\com\epsgrau\pe\sicodetri\dto\ParamReportDto.java">
+</file>
+<file name="C:\Intellij_2023.2.4\TFM\sicodetri\src\main\java\com\epsgrau\pe\sicodetri\entity\Addition.java">
+</file>
+<file name="C:\Intellij_2023.2.4\TFM\sicodetri\src\main\java\com\epsgrau\pe\sicodetri\entity\Deduction.java">
+</file>
+<file name="C:\Intellij_2023.2.4\TFM\sicodetri\src\main\java\com\epsgrau\pe\sicodetri\entity\FinancialDepreciation.java">
+</file>
+<file name="C:\Intellij_2023.2.4\TFM\sicodetri\src\main\java\com\epsgrau\pe\sicodetri\entity\FinancialFixedAsset.java">
+</file>
+<file name="C:\Intellij_2023.2.4\TFM\sicodetri\src\main\java\com\epsgrau\pe\sicodetri\entity\TaxDepreciation.java">
+</file>
+<file name="C:\Intellij_2023.2.4\TFM\sicodetri\src\main\java\com\epsgrau\pe\sicodetri\entity\TaxTableSunat.java">
+</file>
+<file name="C:\Intellij_2023.2.4\TFM\sicodetri\src\main\java\com\epsgrau\pe\sicodetri\exception\ExceptionResponse.java">
+</file>
+<file name="C:\Intellij_2023.2.4\TFM\sicodetri\src\main\java\com\epsgrau\pe\sicodetri\exception\GlobalExceptionHandler.java">
+</file>
+<file name="C:\Intellij_2023.2.4\TFM\sicodetri\src\main\java\com\epsgrau\pe\sicodetri\exception\ResourceNotFoundException.java">
+</file>
+<file name="C:\Intellij_2023.2.4\TFM\sicodetri\src\main\java\com\epsgrau\pe\sicodetri\helper\ExcelHelper.java">
+</file>
+<file name="C:\Intellij_2023.2.4\TFM\sicodetri\src\main\java\com\epsgrau\pe\sicodetri\helper\JasperReportsHelper.java">
+</file>
+<file name="C:\Intellij_2023.2.4\TFM\sicodetri\src\main\java\com\epsgrau\pe\sicodetri\model\Depreciation.java">
+</file>
+<file name="C:\Intellij_2023.2.4\TFM\sicodetri\src\main\java\com\epsgrau\pe\sicodetri\model\FixedAssetDetail.java">
+</file>
+<file name="C:\Intellij_2023.2.4\TFM\sicodetri\src\main\java\com\epsgrau\pe\sicodetri\model\InputData.java">
+</file>
+<file name="C:\Intellij_2023.2.4\TFM\sicodetri\src\main\java\com\epsgrau\pe\sicodetri\model\Projection.java">
+</file>
+<file name="C:\Intellij_2023.2.4\TFM\sicodetri\src\main\java\com\epsgrau\pe\sicodetri\model\ResponseData.java">
+</file>
+<file name="C:\Intellij_2023.2.4\TFM\sicodetri\src\main\java\com\epsgrau\pe\sicodetri\repository\AdditionRepository.java">
+</file>
+<file name="C:\Intellij_2023.2.4\TFM\sicodetri\src\main\java\com\epsgrau\pe\sicodetri\repository\DeductionRepository.java">
+</file>
+<file name="C:\Intellij_2023.2.4\TFM\sicodetri\src\main\java\com\epsgrau\pe\sicodetri\repository\FinancialDepreciationRepository.java">
+</file>
+<file name="C:\Intellij_2023.2.4\TFM\sicodetri\src\main\java\com\epsgrau\pe\sicodetri\repository\FinancialFixedAssetJdbcRepository.java">
+</file>
+<file name="C:\Intellij_2023.2.4\TFM\sicodetri\src\main\java\com\epsgrau\pe\sicodetri\repository\FinancialFixedAssetRepository.java">
+</file>
+<file name="C:\Intellij_2023.2.4\TFM\sicodetri\src\main\java\com\epsgrau\pe\sicodetri\repository\impl\FinancialFixedAssetJdbcImplRepository.java">
+</file>
+<file name="C:\Intellij_2023.2.4\TFM\sicodetri\src\main\java\com\epsgrau\pe\sicodetri\repository\TaxDepreciationRepository.java">
+</file>
+<file name="C:\Intellij_2023.2.4\TFM\sicodetri\src\main\java\com\epsgrau\pe\sicodetri\repository\TaxTableSunatRepository.java">
+</file>
+<file name="C:\Intellij_2023.2.4\TFM\sicodetri\src\main\java\com\epsgrau\pe\sicodetri\service\AdditionService.java">
+</file>
+<file name="C:\Intellij_2023.2.4\TFM\sicodetri\src\main\java\com\epsgrau\pe\sicodetri\service\CrudService.java">
+</file>
+<file name="C:\Intellij_2023.2.4\TFM\sicodetri\src\main\java\com\epsgrau\pe\sicodetri\service\DeductionService.java">
+</file>
+<file name="C:\Intellij_2023.2.4\TFM\sicodetri\src\main\java\com\epsgrau\pe\sicodetri\service\FinancialDepreciationService.java">
+</file>
+<file name="C:\Intellij_2023.2.4\TFM\sicodetri\src\main\java\com\epsgrau\pe\sicodetri\service\FinancialFixedAssetService.java">
+</file>
+<file name="C:\Intellij_2023.2.4\TFM\sicodetri\src\main\java\com\epsgrau\pe\sicodetri\service\impl\AdditionServiceImpl.java">
+</file>
+<file name="C:\Intellij_2023.2.4\TFM\sicodetri\src\main\java\com\epsgrau\pe\sicodetri\service\impl\DeductionServiceImpl.java">
+</file>
+<file name="C:\Intellij_2023.2.4\TFM\sicodetri\src\main\java\com\epsgrau\pe\sicodetri\service\impl\FinancialDepreciationServiceImpl.java">
+</file>
+<file name="C:\Intellij_2023.2.4\TFM\sicodetri\src\main\java\com\epsgrau\pe\sicodetri\service\impl\FinancialFixedAssetServiceImpl.java">
+</file>
+<file name="C:\Intellij_2023.2.4\TFM\sicodetri\src\main\java\com\epsgrau\pe\sicodetri\service\impl\ReportJasperServiceImpl.java">
+</file>
+<file name="C:\Intellij_2023.2.4\TFM\sicodetri\src\main\java\com\epsgrau\pe\sicodetri\service\impl\TaxDepreciationServiceImpl.java">
+</file>
+<file name="C:\Intellij_2023.2.4\TFM\sicodetri\src\main\java\com\epsgrau\pe\sicodetri\service\impl\TaxTableSunatServiceImpl.java">
+</file>
+<file name="C:\Intellij_2023.2.4\TFM\sicodetri\src\main\java\com\epsgrau\pe\sicodetri\service\ReportJasperService.java">
+</file>
+<file name="C:\Intellij_2023.2.4\TFM\sicodetri\src\main\java\com\epsgrau\pe\sicodetri\service\TaxDepreciationService.java">
+</file>
+<file name="C:\Intellij_2023.2.4\TFM\sicodetri\src\main\java\com\epsgrau\pe\sicodetri\service\TaxTableSunatService.java">
+</file>
+<file name="C:\Intellij_2023.2.4\TFM\sicodetri\src\main\java\com\epsgrau\pe\sicodetri\SicodetriApplication.java">
+</file>
+<file name="C:\Intellij_2023.2.4\TFM\sicodetri\src\main\java\com\epsgrau\pe\sicodetri\strategy\impl\DetailFinancialTaxDepreciationStrategy.java">
+</file>
+<file name="C:\Intellij_2023.2.4\TFM\sicodetri\src\main\java\com\epsgrau\pe\sicodetri\strategy\impl\TaxBookReportStrategy.java">
+</file>
+<file name="C:\Intellij_2023.2.4\TFM\sicodetri\src\main\java\com\epsgrau\pe\sicodetri\strategy\ReportStrategy.java">
+</file>
+<file name="C:\Intellij_2023.2.4\TFM\sicodetri\src\main\java\com\epsgrau\pe\sicodetri\strategy\ReportStrategyFactory.java">
+</file>
+<file name="C:\Intellij_2023.2.4\TFM\sicodetri\src\main\java\com\epsgrau\pe\sicodetri\util\Constants.java">
+</file>
+<file name="C:\Intellij_2023.2.4\TFM\sicodetri\src\main\java\com\epsgrau\pe\sicodetri\util\enums\ReportTypeEnum.java">
+</file>
+<file name="C:\Intellij_2023.2.4\TFM\sicodetri\src\main\java\com\epsgrau\pe\sicodetri\util\Functions.java">
+</file>
+</checkstyle>
