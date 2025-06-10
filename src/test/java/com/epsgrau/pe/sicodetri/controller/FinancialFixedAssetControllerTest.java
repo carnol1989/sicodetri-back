@@ -1,14 +1,38 @@
 package com.epsgrau.pe.sicodetri.controller;
 
-import static com.epsgrau.pe.sicodetri.helper.FileExcelHelperTest.*;
-import static com.epsgrau.pe.sicodetri.util.ConstantsTest.*;
+import static com.epsgrau.pe.sicodetri.helper.FileExcelHelperTest.createMockExcelInputStream;
+import static com.epsgrau.pe.sicodetri.helper.FileExcelHelperTest.createMockExcelInputStreamFailed;
+import static com.epsgrau.pe.sicodetri.util.ConstantsTest.TYPE_XLSX;
+import static com.epsgrau.pe.sicodetri.util.ConstantsTest.S_VAL_00;
+import static com.epsgrau.pe.sicodetri.util.ConstantsTest.S_VAL_01;
+import static com.epsgrau.pe.sicodetri.util.ConstantsTest.S_VAL_332;
+import static com.epsgrau.pe.sicodetri.util.ConstantsTest.N_VAL_1;
+import static com.epsgrau.pe.sicodetri.util.ConstantsTest.N_VAL_2;
+import static com.epsgrau.pe.sicodetri.util.ConstantsTest.N_VAL_3;
+import static com.epsgrau.pe.sicodetri.util.ConstantsTest.LIST_INPUT_DATA;
+import static com.epsgrau.pe.sicodetri.util.ConstantsTest.FORMATTER_YYYY_MM_DD;
 import static com.epsgrau.pe.sicodetri.util.DataTest.getListFinancialFixedAsset;
 import static com.epsgrau.pe.sicodetri.util.DataTest.getListInputData;
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.*;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.anyString;
+import static org.mockito.Mockito.anyList;
+import static org.mockito.Mockito.eq;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.anyMap;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 
 import com.epsgrau.pe.sicodetri.dto.FinancialFixedAssetDto;
 import com.epsgrau.pe.sicodetri.dto.ParamReportDto;
@@ -18,8 +42,9 @@ import com.epsgrau.pe.sicodetri.model.InputData;
 import com.epsgrau.pe.sicodetri.model.ResponseData;
 import com.epsgrau.pe.sicodetri.service.FinancialFixedAssetService;
 import com.epsgrau.pe.sicodetri.service.ReportJasperService;
-import com.epsgrau.pe.sicodetri.strategy.ReportStrategy;
-import com.epsgrau.pe.sicodetri.strategy.ReportStrategyFactory;
+import com.epsgrau.pe.sicodetri.service.projection.ProjectionType;
+import com.epsgrau.pe.sicodetri.service.report.ReportStrategy;
+import com.epsgrau.pe.sicodetri.service.report.ReportStrategyFactory;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
 import lombok.extern.slf4j.Slf4j;
@@ -31,7 +56,11 @@ import org.junit.jupiter.params.provider.CsvSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
-import org.springframework.http.*;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.ContentDisposition;
 import org.springframework.mock.web.MockHttpSession;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.web.servlet.MockMvc;
@@ -254,7 +283,8 @@ class FinancialFixedAssetControllerTest {
                 .thenReturn(getListFinancialFixedAsset());
 
         // Act
-        ResponseEntity<ResponseData> response = controller.generateProjectionController(period, S_VAL_332);
+        ProjectionType projectionType = ProjectionType.TEMPORARY_ADDITIONS;
+        ResponseEntity<ResponseData> response = controller.generateProjectionController(projectionType, period, S_VAL_332);
 
         // Assert
         assertEquals(HttpStatus.OK, response.getStatusCode());
@@ -269,7 +299,8 @@ class FinancialFixedAssetControllerTest {
         when(service.findByPeriodAndAccountStartingWithService(any(LocalDate.class), anyString())).thenReturn(new ArrayList<>());
 
         // Act
-        ResponseEntity<ResponseData> response = controller.generateProjectionController("2024-08-01", "account");
+        ProjectionType projectionType = ProjectionType.TEMPORARY_ADDITIONS;
+        ResponseEntity<ResponseData> response = controller.generateProjectionController(projectionType, "2024-08-01", "account");
 
         // Assert
         assertEquals(HttpStatus.EXPECTATION_FAILED, response.getStatusCode());
@@ -288,7 +319,8 @@ class FinancialFixedAssetControllerTest {
                 .thenThrow(new RuntimeException("Simulated exception"));
 
         // Act
-        ResponseEntity<ResponseData> response = controller.generateProjectionController(period, account);
+        ProjectionType projectionType = ProjectionType.TEMPORARY_ADDITIONS;
+        ResponseEntity<ResponseData> response = controller.generateProjectionController(projectionType, period, account);
 
         // Assert
         assertEquals(HttpStatus.EXPECTATION_FAILED, response.getStatusCode());
@@ -379,72 +411,66 @@ class FinancialFixedAssetControllerTest {
     @DisplayName("Return file download when reportList non-empty and strategy + Jasper devuelven bytes")
     void returnFileDownloadWhenReportListNonEmptyAndJasperDevuelvenBytes() throws Exception {
         // Arrange
-        String option            = "1";
-        String fileType          = "xlsx";
-        String year              = "2022";
-        String mainCode          = "MAIN-123";
-        String accountingAccount = "ACC-001";
-        String startAcqDate      = "2022-01-01";
-        String endAcqDate        = "2022-12-31";
-        String startDateUse      = "2022-02-01";
-        String endDateUse        = "2022-11-30";
+        String option = "1";
+        String fileType = "xlsx";
+        String year = "2022";
+        String mainCode = "MAIN-123";
+        String acc = "ACC-001";
+        String start = "2022-01-01";
+        String end = "2022-12-31";
+        String useStart = "2022-02-01";
+        String useEnd = "2022-11-30";
 
-        // 1) Stub de la fábrica/estrategia
+        // 1) fábrica → estrategia
         when(reportStrategyFactory.getStrategy(eq(option))).thenReturn(reportStrategy);
         when(reportStrategy.getTemplate()).thenReturn("rpt_tax_book.jrxml");
         when(reportStrategy.getBaseFileName()).thenReturn("Libro_Tributario_Activo_Fijo_");
 
-        // 2) Stub de la lista que devuelve la estrategia
+        // 2) estrategia → lista no vacía
         List<FinancialFixedAssetDto> reportList = List.of(
             new FinancialFixedAssetDto(), new FinancialFixedAssetDto()
         );
         when(reportStrategy.generateReport(any(ParamReportDto.class)))
             .thenReturn(reportList);
 
-        // 3) Stub de Jasper
+        // 3) Jasper → fake XLSX
         byte[] fakeXlsx = "FAKE XLSX DATA".getBytes();
         when(reportJasperService.getJasperReportInBytes(
             eq(option),
             eq("rpt_tax_book.jrxml"),
             eq(fileType),
             anyMap(),
-            eq(reportList))
-        ).thenReturn(fakeXlsx);
+            eq(reportList)
+        )).thenReturn(fakeXlsx);
 
-        // Act: llamamos al endpoint GET /report
+        // Act
         MvcResult mvcResult = mockMvc.perform(get(BASE_URI + "/report")
                 .param("option", option)
                 .param("fileType", fileType)
                 .param("year", year)
                 .param("mainCode", mainCode)
-                .param("accountingAccount", accountingAccount)
-                .param("startAcquisitionDate", startAcqDate)
-                .param("endAcquisitionDate", endAcqDate)
-                .param("startDateUse", startDateUse)
-                .param("endDateUse", endDateUse)
+                .param("accountingAccount", acc)
+                .param("startAcquisitionDate", start)
+                .param("endAcquisitionDate", end)
+                .param("startDateUse", useStart)
+                .param("endDateUse", useEnd)
             )
             .andExpect(status().isOk())
             .andReturn();
 
-        // Extraemos el header Content-Disposition y parseamos
+        // Parse Content-Disposition
         String headerValue = mvcResult.getResponse().getHeader(HttpHeaders.CONTENT_DISPOSITION);
-        assertNotNull(headerValue, "Content-Disposition no debe ser null");
+        assertNotNull(headerValue);
         ContentDisposition cd = ContentDisposition.parse(headerValue);
+        assertEquals("attachment", cd.getType());
+        assertTrue(cd.getFilename().startsWith("Libro_Tributario_Activo_Fijo_"));
+        assertTrue(cd.getFilename().endsWith(".xlsx"));
 
-        // Aserciones sobre el filename
-        assertEquals("attachment", cd.getType(), "El tipo debe ser 'form-data'");
-        String filename = cd.getFilename();
-        assertNotNull(filename, "Filename no debe ser null");
-        assertTrue(filename.startsWith("Libro_Tributario_Activo_Fijo_"),
-            "El nombre de archivo debe comenzar con el prefijo correcto");
-        assertTrue(filename.endsWith(".xlsx"),
-            "El nombre de archivo debe terminar en '.xlsx'");
-
-        // Verificamos que el cuerpo sea nuestro fakeXlsx
+        // Body
         byte[] body = mvcResult.getResponse().getContentAsByteArray();
-        assertArrayEquals(fakeXlsx, body, "El contenido del cuerpo debe ser el arreglo de bytes simulado");
+        assertArrayEquals(fakeXlsx, body);
 
-        // Verificaciones de mocks, usando matchers en todos los parámetros
+        // Verificaciones
         verify(reportStrategyFactory).getStrategy(eq(option));
         verify(reportStrategy).generateReport(any(ParamReportDto.class));
         verify(reportJasperService).getJasperReportInBytes(
@@ -688,5 +714,34 @@ class FinancialFixedAssetControllerTest {
         assertEquals(HttpStatus.EXPECTATION_FAILED, resp.getStatusCode());
         assertEquals(S_VAL_01, resp.getBody().getCode());
         assertTrue(resp.getBody().getMessage().contains("Error al obtener informacion del activo fijo"));
+    }
+
+    @Test
+    @DisplayName("Throw 404 JSON when reportList is empty")
+    void throw404WhenReportListIsEmpty() throws Exception {
+        String option = "1";
+        when(reportStrategyFactory.getStrategy(eq(option))).thenReturn(reportStrategy);
+        when(reportStrategy.generateReport(any())).thenReturn(Collections.emptyList());
+
+        mockMvc.perform(get(BASE_URI + "/report")
+                .param("option", option)
+                .param("fileType", "PDF")
+                .param("year", "2022")
+                .param("mainCode", "A")
+                .param("accountingAccount", "B")
+                .param("startAcquisitionDate", "2022-01-01")
+                .param("endAcquisitionDate",   "2022-12-31")
+                .param("startDateUse",         "2022-02-01")
+                .param("endDateUse",           "2022-11-30")
+                .accept(MediaType.APPLICATION_JSON)
+            )
+            .andExpect(status().isNotFound())
+            .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+            .andExpect(jsonPath("$.message").value("No hay información para el periodo."))
+            .andExpect(jsonPath("$.details").exists());
+
+        verify(reportStrategyFactory).getStrategy(eq(option));
+        verify(reportStrategy).generateReport(any(ParamReportDto.class));
+        verifyNoMoreInteractions(reportJasperService);
     }
 }

@@ -4,6 +4,8 @@ import static com.epsgrau.pe.sicodetri.util.Constants.BD_VAL_100;
 import static com.epsgrau.pe.sicodetri.util.Constants.BD_VAL_12;
 import static com.epsgrau.pe.sicodetri.util.Constants.N_VAL_2;
 import static com.epsgrau.pe.sicodetri.util.Constants.N_VAL_9;
+import static com.epsgrau.pe.sicodetri.util.Constants.S_VAL_01;
+import static com.epsgrau.pe.sicodetri.util.Constants.S_VAL_02;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -96,24 +98,33 @@ public class FinancialDepreciation {
      *
      * @param fixedAsset Fixed Asset
      */
-    public void calculateDepreciation(FinancialFixedAsset fixedAsset) {
-        // Obtener el saldo inicial
+    public void calculateDepreciation(FinancialFixedAsset fixedAsset, String typeProjection,
+        int numberYears) {
+        // Get the initial balance
         BigDecimal initialBalance = fixedAsset.getInitialBalance().setScale(N_VAL_2,
             RoundingMode.HALF_UP);
 
-        // Calcular la tasa anual de depreciación como un valor decimal (no porcentaje)
+        // Calculate the annual depreciation rate as a decimal value (not a percentage)
         this.annualFinancialRate = BD_VAL_100.divide(BigDecimal.valueOf(
             fixedAsset.getUsefulLifeYears()), N_VAL_9, RoundingMode.HALF_UP).divide(BD_VAL_100,
             N_VAL_9, RoundingMode.HALF_UP);
 
-        // Calcular la tasa mensual
+        // Calculate the monthly rate
         BigDecimal monthlyFinancialRate = this.annualFinancialRate.divide(BD_VAL_12, N_VAL_9,
             RoundingMode.HALF_UP);
 
-        // Calcular la depreciación mensual
-        this.valueDepreciation = initialBalance.multiply(monthlyFinancialRate);
+        // Calculate monthly depreciation
+        if (typeProjection.equals(S_VAL_01)) {
+            this.valueDepreciation = initialBalance.multiply(monthlyFinancialRate);
+        } else if (typeProjection.equals(S_VAL_02)) {
+            if (numberYears <= fixedAsset.getUsefulLifeYears().intValue()) {
+                this.valueDepreciation = initialBalance.multiply(monthlyFinancialRate);
+            } else {
+                this.valueDepreciation = BigDecimal.ZERO;
+            }
+        }
 
-        // Asignar el valor de 'valueDepreciation' con la nueva escala
+        // Assign the 'value Depreciation' value with the new scale
         this.valueDepreciation = this.valueDepreciation.setScale(N_VAL_2, RoundingMode.DOWN);
     }
 }

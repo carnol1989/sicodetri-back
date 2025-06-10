@@ -1,34 +1,50 @@
 package com.epsgrau.pe.sicodetri.repository.impl;
 
+import static com.epsgrau.pe.sicodetri.util.Constants.CALL_SQL;
 import static com.epsgrau.pe.sicodetri.util.Constants.LOCAL_DATE_DEFAULT;
 import static com.epsgrau.pe.sicodetri.util.Constants._BLANK;
-import static com.epsgrau.pe.sicodetri.util.Constants.CALL_SQL;
-import static com.epsgrau.pe.sicodetri.util.ConstantsTest.SP_TAX_BOOK;
-import static com.epsgrau.pe.sicodetri.util.ConstantsTest.P_YEAR;
-import static com.epsgrau.pe.sicodetri.util.ConstantsTest.P_MAIN_CODE;
 import static com.epsgrau.pe.sicodetri.util.ConstantsTest.P_ACCOUNT;
-import static com.epsgrau.pe.sicodetri.util.ConstantsTest.P_START_ACQ;
 import static com.epsgrau.pe.sicodetri.util.ConstantsTest.P_END_ACQ;
-import static com.epsgrau.pe.sicodetri.util.ConstantsTest.P_START_USE;
 import static com.epsgrau.pe.sicodetri.util.ConstantsTest.P_END_USE;
+import static com.epsgrau.pe.sicodetri.util.ConstantsTest.P_MAIN_CODE;
 import static com.epsgrau.pe.sicodetri.util.ConstantsTest.P_OUT_CODE;
-import static com.epsgrau.pe.sicodetri.util.ConstantsTest.P_OUT_MSG;
 import static com.epsgrau.pe.sicodetri.util.ConstantsTest.P_OUT_CUR;
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
+import static com.epsgrau.pe.sicodetri.util.ConstantsTest.P_OUT_MSG;
+import static com.epsgrau.pe.sicodetri.util.ConstantsTest.P_START_ACQ;
+import static com.epsgrau.pe.sicodetri.util.ConstantsTest.P_START_USE;
+import static com.epsgrau.pe.sicodetri.util.ConstantsTest.P_YEAR;
+import static com.epsgrau.pe.sicodetri.util.ConstantsTest.SP_TAX_BOOK;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.anyInt;
+import static org.mockito.Mockito.anyString;
+import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.eq;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.when;
 
 import com.epsgrau.pe.sicodetri.dto.FinancialFixedAssetDto;
 import com.epsgrau.pe.sicodetri.dto.ParamReportDto;
+import javax.sql.DataSource;
+import java.math.BigDecimal;
+import java.sql.CallableStatement;
+import java.sql.Connection;
+import java.sql.Date;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.time.LocalDate;
+import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.mockito.*;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
 import org.springframework.jdbc.core.JdbcTemplate;
-import javax.sql.DataSource;
-import java.math.BigDecimal;
-import java.sql.*;
-import java.time.LocalDate;
-import java.util.List;
 
 @DisplayName("FinancialFixedAssetJdbcImplRepository Tests")
 class FinancialFixedAssetJdbcImplRepositoryTest {

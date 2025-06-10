@@ -193,6 +193,11 @@ public class FinancialFixedAsset {
     @Column(precision = 20, scale = 4)
     private BigDecimal revaluedAmount; //32
 
+
+    @Schema(description = "Bien tasado estudio de preinversion seco", example = "tasacion 2013")
+    @Column
+    private String wellAppraisedPreInvestmentStudyDry; //33
+
     @Transient
     private int rowNum;
 

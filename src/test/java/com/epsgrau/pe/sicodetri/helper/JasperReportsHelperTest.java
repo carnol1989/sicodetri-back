@@ -1,13 +1,15 @@
 package com.epsgrau.pe.sicodetri.helper;
 
+import static com.epsgrau.pe.sicodetri.util.DataTest.createJasperPrintWithOneEmptyPage;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
 import com.epsgrau.pe.sicodetri.util.enums.ReportTypeEnum;
 import net.sf.jasperreports.engine.JRException;
 import net.sf.jasperreports.engine.JasperPrint;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-
-import static com.epsgrau.pe.sicodetri.util.DataTest.createJasperPrintWithOneEmptyPage;
-import static org.junit.jupiter.api.Assertions.*;
 
 @DisplayName("JasperReportsHelper Tests")
 class JasperReportsHelperTest {

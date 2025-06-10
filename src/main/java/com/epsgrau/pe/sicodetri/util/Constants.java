@@ -46,6 +46,7 @@ public class Constants {
     public static final String PERIOD = "period";
     public static final String RUC = "ruc";
     public static final String RUC_VALUE = "2010276292";
+    public static final String ALL = "ALL";
 
     public static final BigDecimal BD_VAL_100 = new BigDecimal("100");
     public static final BigDecimal BD_VAL_12 = new BigDecimal("12");
@@ -59,7 +60,14 @@ public class Constants {
     public static final String _BLANK = "";
     public static final String S_VAL_00 = "00";
     public static final String S_VAL_01 = "01";
+    public static final String S_VAL_02 = "02";
     public static final String S_VAL_332 = "332";
+    public static final String S_VAL_333 = "333";
+    public static final String S_VAL_334 = "334";
+    public static final String S_VAL_335 = "335";
+    public static final String S_VAL_336 = "336";
+    public static final String S_VAL_337 = "337";
+
     public static final Double D_VAL_ZERO = 0.0;
 
     public static final String S_DATE_DEFAULT = "1900-01-01";

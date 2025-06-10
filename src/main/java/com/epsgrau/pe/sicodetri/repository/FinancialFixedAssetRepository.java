@@ -7,6 +7,7 @@ import java.util.List;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 /**
@@ -34,6 +35,11 @@ public interface FinancialFixedAssetRepository extends JpaRepository<FinancialFi
 
     List<FinancialFixedAsset> findByAccountingPeriodAndFixedAssetAccountingAccountStartingWith(
         LocalDate accountingPeriod, String accountingAccountPrefix);
+
+    @Query("SELECT f FROM FinancialFixedAsset f "
+        + "WHERE SUBSTRING(f.fixedAssetAccountingAccount, 1, 3) IN :prefixes")
+    List<FinancialFixedAsset> findByAccountingAccountPrefixes(
+        @Param("prefixes") List<String> prefixes);
 
     List<FinancialFixedAsset> findByMainFixedAssetCode(String mainFixedAssetCode);
 

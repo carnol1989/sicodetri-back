@@ -1,18 +1,57 @@
 package com.epsgrau.pe.sicodetri.service.impl;
 
-import com.epsgrau.pe.sicodetri.entity.*;
+import static com.epsgrau.pe.sicodetri.helper.FileExcelHelperTest.createMockExcelInputStream;
+import static com.epsgrau.pe.sicodetri.helper.FileExcelHelperTest.createMockExcelEmpty;
+import static com.epsgrau.pe.sicodetri.service.impl.FinancialFixedAssetServiceImpl.getListFinancialFixedAsset;
+import static com.epsgrau.pe.sicodetri.util.Constants.FORMATTER_YYYY_MM_DD;
+import static com.epsgrau.pe.sicodetri.util.ConstantsTest.S_VAL_332;
+import static com.epsgrau.pe.sicodetri.util.ConstantsTest.TYPE_XLSX;
+import static com.epsgrau.pe.sicodetri.util.DataTest.getListInputData;
+import static com.epsgrau.pe.sicodetri.util.DataTest.getFinancialFixedAsset012;
+import static com.epsgrau.pe.sicodetri.util.DataTest.getListFinancialFixedAsset332;
+import static com.epsgrau.pe.sicodetri.util.DataTest.getFinancialFixedAsset332;
+import static com.epsgrau.pe.sicodetri.util.DataTest.getTaxTable332;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.atLeastOnce;
+import static org.mockito.Mockito.anyList;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.anyString;
+import static org.mockito.Mockito.verifyNoInteractions;
+
+import com.epsgrau.pe.sicodetri.dto.ParamReportDto;
+import com.epsgrau.pe.sicodetri.entity.FinancialFixedAsset;
+import com.epsgrau.pe.sicodetri.entity.FinancialDepreciation;
+import com.epsgrau.pe.sicodetri.entity.TaxTableSunat;
 import com.epsgrau.pe.sicodetri.model.InputData;
+import com.epsgrau.pe.sicodetri.repository.FinancialFixedAssetJdbcRepository;
 import com.epsgrau.pe.sicodetri.repository.FinancialFixedAssetRepository;
-import com.epsgrau.pe.sicodetri.service.*;
+import com.epsgrau.pe.sicodetri.service.TaxTableSunatService;
+import com.epsgrau.pe.sicodetri.service.FinancialDepreciationService;
+import com.epsgrau.pe.sicodetri.service.TaxDepreciationService;
+import com.epsgrau.pe.sicodetri.service.AdditionService;
+import com.epsgrau.pe.sicodetri.service.DeductionService;
+import com.epsgrau.pe.sicodetri.service.projection.ProjectionGenerator;
+import com.epsgrau.pe.sicodetri.service.projection.ProjectionType;
 import com.epsgrau.pe.sicodetri.util.DataTest;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.mockito.*;
+import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
+import org.mockito.ArgumentCaptor;
 import org.springframework.mock.web.MockMultipartFile;
+import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.web.multipart.MultipartFile;
-
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.time.LocalDate;
@@ -21,15 +60,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
-
-import static com.epsgrau.pe.sicodetri.helper.FileExcelHelperTest.*;
-import static com.epsgrau.pe.sicodetri.service.impl.FinancialFixedAssetServiceImpl.getListFinancialFixedAsset;
-import static com.epsgrau.pe.sicodetri.util.Constants.FORMATTER_YYYY_MM_DD;
-import static com.epsgrau.pe.sicodetri.util.ConstantsTest.S_VAL_332;
-import static com.epsgrau.pe.sicodetri.util.ConstantsTest.TYPE_XLSX;
-import static com.epsgrau.pe.sicodetri.util.DataTest.*;
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
 
 /**
  * This class test for FinancialFixedAssetServiceImpl. <br/>
@@ -58,6 +88,9 @@ class FinancialFixedAssetServiceImplTest {
     private FinancialFixedAssetRepository repository;
 
     @Mock
+    FinancialFixedAssetJdbcRepository repositoryJdbc;
+
+    @Mock
     private TaxTableSunatService taxTableService;
 
     @Mock
@@ -72,13 +105,33 @@ class FinancialFixedAssetServiceImplTest {
     @Mock
     private DeductionService deductionService;
 
-    @Spy
-    @InjectMocks
+    @Mock
+    ProjectionGenerator generateTemporaryDeductions;
+
+    @Mock
+    ProjectionGenerator generateTemporaryAdditions;
+
+    @Mock
+    List<ProjectionGenerator> projectionGenerators;
+
     private FinancialFixedAssetServiceImpl service;
 
     @BeforeEach
     void setUp() {
         MockitoAnnotations.openMocks(this);
+
+        when(generateTemporaryDeductions.getType()).thenReturn(ProjectionType.TEMPORARY_DEDUCTIONS);
+        when(generateTemporaryAdditions.getType()).thenReturn(ProjectionType.TEMPORARY_ADDITIONS);
+
+        service = new FinancialFixedAssetServiceImpl(List.of(generateTemporaryDeductions, generateTemporaryAdditions));
+
+        ReflectionTestUtils.setField(service, "repository", repository);
+        ReflectionTestUtils.setField(service, "repositoryJdbc", repositoryJdbc);
+        ReflectionTestUtils.setField(service, "financialDepreciationService", financialDepreciationService);
+        ReflectionTestUtils.setField(service, "taxDepreciationService",    taxDepreciationService);
+        ReflectionTestUtils.setField(service, "additionService",           additionService);
+        ReflectionTestUtils.setField(service, "deductionService",          deductionService);
+        ReflectionTestUtils.setField(service, "taxTableService",           taxTableService);
     }
 
     @Test
@@ -357,7 +410,7 @@ class FinancialFixedAssetServiceImplTest {
         when(taxTableService.findByAccountigAccountService(S_VAL_332)).thenReturn(taxTable);
 
         // Act
-        service.generateTemporayDeductionsService(accountingPeriod, fixedAssets);
+        service.generateTemporayDeductionsService(accountingPeriod, fixedAssets, S_VAL_332);
 
         // Assert
         verify(taxTableService).findByAccountigAccountService(S_VAL_332);
@@ -377,7 +430,7 @@ class FinancialFixedAssetServiceImplTest {
         List<FinancialFixedAsset> fixedAssets = List.of(fixedAsset);
 
         // Act
-        service.generateTemporayDeductionsService(accountingPeriod, fixedAssets);
+        service.generateTemporayDeductionsService(accountingPeriod, fixedAssets, S_VAL_332);
 
         // Assert
         verify(financialDepreciationService, never()).saveService(any(FinancialDepreciation.class));
@@ -624,4 +677,147 @@ class FinancialFixedAssetServiceImplTest {
         assertEquals("CARNOL", actualAsset.getAddedBy());
         assertNotNull(actualAsset.getAdditionDate());
     }
+
+    @Test
+    @DisplayName("generate projection service throws on unsupported type")
+    void generateProjectionServiceThrowsOnUnsupportedType() {
+        List<FinancialFixedAsset> fixedAssets = Collections.emptyList();
+        IllegalArgumentException ex = assertThrows(
+            IllegalArgumentException.class,
+            () -> service.generateProjectionService(
+                null,
+                LocalDate.now(),
+                fixedAssets,
+                "ACC"
+            ),
+            "Cuando se pase un tipo de proyección no soportado (null), debe lanzarse IllegalArgumentException"
+        );
+        assertTrue(ex.getMessage().contains("no soportado"));
+    }
+
+    @Test
+    @DisplayName("generate projection service delegates to correct generator")
+    void generateProjectionServiceDelegatesToGenerator() {
+        LocalDate date = LocalDate.of(2022,1,1);
+        List<FinancialFixedAsset> assets = List.of(new FinancialFixedAsset());
+        service.generateProjectionService(ProjectionType.TEMPORARY_DEDUCTIONS, date, assets, "ACC");
+        verify(generateTemporaryDeductions).generate(date, assets);
+        // no invoca al otro
+        verify(generateTemporaryAdditions, never()).generate(any(), any());
+    }
+
+    @Test
+    @DisplayName("generate temporay deductions service does nothing when taxTable null")
+    void generateTemporayDeductionsServiceSkipsWhenTaxTableNull() {
+        LocalDate date = LocalDate.now();
+        when(taxTableService.findByAccountigAccountService(S_VAL_332)).thenReturn(null);
+        service.generateTemporayDeductionsService(date, List.of(new FinancialFixedAsset()), S_VAL_332);
+        verifyNoInteractions(financialDepreciationService, taxDepreciationService, additionService, deductionService);
+    }
+
+    @Test
+    @DisplayName("generate temporay deductions service skips non-eligible")
+    void generateTemporayDeductionsServiceSkipsNonEligible() {
+        LocalDate date = LocalDate.now();
+        FinancialFixedAsset fa = getFinancialFixedAsset332();
+        fa.setAcquisitionDate(LocalDate.of(1970,1,1));
+        fa.setFixedAssetAccountingAccount(S_VAL_332 + "123");
+        fa.setInitialBalance(java.math.BigDecimal.ZERO);
+        when(taxTableService.findByAccountigAccountService(S_VAL_332))
+            .thenReturn(getTaxTable332());
+        service.generateTemporayDeductionsService(date, List.of(fa), S_VAL_332);
+        verifyNoInteractions(financialDepreciationService, taxDepreciationService, additionService, deductionService);
+    }
+
+    @Test
+    @DisplayName("generate temporay deductions service invokes saves on eligible")
+    void generateTemporayDeductionsServiceInvokesOnEligible() {
+        LocalDate date = LocalDate.of(2022,1,1);
+        FinancialFixedAsset fa = DataTest.getFinancialFixedAsset332();
+        fa.setAcquisitionDate(LocalDate.of(2020,1,1));
+        fa.setInitialBalance(new java.math.BigDecimal("100"));
+        // revaluedAmount = zero by default in DataTest asset
+        when(taxTableService.findByAccountigAccountService(S_VAL_332))
+            .thenReturn(DataTest.getTaxTable332());
+
+        service.generateTemporayDeductionsService(date, List.of(fa), S_VAL_332);
+
+        verify(financialDepreciationService).saveAllService(anyList());
+        verify(taxDepreciationService).saveAllService(anyList());
+        verify(deductionService).saveAllService(anyList());
+        verify(additionService).saveAllService(anyList());
+    }
+
+    @Test
+    @DisplayName("generate temporary addition service skips when taxTable null")
+    void generateTemporaryAdditionServiceSkipsWhenTaxTableNull() {
+        LocalDate date = LocalDate.now();
+        FinancialFixedAsset fa = getFinancialFixedAsset332();
+        when(taxTableService.findByAccountigAccountService(anyString()))
+            .thenReturn(null);
+        service.generateTemporaryAdditionService(date, List.of(fa));
+        verifyNoInteractions(financialDepreciationService, taxDepreciationService, additionService, deductionService);
+    }
+
+    @Test
+    @DisplayName("generate temporary addition service skips non-eligible by description")
+    void generateTemporaryAdditionServiceSkipsNonEligibleByDescription() {
+        LocalDate date = LocalDate.now();
+        FinancialFixedAsset fa = DataTest.getFinancialFixedAsset332();
+        fa.setAcquisitionDate(LocalDate.of(2020,1,1));
+        fa.setInitialBalance(new java.math.BigDecimal("100"));
+        fa.setWellAppraisedPreInvestmentStudyDry("Con TAsacion"); // contiene ‘tasacion’ no elegible
+        when(taxTableService.findByAccountigAccountService(anyString()))
+            .thenReturn(DataTest.getTaxTable332());
+        service.generateTemporaryAdditionService(date, List.of(fa));
+        verifyNoInteractions(additionService, deductionService, financialDepreciationService, taxDepreciationService);
+    }
+
+    @Test
+    @DisplayName("generate temporary additions service invokes on eligible")
+    void generateTemporaryAdditionServiceInvokesOnEligible() {
+        LocalDate date = LocalDate.of(2022,1,1);
+        FinancialFixedAsset fa = DataTest.getFinancialFixedAsset332();
+        when(taxTableService.findByAccountigAccountService(fa.getFixedAssetAccountingAccount().substring(0,3)))
+            .thenReturn(DataTest.getTaxTable332());
+        service.generateTemporaryAdditionService(date, List.of(fa));
+        verify(financialDepreciationService).saveAllService(anyList());
+        verify(taxDepreciationService).saveAllService(anyList());
+        verify(additionService).saveAllService(anyList());
+        verify(deductionService).saveAllService(anyList());
+    }
+
+    @Test
+    @DisplayName("findByAccountingAccountPrefixesService delegates to repository")
+    void findByAccountingAccountPrefixesServiceDelegates() {
+        List<String> prefixes = List.of("332","333");
+        when(repository.findByAccountingAccountPrefixes(prefixes))
+            .thenReturn(DataTest.getListFinancialFixedAsset());
+        var result = service.findByAccountingAccountPrefixesService(prefixes);
+        assertEquals(2, result.size());
+        verify(repository).findByAccountingAccountPrefixes(prefixes);
+    }
+
+    @Test
+    @DisplayName("call get report tax book service delegates to JDBC repo")
+    void callGetReportTaxBookServiceDelegates() throws Exception {
+        ParamReportDto prm = new ParamReportDto();
+        when(repositoryJdbc.callGetReportTaxBookJdbc(prm))
+            .thenReturn(List.of(new com.epsgrau.pe.sicodetri.dto.FinancialFixedAssetDto()));
+        var out = service.callGetReportTaxBookService(prm);
+        assertEquals(1, out.size());
+        verify(repositoryJdbc).callGetReportTaxBookJdbc(prm);
+    }
+
+    @Test
+    @DisplayName("call get report detail financial and tax depreciation service delegates")
+    void callGetReportDetailFinancialAndTaxDepreciationServiceDelegates() {
+        ParamReportDto prm = new ParamReportDto();
+        when(repositoryJdbc.callGetReportDetailFinancialAndTaxDepreciationJdbc(prm))
+            .thenReturn(List.of(new com.epsgrau.pe.sicodetri.dto.FinancialFixedAssetDto()));
+        var out = service.callGetReportDetailFinancialAndTaxDepreciationService(prm);
+        assertEquals(1, out.size());
+        verify(repositoryJdbc).callGetReportDetailFinancialAndTaxDepreciationJdbc(prm);
+    }
+
 }

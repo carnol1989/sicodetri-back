@@ -1,2 +1,0 @@
-<?xml version='1.0' encoding='UTF-8'?>
-<BugCollection version='4.8.6' threshold='low' effort='max'><Error></Error><Project><SrcDir>C:\Intellij_2023.2.4\TFM\sicodetri\src\main\java</SrcDir><SrcDir>C:\Intellij_2023.2.4\TFM\sicodetri\target\generated-sources\annotations</SrcDir><SrcDir>C:\Intellij_2023.2.4\TFM\sicodetri\src\test\java</SrcDir><SrcDir>C:\Intellij_2023.2.4\TFM\sicodetri\target\generated-test-sources\test-annotations</SrcDir></Project></BugCollection>

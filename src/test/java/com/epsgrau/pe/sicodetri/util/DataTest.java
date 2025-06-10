@@ -1,22 +1,28 @@
 package com.epsgrau.pe.sicodetri.util;
 
-import com.epsgrau.pe.sicodetri.entity.*;
+import static com.epsgrau.pe.sicodetri.util.ConstantsTest.D_VAL_ZERO;
+import static com.epsgrau.pe.sicodetri.util.ConstantsTest.FORMATTER_DD_MM_YYYY;
+import static com.epsgrau.pe.sicodetri.util.ConstantsTest.FORMATTER_YYYY_MM_DD;
+
+import com.epsgrau.pe.sicodetri.entity.Addition;
+import com.epsgrau.pe.sicodetri.entity.Deduction;
+import com.epsgrau.pe.sicodetri.entity.FinancialDepreciation;
+import com.epsgrau.pe.sicodetri.entity.FinancialFixedAsset;
+import com.epsgrau.pe.sicodetri.entity.TaxDepreciation;
+import com.epsgrau.pe.sicodetri.entity.TaxTableSunat;
 import com.epsgrau.pe.sicodetri.model.Depreciation;
 import com.epsgrau.pe.sicodetri.model.FixedAssetDetail;
 import com.epsgrau.pe.sicodetri.model.InputData;
-import net.sf.jasperreports.engine.JasperPrint;
-import net.sf.jasperreports.engine.base.JRBasePrintPage;
-import net.sf.jasperreports.engine.base.JRBasePrintText;
-import net.sf.jasperreports.engine.type.ModeEnum;
-
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
-
-import static com.epsgrau.pe.sicodetri.util.ConstantsTest.*;
+import net.sf.jasperreports.engine.JasperPrint;
+import net.sf.jasperreports.engine.base.JRBasePrintPage;
+import net.sf.jasperreports.engine.base.JRBasePrintText;
+import net.sf.jasperreports.engine.type.ModeEnum;
 
 /**
  * Util class for test data. <br/>
@@ -190,6 +196,7 @@ public class DataTest {
         taxTable.setAccountingAccount("332");
         taxTable.setDescription("Edificaciones y Otras Construcciones");
         taxTable.setAnnualRate(5);
+        taxTable.setUsefulLifeYears(20);
         taxTable.setStatus("S");
         return taxTable;
     }
