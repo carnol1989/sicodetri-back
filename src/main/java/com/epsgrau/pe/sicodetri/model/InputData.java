@@ -63,6 +63,7 @@ public class InputData implements Serializable {
     private String netFixedAssets; //30
     private String historicalCost; //31
     private String revaluedAmount; //32
+    private String wellAppraisedPreInvestmentStudyDry; //33
     private int rowNum;
     private int physicalNumberOfRows;
 

@@ -4,6 +4,7 @@ import com.epsgrau.pe.sicodetri.dto.FinancialFixedAssetDto;
 import com.epsgrau.pe.sicodetri.dto.ParamReportDto;
 import com.epsgrau.pe.sicodetri.entity.FinancialFixedAsset;
 import com.epsgrau.pe.sicodetri.model.InputData;
+import com.epsgrau.pe.sicodetri.service.projection.ProjectionType;
 import java.sql.SQLException;
 import java.time.LocalDate;
 import java.util.List;
@@ -39,14 +40,25 @@ public interface FinancialFixedAssetService {
 
     void deleteByAccountingPeriod(LocalDate period);
 
+    void generateProjectionService(ProjectionType type,
+                                   LocalDate accountingPeriod,
+                                   List<FinancialFixedAsset> fixedAssets,
+                                   String accountingAccount);
+
     void generateTemporayDeductionsService(LocalDate accountingPeriod,
-                                           List<FinancialFixedAsset> fixedAsset);
+                                           List<FinancialFixedAsset> fixedAsset,
+                                           String accountingAccount);
+
+    void generateTemporaryAdditionService(LocalDate accountingPeriod,
+                                          List<FinancialFixedAsset> fixedAsset);
 
     FinancialFixedAsset findByIdService(Long id);
 
     List<FinancialFixedAsset> findByMainFixedAssetCodeService(String mainFixedAssetCode);
 
     List<FinancialFixedAsset> findByFixedAssetAccountingAccountService(String accountingAccount);
+
+    List<FinancialFixedAsset> findByAccountingAccountPrefixesService(List<String> prefixes);
 
     List<FinancialFixedAsset> findAllService();
 

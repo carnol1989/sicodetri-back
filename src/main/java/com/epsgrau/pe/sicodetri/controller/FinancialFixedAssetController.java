@@ -1,6 +1,7 @@
 package com.epsgrau.pe.sicodetri.controller;
 
 import static com.epsgrau.pe.sicodetri.helper.ExcelHelper.hasExcelFormat;
+import static com.epsgrau.pe.sicodetri.util.Constants.ALL;
 import static com.epsgrau.pe.sicodetri.util.Constants.COMPANY_NAME;
 import static com.epsgrau.pe.sicodetri.util.Constants.COMPANY_NAME_VALUE;
 import static com.epsgrau.pe.sicodetri.util.Constants.N_VAL_1;
@@ -19,8 +20,9 @@ import com.epsgrau.pe.sicodetri.model.InputData;
 import com.epsgrau.pe.sicodetri.model.ResponseData;
 import com.epsgrau.pe.sicodetri.service.FinancialFixedAssetService;
 import com.epsgrau.pe.sicodetri.service.ReportJasperService;
-import com.epsgrau.pe.sicodetri.strategy.ReportStrategy;
-import com.epsgrau.pe.sicodetri.strategy.ReportStrategyFactory;
+import com.epsgrau.pe.sicodetri.service.projection.ProjectionType;
+import com.epsgrau.pe.sicodetri.service.report.ReportStrategy;
+import com.epsgrau.pe.sicodetri.service.report.ReportStrategyFactory;
 import com.epsgrau.pe.sicodetri.util.Constants;
 import com.epsgrau.pe.sicodetri.util.enums.ReportTypeEnum;
 import io.swagger.v3.oas.annotations.Operation;
@@ -38,6 +40,8 @@ import java.sql.SQLException;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -216,7 +220,7 @@ public class FinancialFixedAssetController {
      * @param account Accounting account
      * @return ResponseEntity of ResponseData
      */
-    @Operation(summary = "Generar proyección de deducciones temporales")
+    @Operation(summary = "Generar proyección de Activos Fijos")
     @ApiResponses(value = {
         @ApiResponse(
             responseCode = "200",
@@ -231,6 +235,9 @@ public class FinancialFixedAssetController {
     })
     @PostMapping("/projection")
     public ResponseEntity<ResponseData> generateProjectionController(
+        @Parameter(description = "Tipo de proyección (e.g. TEMPORARY_DEDUCTION, "
+            + "TEMPORARY_ADDITION)")
+        @RequestParam(name = "type") ProjectionType type,
         @Parameter(description = "Periodo contable", example = "2022-01-01")
         @RequestParam(name = "period") String period,
         @Parameter(description = "Cuenta contable que inicia con", example = "332")
@@ -240,17 +247,38 @@ public class FinancialFixedAssetController {
             LocalDate periodDate = LocalDate.parse(period,
                 DateTimeFormatter.ofPattern(Constants.FORMATTER_YYYY_MM_DD));
 
-            List<FinancialFixedAsset> listFinancialFixedAsset =
-                service.findByPeriodAndAccountStartingWithService(periodDate, account);
-            log.info("listFinancialFixedAsset: {}", listFinancialFixedAsset.size());
+            List<FinancialFixedAsset> listFinancialFixedAsset;
+            if (account.equalsIgnoreCase(ALL)) {
+                List<String> prefixes = List.of("332", "333", "334", "335", "336", "337");
+                listFinancialFixedAsset = service.findByAccountingAccountPrefixesService(prefixes);
+            } else {
+                listFinancialFixedAsset = service.findByPeriodAndAccountStartingWithService(
+                    periodDate, account);
+            }
+            log.info("Activos a procesar ({}): {}", type, listFinancialFixedAsset.size());
 
             if (listFinancialFixedAsset.isEmpty()) {
-                return buildResponseWithError(messageError, HttpStatus.EXPECTATION_FAILED, period);
+                return buildResponseWithError(
+                    messageError + " No se encontraron registros.",
+                    HttpStatus.EXPECTATION_FAILED,
+                    period);
             }
 
-            service.generateTemporayDeductionsService(periodDate, listFinancialFixedAsset);
+            service.generateProjectionService(type, periodDate, listFinancialFixedAsset, account);
             return buildResponse("Proyección generada correctamente.",
                 listFinancialFixedAsset.size(), HttpStatus.OK);
+        } catch (DateTimeParseException dtpe) {
+            return buildResponseWithError(
+                "Formato de fecha inválido. Use 'YYYY-MM-DD'.",
+                HttpStatus.BAD_REQUEST,
+                period
+            );
+        } catch (IllegalArgumentException iae) {
+            return buildResponseWithError(
+                "Tipo de proyección no soportado: " + iae.getMessage(),
+                HttpStatus.BAD_REQUEST,
+                period
+            );
         } catch (Exception e) {
             return handleException(messageError, e, HttpStatus.EXPECTATION_FAILED);
         }

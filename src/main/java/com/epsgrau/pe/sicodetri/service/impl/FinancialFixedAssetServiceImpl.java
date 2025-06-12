@@ -1,13 +1,23 @@
 package com.epsgrau.pe.sicodetri.service.impl;
 
 import static com.epsgrau.pe.sicodetri.helper.ExcelHelper.getValueCell;
-import static com.epsgrau.pe.sicodetri.util.Constants.D_VAL_ZERO;
 import static com.epsgrau.pe.sicodetri.util.Constants.FORMATTER_YYYY_MM_DD;
 import static com.epsgrau.pe.sicodetri.util.Constants.LOCAL_DATE_DEFAULT;
 import static com.epsgrau.pe.sicodetri.util.Constants.N_VAL_0;
 import static com.epsgrau.pe.sicodetri.util.Constants.S_DATE_DEFAULT;
+import static com.epsgrau.pe.sicodetri.util.Constants.S_VAL_01;
+import static com.epsgrau.pe.sicodetri.util.Constants.S_VAL_02;
 import static com.epsgrau.pe.sicodetri.util.Constants.S_VAL_332;
+import static com.epsgrau.pe.sicodetri.util.Constants.S_VAL_333;
+import static com.epsgrau.pe.sicodetri.util.Constants.S_VAL_334;
+import static com.epsgrau.pe.sicodetri.util.Constants.S_VAL_335;
+import static com.epsgrau.pe.sicodetri.util.Constants.S_VAL_336;
+import static com.epsgrau.pe.sicodetri.util.Constants.S_VAL_337;
 import static com.epsgrau.pe.sicodetri.util.Constants._BLANK;
+import static com.epsgrau.pe.sicodetri.util.Functions.defaultString;
+import static com.epsgrau.pe.sicodetri.util.Functions.parseBigDecimal;
+import static com.epsgrau.pe.sicodetri.util.Functions.parseDate;
+import static com.epsgrau.pe.sicodetri.util.Functions.parseDouble;
 
 import com.epsgrau.pe.sicodetri.dto.FinancialFixedAssetDto;
 import com.epsgrau.pe.sicodetri.dto.ParamReportDto;
@@ -29,6 +39,8 @@ import com.epsgrau.pe.sicodetri.service.FinancialDepreciationService;
 import com.epsgrau.pe.sicodetri.service.FinancialFixedAssetService;
 import com.epsgrau.pe.sicodetri.service.TaxDepreciationService;
 import com.epsgrau.pe.sicodetri.service.TaxTableSunatService;
+import com.epsgrau.pe.sicodetri.service.projection.ProjectionGenerator;
+import com.epsgrau.pe.sicodetri.service.projection.ProjectionType;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.sql.SQLException;
@@ -36,10 +48,12 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.Period;
 import java.time.format.DateTimeFormatter;
-import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.Row;
@@ -73,6 +87,14 @@ import org.springframework.web.multipart.MultipartFile;
 @Slf4j
 @Service
 public class FinancialFixedAssetServiceImpl implements FinancialFixedAssetService {
+
+    private final Map<ProjectionType, ProjectionGenerator> projectionGenerators;
+
+    @Autowired
+    public FinancialFixedAssetServiceImpl(List<ProjectionGenerator> generators) {
+        this.projectionGenerators = generators.stream()
+            .collect(Collectors.toMap(ProjectionGenerator::getType, g -> g));
+    }
 
     @Autowired
     private FinancialFixedAssetRepository repository;
@@ -179,6 +201,7 @@ public class FinancialFixedAssetServiceImpl implements FinancialFixedAssetServic
           case 30 -> inputData.setNetFixedAssets(cellValue);
           case 31 -> inputData.setHistoricalCost(cellValue);
           case 32 -> inputData.setRevaluedAmount(cellValue);
+          case 33 -> inputData.setWellAppraisedPreInvestmentStudyDry(cellValue);
           default -> {
           }
         }
@@ -318,6 +341,8 @@ public class FinancialFixedAssetServiceImpl implements FinancialFixedAssetServic
                         itemInputData.getFixedAssetCodeComponent())); //1
                     itemFinancialFixedAsset.setFixedAssetAccountingAccount(defaultString(
                         itemInputData.getFixedAssetAccountingAccount())); //2
+                    itemFinancialFixedAsset.setWellAppraisedPreInvestmentStudyDry(defaultString(
+                        itemInputData.getWellAppraisedPreInvestmentStudyDry())); //33
 
                     // Anidado: Detalle
                     if (itemInputData.getFixedAssetDetail() != null) {
@@ -355,88 +380,6 @@ public class FinancialFixedAssetServiceImpl implements FinancialFixedAssetServic
         return list;
     }
 
-    /**
-     * Validate and analyze dates.
-     *
-     * @param dateStr Date string
-     * @param formatter Formatter
-     * @param rowNum Row num
-     * @param fieldName Field name
-     * @return LocalDate
-     */
-    private static LocalDate parseDate(String dateStr, DateTimeFormatter formatter,
-                                       int rowNum, String fieldName) {
-        if (dateStr == null || dateStr.isBlank()) {
-            return LOCAL_DATE_DEFAULT;
-        }
-        try {
-            return LocalDate.parse(dateStr, formatter);
-        } catch (DateTimeParseException e) {
-            throw new IllegalArgumentException("Formato de fecha inválido en '" + fieldName
-                + "' (fila " + rowNum + "): '" + dateStr + "'");
-        }
-    }
-
-    /**
-     * Numerical (BigDecimal) parsing with validation.
-     *
-     * @param value String for parse
-     * @param rowNum Row num
-     * @param fieldName Field name
-     * @return BigDecimal
-     */
-    private static BigDecimal parseBigDecimal(String value, int rowNum, String fieldName) {
-        if (value == null || value.isBlank()) {
-            return BigDecimal.ZERO;
-        }
-        try {
-            // 1. Elimina separadores de miles (comas)
-            String normalizedValue = value.replace(",", "");
-
-            // 2. Reemplaza "- 0" o cualquier "- <espacio><dígitos>" por "-<dígitos>"
-            normalizedValue = normalizedValue.replaceAll("-\\s+(\\d+)", "-$1");
-
-            return new BigDecimal(normalizedValue);
-        } catch (NumberFormatException e) {
-            throw new IllegalArgumentException("Número inválido en '" + fieldName + "' (fila "
-                + rowNum + "): '" + value + "'");
-        }
-    }
-
-    /**
-     * Numerical (Double) parsing with validation.
-     *
-     * @param value String
-     * @param rowNum Row num
-     * @param fieldName Field name
-     * @return Double
-     */
-    private static Double parseDouble(String value, int rowNum, String fieldName) {
-        if (value == null || value.isBlank()) {
-            return D_VAL_ZERO;
-        }
-        try {
-            String normalizedValue = value.replace(",", "");
-
-            normalizedValue = normalizedValue.replaceAll("-\\s+(\\d+(\\.\\d+)?)", "-$1");
-
-            return Double.parseDouble(normalizedValue);
-        } catch (NumberFormatException e) {
-            throw new IllegalArgumentException("Número double inválido en '" + fieldName
-                + "' (fila " + rowNum + "): '" + value + "'");
-        }
-    }
-
-    /**
-     * Validate string and return default value.
-     *
-     * @param value String
-     * @return String
-     */
-    private static String defaultString(String value) {
-        return (value != null) ? value : _BLANK;
-    }
-
     @Override
     public void updateService(FinancialFixedAsset obj) {
         repository.save(obj);
@@ -455,27 +398,79 @@ public class FinancialFixedAssetServiceImpl implements FinancialFixedAssetServic
     @Transactional
     @Modifying
     @Override
+    public void generateProjectionService(ProjectionType type,
+                                          LocalDate accountingPeriod,
+                                          List<FinancialFixedAsset> fixedAssets,
+                                          String accountingAccount) {
+        ProjectionGenerator gen = projectionGenerators.get(type);
+        if (gen == null) {
+            throw new IllegalArgumentException("Tipo de proyección no soportado: " + type);
+        }
+        gen.generate(accountingPeriod, fixedAssets);
+    }
+
+    @Transactional
+    @Modifying
+    @Override
     public void generateTemporayDeductionsService(LocalDate accountingPeriod,
-                                                  List<FinancialFixedAsset> fixedAssets) {
-        TaxTableSunat taxTable = taxTableService.findByAccountigAccountService(S_VAL_332);
+                                                  List<FinancialFixedAsset> fixedAssets,
+                                                  String accountingAccount) {
+        TaxTableSunat taxTable = taxTableService.findByAccountigAccountService(accountingAccount);
         if (taxTable == null) {
-            return; // Si no hay tabla de impuestos, no se puede proceder
+            return;
         }
 
         for (FinancialFixedAsset fixedAsset : fixedAssets) {
-            if (isEligibleForDepreciation(fixedAsset)) {
-                processAssetDepreciation(fixedAsset, accountingPeriod, taxTable);
+            if (isEligibleForTemporaryDeduciton(fixedAsset)) {
+                processAssetTemporaryDeduction(fixedAsset, accountingPeriod, taxTable);
             }
         }
     }
 
-    private boolean isEligibleForDepreciation(FinancialFixedAsset fixedAsset) {
+    @Transactional
+    @Modifying
+    @Override
+    public void generateTemporaryAdditionService(LocalDate accountingPeriod,
+                                                 List<FinancialFixedAsset> fixedAssets) {
+        for (FinancialFixedAsset fixedAsset : fixedAssets) {
+            TaxTableSunat taxTable = taxTableService.findByAccountigAccountService(
+                fixedAsset.getFixedAssetAccountingAccount().substring(0, 3));
+            if (taxTable == null) {
+                return;
+            }
+            if (isEligibleForTemporaryAddition(fixedAsset)) {
+                processAssetTemporaryAddition(fixedAsset, accountingPeriod, taxTable);
+            }
+        }
+    }
+
+    private boolean isEligibleForTemporaryDeduciton(FinancialFixedAsset fixedAsset) {
         return !fixedAsset.getAcquisitionDate().equals(LOCAL_DATE_DEFAULT)
+            && fixedAsset.getFixedAssetAccountingAccount().startsWith(S_VAL_332)
             && fixedAsset.getInitialBalance().compareTo(BigDecimal.ZERO) > N_VAL_0
             && fixedAsset.getRevaluedAmount().compareTo(BigDecimal.ZERO) == N_VAL_0;
     }
 
-    private void processAssetDepreciation(FinancialFixedAsset fixedAsset,
+    private boolean isEligibleForTemporaryAddition(FinancialFixedAsset fixedAsset) {
+        String accountingAccount = fixedAsset.getFixedAssetAccountingAccount();
+        String description = fixedAsset.getWellAppraisedPreInvestmentStudyDry();
+        String lowerDescription = description == null ? "" :
+            description.toLowerCase(Locale.ROOT).trim();
+
+        return !fixedAsset.getAcquisitionDate().equals(LOCAL_DATE_DEFAULT)
+            && (accountingAccount.startsWith(S_VAL_332)
+                || accountingAccount.startsWith(S_VAL_333)
+                || accountingAccount.startsWith(S_VAL_334)
+                || accountingAccount.startsWith(S_VAL_335)
+                || accountingAccount.startsWith(S_VAL_336)
+                || accountingAccount.startsWith(S_VAL_337))
+            && !(lowerDescription.contains("tasacion")
+                || lowerDescription.contains("valor tasado")
+                || lowerDescription.contains("valortasado"))
+            && fixedAsset.getInitialBalance().compareTo(BigDecimal.ZERO) > N_VAL_0;
+    }
+
+    private void processAssetTemporaryDeduction(FinancialFixedAsset fixedAsset,
         LocalDate accountingPeriod, TaxTableSunat taxTable) {
         TaxDepreciation taxDepreciationMonth = new TaxDepreciation();
         taxDepreciationMonth.setNetTaxValue(BigDecimal.ZERO);
@@ -499,7 +494,42 @@ public class FinancialFixedAssetServiceImpl implements FinancialFixedAssetServic
         int numberYearsPassed = Period.between(acquisitionDate, accountingPeriod).getYears();
         int remainingYears = fixedAsset.getUsefulLifeYears().intValue() - numberYearsPassed;
         for (int year = 0; year < remainingYears; year++) {
-            projection = processYearDepreciation(fixedAsset, projection, taxTable);
+            projection = processYearDepreciation(fixedAsset, projection, taxTable, S_VAL_01,
+                -1);
+        }
+
+        financialDepreciationService.saveAllService(projection.getFinancialDepreciationList());
+        taxDepreciationService.saveAllService(projection.getTaxDepreciationList());
+        deductionService.saveAllService(projection.getDeductionList());
+        additionService.saveAllService(projection.getAdditionList());
+    }
+
+    private void processAssetTemporaryAddition(FinancialFixedAsset fixedAsset,
+        LocalDate accountingPeriod, TaxTableSunat taxTable) {
+        TaxDepreciation taxDepreciationMonth = new TaxDepreciation();
+        taxDepreciationMonth.setNetTaxValue(BigDecimal.ZERO);
+        taxDepreciationMonth.setFirst(true);
+        taxDepreciationMonth.setLast(false);
+
+        Projection projection = new Projection();
+        projection.setAccountigPeriod(accountingPeriod);
+        projection.setAccountigPeriodNext(accountingPeriod);
+        List<FinancialDepreciation> financialDepreciationList = new ArrayList<>();
+        projection.setFinancialDepreciationList(financialDepreciationList);
+        projection.setTaxDepreciation(taxDepreciationMonth);
+        List<TaxDepreciation> taxDepreciationList = new ArrayList<>();
+        projection.setTaxDepreciationList(taxDepreciationList);
+        List<Addition> additionList = new ArrayList<>();
+        projection.setAdditionList(additionList);
+        List<Deduction> deductionList = new ArrayList<>();
+        projection.setDeductionList(deductionList);
+
+        int numberYears = 1;
+        int remainingYears = taxTable.getUsefulLifeYears();
+        for (int year = 0; year < remainingYears; year++) {
+            projection = processYearDepreciation(fixedAsset, projection, taxTable,
+                S_VAL_02, numberYears);
+            numberYears++;
         }
 
         financialDepreciationService.saveAllService(projection.getFinancialDepreciationList());
@@ -509,20 +539,19 @@ public class FinancialFixedAssetServiceImpl implements FinancialFixedAssetServic
     }
 
     private Projection processYearDepreciation(FinancialFixedAsset fixedAsset,
-                                               Projection projection,
-                                              TaxTableSunat taxTable) {
+        Projection projection, TaxTableSunat taxTable, String typeProjection,
+        int numberYears) {
         for (int month = 0; month < 12; month++) {
             FinancialDepreciation financialDepreciation = createFinancialDepreciation(fixedAsset,
-                projection.getAccountigPeriodNext());
+                projection.getAccountigPeriodNext(), typeProjection, numberYears);
             projection.getFinancialDepreciationList().add(financialDepreciation);
 
             TaxDepreciation taxDepreciation = createTaxDepreciation(fixedAsset,
-                projection.getAccountigPeriodNext(),
-                    projection.getAccountigPeriod(), projection.getTaxDepreciation(), taxTable);
+                projection.getAccountigPeriodNext(), projection.getAccountigPeriod(),
+                projection.getTaxDepreciation(), taxTable, typeProjection);
             projection.getTaxDepreciationList().add(taxDepreciation);
 
             BigDecimal valueAdditionOrDeduction = BigDecimal.ZERO;
-
             if (taxDepreciation.getValueDepreciation()
                 .compareTo(financialDepreciation.getValueDepreciation()) > 0
                 && taxDepreciation.getNetTaxValue().compareTo(BigDecimal.ZERO) > 0) {
@@ -540,7 +569,15 @@ public class FinancialFixedAssetServiceImpl implements FinancialFixedAssetServic
                     taxDepreciation, valueAdditionOrDeduction);
                 projection.getDeductionList().add(deduction);
             } else {
-                valueAdditionOrDeduction = financialDepreciation.getValueDepreciation();
+                if (typeProjection.equals(S_VAL_01)) {
+                    valueAdditionOrDeduction = financialDepreciation.getValueDepreciation();
+                } else if (typeProjection.equals(S_VAL_02)) {
+                    if (numberYears <= fixedAsset.getUsefulLifeYears().intValue()) {
+                        valueAdditionOrDeduction = taxDepreciation.getValueDepreciation();
+                    } else {
+                        valueAdditionOrDeduction = BigDecimal.ZERO;
+                    }
+                }
                 Addition addition = createAddition(projection.getAccountigPeriodNext(),
                     taxDepreciation, valueAdditionOrDeduction);
                 projection.getAdditionList().add(addition);
@@ -550,31 +587,30 @@ public class FinancialFixedAssetServiceImpl implements FinancialFixedAssetServic
             projection.setTaxDepreciation(taxDepreciation);
         }
         projection.setAccountigPeriodNext(projection.getAccountigPeriodNext()
-            .plusYears(1).minusMonths(12)); // Ajusta el periodo al siguiente año
+            .plusYears(1).minusMonths(12)); // Adjust the period to the next year
         return projection;
     }
 
     private FinancialDepreciation createFinancialDepreciation(FinancialFixedAsset fixedAsset,
-                                                              LocalDate accountingPeriod) {
+        LocalDate accountingPeriod, String typeProjection, int numberYears) {
         FinancialDepreciation financialDepreciation = new FinancialDepreciation();
         financialDepreciation.setFinancialFixedAsset(fixedAsset);
         financialDepreciation.setAccountingPeriod(accountingPeriod);
-        financialDepreciation.calculateDepreciation(fixedAsset);
+        financialDepreciation.calculateDepreciation(fixedAsset, typeProjection, numberYears);
         financialDepreciation.setAddedBy("CARNOL");
         financialDepreciation.setAdditionDate(LocalDateTime.now());
         return financialDepreciation;
     }
 
     private TaxDepreciation createTaxDepreciation(FinancialFixedAsset fixedAsset,
-                                                  LocalDate accountingPeriodNext,
-                                                  LocalDate accountingPeriod,
-                                                  TaxDepreciation taxDepreciationOld,
-                                                  TaxTableSunat taxTable) {
+        LocalDate accountingPeriodNext, LocalDate accountingPeriod,
+        TaxDepreciation taxDepreciationOld, TaxTableSunat taxTable,
+        String typeProjection) {
         TaxDepreciation taxDepreciation = new TaxDepreciation();
         taxDepreciation.setFinancialFixedAsset(fixedAsset);
         taxDepreciation.setAccountingPeriod(accountingPeriodNext);
         taxDepreciation.calculateDepreciation(fixedAsset, taxTable,
-            accountingPeriod, taxDepreciationOld);
+            accountingPeriod, taxDepreciationOld, typeProjection);
         taxDepreciation.setAddedBy("CARNOL");
         taxDepreciation.setAdditionDate(LocalDateTime.now());
         taxDepreciation.setFirst(false);
@@ -635,6 +671,11 @@ public class FinancialFixedAssetServiceImpl implements FinancialFixedAssetServic
                                                                                String account) {
         return new ArrayList<>(repository
             .findByAccountingPeriodAndFixedAssetAccountingAccountStartingWith(period, account));
+    }
+
+    @Override
+    public List<FinancialFixedAsset> findByAccountingAccountPrefixesService(List<String> prefixes) {
+        return new ArrayList<>(repository.findByAccountingAccountPrefixes(prefixes));
     }
 
     @Override
