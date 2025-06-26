@@ -6,6 +6,7 @@ import static com.epsgrau.pe.sicodetri.util.Constants.N_VAL_2;
 import static com.epsgrau.pe.sicodetri.util.Constants.N_VAL_9;
 import static com.epsgrau.pe.sicodetri.util.Constants.S_VAL_01;
 import static com.epsgrau.pe.sicodetri.util.Constants.S_VAL_02;
+import static com.epsgrau.pe.sicodetri.util.Constants.S_VAL_03;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -114,7 +115,8 @@ public class FinancialDepreciation {
             RoundingMode.HALF_UP);
 
         // Calculate monthly depreciation
-        if (typeProjection.equals(S_VAL_01)) {
+        if (typeProjection.equals(S_VAL_01)
+            || typeProjection.equals(S_VAL_03)) {
             this.valueDepreciation = initialBalance.multiply(monthlyFinancialRate);
         } else if (typeProjection.equals(S_VAL_02)) {
             if (numberYears <= fixedAsset.getUsefulLifeYears().intValue()) {

@@ -1,6 +1,8 @@
 package com.epsgrau.pe.sicodetri.service;
 
 import com.epsgrau.pe.sicodetri.entity.Addition;
+import com.epsgrau.pe.sicodetri.entity.TaxDepreciation;
+import java.util.List;
 
 /**
  * This interface with the operations of the Addition class. <br/>
@@ -21,4 +23,7 @@ import com.epsgrau.pe.sicodetri.entity.Addition;
  * @version 1.0
  */
 public interface AdditionService extends CrudService<Addition, Long> {
+
+    List<Addition> findByTaxDepreciationInService(List<TaxDepreciation> taxDepreciations);
+
 }

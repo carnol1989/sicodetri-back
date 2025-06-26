@@ -45,13 +45,6 @@ public interface FinancialFixedAssetService {
                                    List<FinancialFixedAsset> fixedAssets,
                                    String accountingAccount);
 
-    void generateTemporayDeductionsService(LocalDate accountingPeriod,
-                                           List<FinancialFixedAsset> fixedAsset,
-                                           String accountingAccount);
-
-    void generateTemporaryAdditionService(LocalDate accountingPeriod,
-                                          List<FinancialFixedAsset> fixedAsset);
-
     FinancialFixedAsset findByIdService(Long id);
 
     List<FinancialFixedAsset> findByMainFixedAssetCodeService(String mainFixedAssetCode);

@@ -38,6 +38,7 @@ import com.epsgrau.pe.sicodetri.dto.FinancialFixedAssetDto;
 import com.epsgrau.pe.sicodetri.dto.ParamReportDto;
 import com.epsgrau.pe.sicodetri.entity.FinancialFixedAsset;
 import com.epsgrau.pe.sicodetri.exception.GlobalExceptionHandler;
+import com.epsgrau.pe.sicodetri.exception.ResourceNotFoundException;
 import com.epsgrau.pe.sicodetri.model.InputData;
 import com.epsgrau.pe.sicodetri.model.ResponseData;
 import com.epsgrau.pe.sicodetri.service.FinancialFixedAssetService;
@@ -48,6 +49,7 @@ import com.epsgrau.pe.sicodetri.service.report.ReportStrategyFactory;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
 import lombok.extern.slf4j.Slf4j;
+import net.sf.jasperreports.engine.JRException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -743,5 +745,111 @@ class FinancialFixedAssetControllerTest {
         verify(reportStrategyFactory).getStrategy(eq(option));
         verify(reportStrategy).generateReport(any(ParamReportDto.class));
         verifyNoMoreInteractions(reportJasperService);
+    }
+
+    @Test
+    @DisplayName("Return EXPECTATION_FAILED when session input data is null")
+    void returnExpectationFailedWhenSessionInputDataIsNull() {
+        // Arrange
+        when(session.getAttribute(LIST_INPUT_DATA)).thenReturn(null);
+
+        // Act
+        ResponseEntity<ResponseData> response = controller.saveFinancialFixedAssetController("2022-01-01", session);
+
+        // Assert
+        assertEquals(HttpStatus.EXPECTATION_FAILED, response.getStatusCode());
+        assertEquals("01", response.getBody().getCode());
+        assertTrue(response.getBody().getMessage().contains("Error al obtener información"));
+    }
+
+    @Test
+    @DisplayName("Return BAD_REQUEST when generating projection with invalid date format")
+    void returnBadRequestWhenGeneratingProjectionWithInvalidDateFormat() {
+        // Act
+        ResponseEntity<ResponseData> response = controller.generateProjectionController(
+            ProjectionType.TEMPORARY_ADDITIONS, "2022/01/01", "332");
+
+        // Assert
+        assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
+        assertEquals("01", response.getBody().getCode());
+        assertTrue(response.getBody().getMessage().contains("Formato de fecha inválido"));
+    }
+
+    @Test
+    @DisplayName("Throw ResourceNotFoundException when reportList empty in direct call")
+    void throwResourceNotFoundExceptionWhenReportListEmptyDirectCall() throws Exception {
+        // Arrange
+        String option = "1";
+        when(reportStrategyFactory.getStrategy(option)).thenReturn(reportStrategy);
+        when(reportStrategy.generateReport(any(ParamReportDto.class))).thenReturn(Collections.emptyList());
+
+        // Act & Assert
+        ResourceNotFoundException ex = assertThrows(ResourceNotFoundException.class, () ->
+            controller.callGetReportsController(
+                option, "xlsx", "2022", "A", "B",
+                "2022-01-01", "2022-12-31", "2022-02-01", "2022-11-30"
+            )
+        );
+        assertEquals("No hay información para el periodo.", ex.getMessage());
+    }
+
+    @Test
+    @DisplayName("Throw ResourceNotFoundException when Jasper returns null in direct call")
+    void throwResourceNotFoundExceptionWhenJasperReturnsNullDirectCall() throws Exception {
+        // Arrange
+        String option = "1";
+        when(reportStrategyFactory.getStrategy(option)).thenReturn(reportStrategy);
+        List<FinancialFixedAssetDto> reportList = List.of(new FinancialFixedAssetDto());
+        when(reportStrategy.generateReport(any(ParamReportDto.class))).thenReturn(reportList);
+        when(reportStrategy.getTemplate()).thenReturn("rpt_tax_book.jrxml");
+        when(reportStrategy.getBaseFileName()).thenReturn("file_");
+        when(reportJasperService.getJasperReportInBytes(
+            eq(option), eq("rpt_tax_book.jrxml"), eq("xlsx"), anyMap(), eq(reportList)
+        )).thenReturn(null);
+
+        // Act & Assert
+        ResourceNotFoundException ex = assertThrows(ResourceNotFoundException.class, () ->
+            controller.callGetReportsController(
+                option, "xlsx", "2022", "A", "B",
+                "2022-01-01", "2022-12-31", "2022-02-01", "2022-11-30"
+            )
+        );
+        assertEquals("Error al obtener reporte", ex.getMessage());
+    }
+
+    @Test
+    @DisplayName("Throw NumberFormatException when year is not a number")
+    void throwNumberFormatExceptionWhenYearNotANumber() throws Exception {
+        // Act & Assert
+        assertThrows(NumberFormatException.class, () ->
+            controller.callGetReportsController(
+                "1", "xlsx", "ABC", "A", "B",
+                "2022-01-01", "2022-12-31", "2022-02-01", "2022-11-30"
+            )
+        );
+    }
+
+    @Test
+    @DisplayName("Throw JRException when Jasper service throws JRException")
+    void throwJRExceptionWhenJasperServiceThrowsJRException() throws Exception {
+        // Arrange
+        String option = "1";
+        when(reportStrategyFactory.getStrategy(option)).thenReturn(reportStrategy);
+        List<FinancialFixedAssetDto> reportList = List.of(new FinancialFixedAssetDto());
+        when(reportStrategy.generateReport(any(ParamReportDto.class))).thenReturn(reportList);
+        when(reportStrategy.getTemplate()).thenReturn("rpt.jrxml");
+        when(reportStrategy.getBaseFileName()).thenReturn("file_");
+        when(reportJasperService.getJasperReportInBytes(
+            anyString(), anyString(), anyString(), anyMap(), anyList()
+        )).thenThrow(new JRException("JRError"));
+
+        // Act & Assert
+        JRException ex = assertThrows(JRException.class, () ->
+            controller.callGetReportsController(
+                option, "xlsx", "2022", "A", "B",
+                "2022-01-01", "2022-12-31", "2022-02-01", "2022-11-30"
+            )
+        );
+        assertEquals("JRError", ex.getMessage());
     }
 }

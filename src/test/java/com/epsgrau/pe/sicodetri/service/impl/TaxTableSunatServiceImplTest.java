@@ -1,8 +1,11 @@
 package com.epsgrau.pe.sicodetri.service.impl;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -10,6 +13,7 @@ import static org.mockito.Mockito.when;
 import com.epsgrau.pe.sicodetri.entity.TaxTableSunat;
 import com.epsgrau.pe.sicodetri.repository.TaxTableSunatRepository;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
@@ -51,6 +55,50 @@ class TaxTableSunatServiceImplTest {
     }
 
     @Test
+    @DisplayName("saveService returns the saved entity")
+    void saveServiceReturnsSavedEntity() {
+        // Arrange
+        TaxTableSunat input = new TaxTableSunat();
+        TaxTableSunat saved = new TaxTableSunat();
+        when(repository.save(input)).thenReturn(saved);
+
+        // Act
+        TaxTableSunat result = service.saveService(input);
+
+        // Assert
+        verify(repository).save(input);
+        assertSame(saved, result, "Debe devolver exactamente el objeto retornado por el repositorio");
+    }
+
+    @Test
+    @DisplayName("saveAllService invokes repository.saveAll with given list")
+    void saveAllServiceInvokesSaveAll() {
+        // Arrange
+        List<TaxTableSunat> list = Arrays.asList(new TaxTableSunat(), new TaxTableSunat());
+
+        // Act
+        service.saveAllService(list);
+
+        // Assert
+        verify(repository).saveAll(list);
+    }
+
+    @Test
+    @DisplayName("findAllService returns empty list when repository is empty")
+    void findAllServiceReturnsEmptyListWhenNoEntities() {
+        // Arrange
+        when(repository.findAll()).thenReturn(Collections.emptyList());
+
+        // Act
+        List<TaxTableSunat> result = service.findAllService();
+
+        // Assert
+        verify(repository).findAll();
+        assertNotNull(result, "No debe regresar null aunque no haya datos");
+        assertTrue(result.isEmpty(), "La lista debe venir vacía si no hay entidades");
+    }
+
+    @Test
     @DisplayName("Save TaxTableSunat when valid entity is provided")
     void saveTaxTableSunatWhenValidEntityIsProvided() {
         // Arrange
@@ -85,6 +133,14 @@ class TaxTableSunatServiceImplTest {
 
         // Assert
         verify(repository, times(1)).deleteById(id);
+    }
+
+    @Test
+    @DisplayName("deleteAllService invokes repository.deleteAll")
+    void deleteAllServiceInvokesDeleteAll() {
+        List<TaxTableSunat> list = Arrays.asList(new TaxTableSunat(), new TaxTableSunat());
+        service.deleteAllService(list);
+        verify(repository).deleteAll(list);
     }
 
     @Test
@@ -164,6 +220,74 @@ class TaxTableSunatServiceImplTest {
         // Assert
         assertNull(result);
         verify(repository, times(1)).findByAccountingAccount(accountingAccount);
+    }
+
+    @Test
+    @DisplayName("AllArgsConstructor, getters and toString()")
+    void allArgsConstructorAndGetters() {
+        Long id = 9L;
+        String accAccount = "332";
+        String desc       = "Construcciones";
+        Integer rate      = 5;
+        Integer lifeYears = 20;
+        String status     = "S";
+
+        TaxTableSunat t = new TaxTableSunat(
+            id,
+            accAccount,
+            desc,
+            rate,
+            lifeYears,
+            status
+        );
+
+        // getters
+        assertEquals(id,            t.getId());
+        assertEquals(accAccount,    t.getAccountingAccount());
+        assertEquals(desc,          t.getDescription());
+        assertEquals(rate,          t.getAnnualRate());
+        assertEquals(lifeYears,     t.getUsefulLifeYears());
+        assertEquals(status,        t.getStatus());
+
+        // toString contains some key pieces
+        String s = t.toString();
+        assertTrue(s.contains("id=" + id));
+        assertTrue(s.contains("accountingAccount=" + accAccount));
+        assertTrue(s.contains("annualRate=" + rate));
+    }
+
+    @Test
+    @DisplayName("No-args constructor and setters")
+    void noArgsConstructorAndSetters() {
+        TaxTableSunat t = new TaxTableSunat();
+
+        t.setId(7L);
+        t.setAccountingAccount("777");
+        t.setDescription("Desc777");
+        t.setAnnualRate(7);
+        t.setUsefulLifeYears(7);
+        t.setStatus("N");
+
+        assertEquals(7L,        t.getId());
+        assertEquals("777",     t.getAccountingAccount());
+        assertEquals("Desc777", t.getDescription());
+        assertEquals(7,         t.getAnnualRate());
+        assertEquals(7,         t.getUsefulLifeYears());
+        assertEquals("N",       t.getStatus());
+    }
+
+    @Test
+    @DisplayName("equals & hashCode")
+    void equalsAndHashCode() {
+        TaxTableSunat a = new TaxTableSunat(1L, "X", "D", 1, 1, "Y");
+        TaxTableSunat b = new TaxTableSunat(1L, "X", "D", 1, 1, "Y");
+        TaxTableSunat c = new TaxTableSunat(2L, "Z", "D2", 2, 2, "N");
+
+        assertTrue(a.equals(b));
+        assertEquals(a.hashCode(), b.hashCode());
+        assertFalse(a.equals(c));
+        assertFalse(a.equals(null));
+        assertFalse(a.equals(new Object()));
     }
 
 }

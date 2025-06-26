@@ -1,6 +1,7 @@
 package com.epsgrau.pe.sicodetri.service;
 
 import com.epsgrau.pe.sicodetri.entity.FinancialDepreciation;
+import java.util.List;
 
 /**
  * This interface with the operations of the FinancialDepreciation class. <br/>
@@ -21,4 +22,7 @@ import com.epsgrau.pe.sicodetri.entity.FinancialDepreciation;
  * @version 1.0
  */
 public interface FinancialDepreciationService extends CrudService<FinancialDepreciation, Long> {
+
+    List<FinancialDepreciation> findByFinancialFixedAssetIdService(Long fixedAssetId);
+
 }

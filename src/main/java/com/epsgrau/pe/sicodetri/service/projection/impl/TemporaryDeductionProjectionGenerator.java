@@ -5,6 +5,9 @@ import static com.epsgrau.pe.sicodetri.util.Constants.N_VAL_0;
 import static com.epsgrau.pe.sicodetri.util.Constants.S_VAL_01;
 import static com.epsgrau.pe.sicodetri.util.Constants.S_VAL_332;
 
+import com.epsgrau.pe.sicodetri.entity.Addition;
+import com.epsgrau.pe.sicodetri.entity.Deduction;
+import com.epsgrau.pe.sicodetri.entity.FinancialDepreciation;
 import com.epsgrau.pe.sicodetri.entity.FinancialFixedAsset;
 import com.epsgrau.pe.sicodetri.entity.TaxDepreciation;
 import com.epsgrau.pe.sicodetri.entity.TaxTableSunat;
@@ -70,10 +73,9 @@ public class TemporaryDeductionProjectionGenerator extends AbstractProjectionGen
             && f.getRevaluedAmount().compareTo(BigDecimal.ZERO) == N_VAL_0;
     }
 
-    private void processAsset(FinancialFixedAsset f,
+    private void processAsset(FinancialFixedAsset fixedAsset,
                               LocalDate period,
                               TaxTableSunat table) {
-        // inicializar proyección
         TaxDepreciation firstTax = new TaxDepreciation();
         firstTax.setNetTaxValue(BigDecimal.ZERO);
         firstTax.setFirst(true);
@@ -88,17 +90,30 @@ public class TemporaryDeductionProjectionGenerator extends AbstractProjectionGen
         proj.setDeductionList(new ArrayList<>());
         proj.setTaxDepreciation(firstTax);
 
-        // cuántos años faltan desde la adquisición
-        int yearsPassed = Period.between(f.getAcquisitionDate(), period).getYears();
-        int remaining = f.getUsefulLifeYears().intValue() - yearsPassed;
+        int yearsPassed = Period.between(fixedAsset.getAcquisitionDate(), period).getYears();
+        int remaining = fixedAsset.getUsefulLifeYears().intValue() - yearsPassed;
         for (int i = 0; i < remaining; i++) {
-            proj = processYearDepreciation(f, proj, table, S_VAL_01, -1);
+            proj = processYearDepreciation(fixedAsset, proj, table, S_VAL_01, -1);
         }
 
-        // persistir resultados
+        List<FinancialDepreciation> listFinancialDepreciation =
+            financialDepreciationService.findByFinancialFixedAssetIdService(fixedAsset.getId());
+        financialDepreciationService.deleteAllService(listFinancialDepreciation);
         financialDepreciationService.saveAllService(proj.getFinancialDepreciationList());
+
+        List<TaxDepreciation> listTaxDepreciation =
+            taxDepreciationService.findByFinancialFixedAssetIdService(fixedAsset.getId());
+        taxDepreciationService.deleteAllService(listTaxDepreciation);
         taxDepreciationService.saveAllService(proj.getTaxDepreciationList());
+
+        List<Deduction> listDeduction =
+            deductionService.findByTaxDepreciationInService(listTaxDepreciation);
+        deductionService.deleteAllService(listDeduction);
         deductionService.saveAllService(proj.getDeductionList());
+
+        List<Addition> listAddition =
+            additionService.findByTaxDepreciationInService(listTaxDepreciation);
+        additionService.deleteAllService(listAddition);
         additionService.saveAllService(proj.getAdditionList());
     }
 

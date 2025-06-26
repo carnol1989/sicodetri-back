@@ -3,6 +3,7 @@ package com.epsgrau.pe.sicodetri.service.projection.impl;
 import static com.epsgrau.pe.sicodetri.util.Constants.LOCAL_DATE_DEFAULT;
 import static com.epsgrau.pe.sicodetri.util.Constants.S_VAL_332;
 import static com.epsgrau.pe.sicodetri.util.DataTest.getFinancialFixedAsset332;
+import static com.epsgrau.pe.sicodetri.util.DataTest.getFinancialFixedAsset332ForTemporaryAddition;
 import static com.epsgrau.pe.sicodetri.util.DataTest.getTaxTable332;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.anyList;
@@ -101,7 +102,7 @@ class TemporaryAdditionProjectionGeneratorTest {
     when(taxTableService.findByAccountigAccountService(S_VAL_332))
         .thenReturn(table);
 
-    FinancialFixedAsset asset = getFinancialFixedAsset332();
+    FinancialFixedAsset asset = getFinancialFixedAsset332ForTemporaryAddition();
 
     // Act
     generator.generate(LocalDate.now(), List.of(asset));
@@ -132,5 +133,30 @@ class TemporaryAdditionProjectionGeneratorTest {
 
     // Assert: skip all
     verifyNoInteractions(financialDepreciationService, taxDepreciationService, additionService, deductionService);
+  }
+
+  @Test
+  @DisplayName("generate skips assets with non-eligible accounting-account prefix")
+  void generateSkipsWhenPrefixNotEligible() {
+    // Arrange: la tabla existe, pero el prefijo "999" no está entre 332–337
+    TaxTableSunat table = getTaxTable332();
+    when(taxTableService.findByAccountigAccountService("999")).thenReturn(table);
+
+    FinancialFixedAsset asset = new FinancialFixedAsset();
+    asset.setFixedAssetAccountingAccount("9991234567");
+    asset.setAcquisitionDate(LocalDate.now().minusYears(1));
+    asset.setInitialBalance(new BigDecimal("100"));
+    asset.setWellAppraisedPreInvestmentStudyDry(""); // descripción válida
+
+    // Act
+    generator.generate(LocalDate.now(), List.of(asset));
+
+    // Assert: al no ser elegible por prefijo, no se invocan servicios
+    verifyNoInteractions(
+        financialDepreciationService,
+        taxDepreciationService,
+        additionService,
+        deductionService
+    );
   }
 }

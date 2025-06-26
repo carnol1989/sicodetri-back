@@ -16,8 +16,9 @@ Aplicación Web monolítica que permite realizar la conciliación de la Deprecia
 3.2. Opción 2: Búsqueda por código de activo fijo principal.  
 3.3. Opción 3: Búsqueda por cuenta contable.
 4. Genera la proyección:  
-4.1. Deducciones Temporales
-4.2. Adiciones Temporales
+4.1. Deducciones Temporales  
+4.2. Adiciones Temporales  
+4.3. Adciones Permanentes
 5. CRUD del maestro de la Tabla de Tasas de SUNAT.
 
 ### Prerequisitos
@@ -130,8 +131,7 @@ Response:
 **4.1. Deducciones Temporales**  
 **Request:**
 ```bash
-curl --location --request POST 'http://localhost:8082/api/v1/financial-fixed-assets/projection?period=2022-01-01&account=332' \
---header 'Cookie: JSESSIONID=7220CAAC6F2D92F6A24D47A003C75FB4'
+curl --location --request POST 'http://localhost:8082/api/v1/financial-fixed-assets/projection?type=TEMPORARY_DEDUCTIONS&period=2022-01-01&account=332'
 ```
 **Response:**
 ```json
@@ -146,7 +146,22 @@ curl --location --request POST 'http://localhost:8082/api/v1/financial-fixed-ass
 **4.2. Adiciones Temporales**  
 **Request:**
 ```bash
-curl --location --request POST 'http://localhost:8082/api/v1/financial-fixed-assets/projection?period=2023-12-01&account=ALL'
+curl --location --request POST 'http://localhost:8082/api/v1/financial-fixed-assets/projection?type=TEMPORARY_ADDITIONS&period=2023-12-01&account=ALL'
+```
+**Response:**
+```json
+{
+    "timestamp": "2024-09-07T23:09:06.2970708",
+    "code": "00",
+    "message": "Proyección generada correctamente.",
+    "response": 1,
+    "exception": null
+}
+```
+**4.3. Adiciones Permanentes**  
+**Request:**
+```bash
+curl --location --request POST 'http://localhost:8082/api/v1/financial-fixed-assets/projection?type=PERMANENT_ADDITIONS&period=2022-01-01&account=332'
 ```
 **Response:**
 ```json
