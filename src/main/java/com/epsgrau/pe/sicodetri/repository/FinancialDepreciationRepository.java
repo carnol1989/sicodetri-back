@@ -1,6 +1,7 @@
 package com.epsgrau.pe.sicodetri.repository;
 
 import com.epsgrau.pe.sicodetri.entity.FinancialDepreciation;
+import java.util.List;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
@@ -25,4 +26,7 @@ import org.springframework.stereotype.Repository;
 @Repository
 public interface FinancialDepreciationRepository extends
     JpaRepository<FinancialDepreciation, Long> {
+
+    List<FinancialDepreciation> findByFinancialFixedAssetId(Long fixedAssetId);
+
 }

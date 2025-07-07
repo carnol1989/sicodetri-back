@@ -1,6 +1,7 @@
 package com.epsgrau.pe.sicodetri.repository;
 
 import com.epsgrau.pe.sicodetri.entity.TaxDepreciation;
+import java.util.List;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
@@ -24,4 +25,7 @@ import org.springframework.stereotype.Repository;
  */
 @Repository
 public interface TaxDepreciationRepository extends JpaRepository<TaxDepreciation, Long> {
+
+    List<TaxDepreciation> findByFinancialFixedAssetId(Long fixedAssetId);
+
 }

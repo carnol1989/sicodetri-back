@@ -30,6 +30,8 @@ public interface CrudService<T, IdT> {
 
     void deleteByIdService(IdT id);
 
+    void deleteAllService(List<T> listObj);
+
     T findByIdService(IdT id);
 
     List<T> findAllService();

@@ -4,6 +4,7 @@ import static com.epsgrau.pe.sicodetri.util.ConstantsTest.D_VAL_ZERO;
 import static com.epsgrau.pe.sicodetri.util.ConstantsTest.FORMATTER_DD_MM_YYYY;
 import static com.epsgrau.pe.sicodetri.util.ConstantsTest.FORMATTER_YYYY_MM_DD;
 
+import com.epsgrau.pe.sicodetri.dto.FinancialFixedAssetDto;
 import com.epsgrau.pe.sicodetri.entity.Addition;
 import com.epsgrau.pe.sicodetri.entity.Deduction;
 import com.epsgrau.pe.sicodetri.entity.FinancialDepreciation;
@@ -183,6 +184,88 @@ public class DataTest {
         return itemInputFinacialFixedAsset;
     }
 
+    public static FinancialFixedAsset getFinancialFixedAsset332ForTemporaryAddition() {
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern(FORMATTER_YYYY_MM_DD);
+        FinancialFixedAsset itemInputFinacialFixedAsset = new FinancialFixedAsset();
+        itemInputFinacialFixedAsset.setAccountingPeriod(LocalDate.parse("2022-01-01"));
+        itemInputFinacialFixedAsset.setMainFixedAssetCode("22.01.010862");//0
+        itemInputFinacialFixedAsset.setFixedAssetCodeComponent("");//1
+        itemInputFinacialFixedAsset.setFixedAssetAccountingAccount("3321161001");//2
+        itemInputFinacialFixedAsset.setDescription("CONSTRUCCION DE EDIFICIO PTAP CURUMUY");//3
+        itemInputFinacialFixedAsset.setFixedAssetBrand("NINGUNA");//4
+        itemInputFinacialFixedAsset.setFixedAssetModel("NINGUNO");//5
+        itemInputFinacialFixedAsset.setFixedAssetSerialNumberAndOrPlate("/");//6
+        itemInputFinacialFixedAsset.setInitialBalance(new BigDecimal("27493700.65"));//7
+        itemInputFinacialFixedAsset.setAcquisitionsAdditions(BigDecimal.ZERO);//8
+        itemInputFinacialFixedAsset.setImprovements(BigDecimal.ZERO);//9
+        itemInputFinacialFixedAsset.setTransfersAndOrReclassifications(BigDecimal.ZERO);//10
+        itemInputFinacialFixedAsset.setWithdrawalsAndOrRetirements(BigDecimal.ZERO);//11
+        itemInputFinacialFixedAsset.setOtherAdjustments(BigDecimal.ZERO);//12
+        itemInputFinacialFixedAsset.setBookValueOfFixedAssets(BigDecimal.ZERO);//13
+        itemInputFinacialFixedAsset.setInflationAdjustment(BigDecimal.ZERO);//14
+        itemInputFinacialFixedAsset.setAdjustedValueOfFixedAssets(new BigDecimal("27493700.65"));//15
+        itemInputFinacialFixedAsset.setAcquisitionDate(LocalDate.parse("2007-12-31", formatter));//16
+        itemInputFinacialFixedAsset.setStartDateFixedAssetUsage(LocalDate.parse("2007-12-31", formatter));//17
+        itemInputFinacialFixedAsset.setRetirementDate(LocalDate.parse("1900-01-01", formatter));//18
+        Depreciation depreciation = new Depreciation();
+        depreciation.setAppliedMethod("LINEA RECTA");//19
+        depreciation.setAuthorizationDocumentNumber("1");//20
+        itemInputFinacialFixedAsset.setUsefulLifeYears(30.00);//21
+        itemInputFinacialFixedAsset.setAccumulatedDepreciationTheEndPrevious(new BigDecimal("12830393.57"));//22
+        itemInputFinacialFixedAsset.setCurrentDepreciation(new BigDecimal("916456.68"));//23
+        itemInputFinacialFixedAsset.setCurrentDepreciationRelatedWithdrawalsRetirements(BigDecimal.ZERO);//24
+        itemInputFinacialFixedAsset.setCurrentDepreciationRelatedOtherAdjustments(BigDecimal.ZERO);//25
+        itemInputFinacialFixedAsset.setAccumulatedHistoricalDepreciation(new BigDecimal("13746850.25"));//26
+        itemInputFinacialFixedAsset.setDepreciationInflationAdjustment(BigDecimal.ZERO);//27
+        itemInputFinacialFixedAsset.setAccumulatedDepreciationAdjustedInflation(new BigDecimal("13746850.25"));//28
+        itemInputFinacialFixedAsset.setNetFixedAssets(new BigDecimal("13746850.40"));//30
+        itemInputFinacialFixedAsset.setHistoricalCost(BigDecimal.ZERO);
+        itemInputFinacialFixedAsset.setRevaluedAmount(BigDecimal.ZERO);
+        itemInputFinacialFixedAsset.setWellAppraisedPreInvestmentStudyDry("");
+        return itemInputFinacialFixedAsset;
+    }
+
+    public static FinancialFixedAsset getFinancialFixedAsset332ForPermanentAddition() {
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern(FORMATTER_YYYY_MM_DD);
+        FinancialFixedAsset itemInputFinacialFixedAsset = new FinancialFixedAsset();
+        itemInputFinacialFixedAsset.setAccountingPeriod(LocalDate.parse("2022-01-01"));
+        itemInputFinacialFixedAsset.setMainFixedAssetCode("22.01.010862");//0
+        itemInputFinacialFixedAsset.setFixedAssetCodeComponent("");//1
+        itemInputFinacialFixedAsset.setFixedAssetAccountingAccount("3321161001");//2
+        itemInputFinacialFixedAsset.setDescription("CONSTRUCCION DE EDIFICIO PTAP CURUMUY");//3
+        itemInputFinacialFixedAsset.setFixedAssetBrand("NINGUNA");//4
+        itemInputFinacialFixedAsset.setFixedAssetModel("NINGUNO");//5
+        itemInputFinacialFixedAsset.setFixedAssetSerialNumberAndOrPlate("/");//6
+        itemInputFinacialFixedAsset.setInitialBalance(new BigDecimal("27493700.65"));//7
+        itemInputFinacialFixedAsset.setAcquisitionsAdditions(BigDecimal.ZERO);//8
+        itemInputFinacialFixedAsset.setImprovements(BigDecimal.ZERO);//9
+        itemInputFinacialFixedAsset.setTransfersAndOrReclassifications(BigDecimal.ZERO);//10
+        itemInputFinacialFixedAsset.setWithdrawalsAndOrRetirements(BigDecimal.ZERO);//11
+        itemInputFinacialFixedAsset.setOtherAdjustments(BigDecimal.ZERO);//12
+        itemInputFinacialFixedAsset.setBookValueOfFixedAssets(BigDecimal.ZERO);//13
+        itemInputFinacialFixedAsset.setInflationAdjustment(BigDecimal.ZERO);//14
+        itemInputFinacialFixedAsset.setAdjustedValueOfFixedAssets(new BigDecimal("27493700.65"));//15
+        itemInputFinacialFixedAsset.setAcquisitionDate(LocalDate.parse("2007-12-31", formatter));//16
+        itemInputFinacialFixedAsset.setStartDateFixedAssetUsage(LocalDate.parse("2007-12-31", formatter));//17
+        itemInputFinacialFixedAsset.setRetirementDate(LocalDate.parse("1900-01-01", formatter));//18
+        Depreciation depreciation = new Depreciation();
+        depreciation.setAppliedMethod("LINEA RECTA");//19
+        depreciation.setAuthorizationDocumentNumber("1");//20
+        itemInputFinacialFixedAsset.setUsefulLifeYears(30.00);//21
+        itemInputFinacialFixedAsset.setAccumulatedDepreciationTheEndPrevious(new BigDecimal("12830393.57"));//22
+        itemInputFinacialFixedAsset.setCurrentDepreciation(new BigDecimal("916456.68"));//23
+        itemInputFinacialFixedAsset.setCurrentDepreciationRelatedWithdrawalsRetirements(BigDecimal.ZERO);//24
+        itemInputFinacialFixedAsset.setCurrentDepreciationRelatedOtherAdjustments(BigDecimal.ZERO);//25
+        itemInputFinacialFixedAsset.setAccumulatedHistoricalDepreciation(new BigDecimal("13746850.25"));//26
+        itemInputFinacialFixedAsset.setDepreciationInflationAdjustment(BigDecimal.ZERO);//27
+        itemInputFinacialFixedAsset.setAccumulatedDepreciationAdjustedInflation(new BigDecimal("13746850.25"));//28
+        itemInputFinacialFixedAsset.setNetFixedAssets(new BigDecimal("13746850.40"));//30
+        itemInputFinacialFixedAsset.setHistoricalCost(new BigDecimal("20143512.0000"));
+        itemInputFinacialFixedAsset.setRevaluedAmount(new BigDecimal("7350188.6500"));
+        itemInputFinacialFixedAsset.setWellAppraisedPreInvestmentStudyDry("tasacion 2013");
+        return itemInputFinacialFixedAsset;
+    }
+
     public static List<TaxTableSunat> getListTableSunats() {
         List<TaxTableSunat> taxTableSunats = new ArrayList<>();
         taxTableSunats.add(getTaxTable331());
@@ -264,6 +347,8 @@ public class DataTest {
         financialDepreciation.setAccountingPeriod(LocalDate.parse("2022-01-01"));
         financialDepreciation.setAddedBy("CARNOL");
         financialDepreciation.setAdditionDate(LocalDateTime.now());
+        financialDepreciation.setModifiedBy("CARNOL");
+        financialDepreciation.setModificationDate(LocalDateTime.now());
         financialDepreciation.setAnnualFinancialRate(BigDecimal.valueOf(0.0333));
         financialDepreciation.setValueDepreciation(BigDecimal.valueOf(76371.3900));
         financialDepreciation.setFinancialFixedAsset(getFinancialFixedAsset332());
@@ -276,6 +361,8 @@ public class DataTest {
         addition.setAccountingPeriod(LocalDate.parse("2028-01-01"));
         addition.setAddedBy("CARNOL");
         addition.setAdditionDate(LocalDateTime.now());
+        addition.setModifiedBy("TEST");
+        addition.setModificationDate(LocalDateTime.now());
         addition.setValueAddition(BigDecimal.valueOf(76371.390000000000000));
         addition.setTaxDepreciation(getTaxDepreciation());
         return addition;
@@ -287,8 +374,21 @@ public class DataTest {
         deduction.setAccountingPeriod(LocalDate.parse("2022-01-01"));
         deduction.setAddedBy("CARNOL");
         deduction.setAdditionDate(LocalDateTime.now());
+        deduction.setModifiedBy("TEST");
+        deduction.setModificationDate(LocalDateTime.now());
         deduction.setValueDeduction(BigDecimal.valueOf(38185.70));
         deduction.setTaxDepreciation(getTaxDepreciation());
         return deduction;
+    }
+
+    public static FinancialFixedAssetDto getFinancialFixedAssetDto() {
+        FinancialFixedAssetDto dto = new FinancialFixedAssetDto();
+        dto.setId(77);
+        dto.setMainFixedAssetCode("MFC77");
+        dto.setFixedAssetAccountingAccount("3321161001");
+        dto.setNetFixedAssets(new BigDecimal("12345.67"));
+        dto.setErrorCode("E01");
+        dto.setErrorMessage("Mensaje de error");
+        return dto;
     }
 }

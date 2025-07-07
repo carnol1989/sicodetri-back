@@ -269,6 +269,7 @@ public class FinancialFixedAsset {
             + ", netFixedAssets=" + netFixedAssets
             + ", historicalCost=" + historicalCost
             + ", revaluedAmount=" + revaluedAmount
+            + ", wellAppraisedPreInvestmentStudyDry=" + wellAppraisedPreInvestmentStudyDry
             + ", rowNum=" + rowNum
             + ", physicalNumberOfRows=" + physicalNumberOfRows + '}';
     }

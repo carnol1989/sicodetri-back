@@ -1,12 +1,14 @@
 package com.epsgrau.pe.sicodetri.service.impl;
 
 import com.epsgrau.pe.sicodetri.entity.Addition;
+import com.epsgrau.pe.sicodetri.entity.TaxDepreciation;
 import com.epsgrau.pe.sicodetri.repository.AdditionRepository;
 import com.epsgrau.pe.sicodetri.service.AdditionService;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 /**
  * This class implements the operations of the AdditionService. <br/>
@@ -33,34 +35,51 @@ public class AdditionServiceImpl implements AdditionService {
     private AdditionRepository repository;
 
     @Override
+    @Transactional
     public Addition saveService(Addition obj) {
         Addition objCreated = repository.save(obj);
         return objCreated;
     }
 
     @Override
+    @Transactional
     public void saveAllService(List<Addition> listObj) {
         repository.saveAll(listObj);
     }
 
     @Override
+    @Transactional
     public void updateService(Addition obj) {
         repository.save(obj);
     }
 
     @Override
+    @Transactional
     public void deleteByIdService(Long id) {
         repository.deleteById(id);
     }
 
     @Override
+    @Transactional
+    public void deleteAllService(List<Addition> listObj) {
+        repository.deleteAll(listObj);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public Addition findByIdService(Long id) {
         Optional<Addition> optionalAddition = repository.findById(id);
         return optionalAddition.orElseGet(Addition::new);
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<Addition> findAllService() {
         return repository.findAll();
+    }
+
+    @Override
+    public List<Addition> findByTaxDepreciationInService(List<TaxDepreciation> taxDepreciations) {
+        return repository.findByTaxDepreciationIn(taxDepreciations);
     }
 }

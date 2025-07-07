@@ -61,6 +61,7 @@ public class Constants {
     public static final String S_VAL_00 = "00";
     public static final String S_VAL_01 = "01";
     public static final String S_VAL_02 = "02";
+    public static final String S_VAL_03 = "03";
     public static final String S_VAL_332 = "332";
     public static final String S_VAL_333 = "333";
     public static final String S_VAL_334 = "334";

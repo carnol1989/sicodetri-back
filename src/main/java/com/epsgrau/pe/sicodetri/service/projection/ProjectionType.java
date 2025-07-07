@@ -32,7 +32,12 @@ public enum  ProjectionType {
     /**
      * Projection of temporary additions.
      */
-    TEMPORARY_ADDITIONS("TEMPORARY_ADDITION", "Adición temporal");
+    TEMPORARY_ADDITIONS("TEMPORARY_ADDITION", "Adición temporal"),
+
+    /**
+     * Projection of permanent additions.
+     */
+    PERMANENT_ADDITIONS("PERMANENT_ADDITIONS", "Adición permanente");
 
     /**
      * Code to be used in the query-param or in JSON (e.g.: ?type=TEMPORARY_DEDUCTION).

@@ -1,65 +1,65 @@
 package com.epsgrau.pe.sicodetri.service.impl;
 
-import static com.epsgrau.pe.sicodetri.helper.FileExcelHelperTest.createMockExcelInputStream;
 import static com.epsgrau.pe.sicodetri.helper.FileExcelHelperTest.createMockExcelEmpty;
+import static com.epsgrau.pe.sicodetri.helper.FileExcelHelperTest.createMockExcelInputStream;
 import static com.epsgrau.pe.sicodetri.service.impl.FinancialFixedAssetServiceImpl.getListFinancialFixedAsset;
-import static com.epsgrau.pe.sicodetri.util.Constants.FORMATTER_YYYY_MM_DD;
 import static com.epsgrau.pe.sicodetri.util.ConstantsTest.S_VAL_332;
 import static com.epsgrau.pe.sicodetri.util.ConstantsTest.TYPE_XLSX;
-import static com.epsgrau.pe.sicodetri.util.DataTest.getListInputData;
 import static com.epsgrau.pe.sicodetri.util.DataTest.getFinancialFixedAsset012;
-import static com.epsgrau.pe.sicodetri.util.DataTest.getListFinancialFixedAsset332;
 import static com.epsgrau.pe.sicodetri.util.DataTest.getFinancialFixedAsset332;
-import static com.epsgrau.pe.sicodetri.util.DataTest.getTaxTable332;
-import static org.junit.jupiter.api.Assertions.assertFalse;
+import static com.epsgrau.pe.sicodetri.util.DataTest.getFinancialFixedAssetDto;
+import static com.epsgrau.pe.sicodetri.util.DataTest.getListInputData;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.mockito.Mockito.when;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.atLeastOnce;
-import static org.mockito.Mockito.anyList;
-import static org.mockito.Mockito.never;
+import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.any;
-import static org.mockito.Mockito.anyString;
-import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
+import com.epsgrau.pe.sicodetri.dto.FinancialFixedAssetDto;
 import com.epsgrau.pe.sicodetri.dto.ParamReportDto;
-import com.epsgrau.pe.sicodetri.entity.FinancialFixedAsset;
 import com.epsgrau.pe.sicodetri.entity.FinancialDepreciation;
-import com.epsgrau.pe.sicodetri.entity.TaxTableSunat;
+import com.epsgrau.pe.sicodetri.entity.FinancialFixedAsset;
+import com.epsgrau.pe.sicodetri.entity.TaxDepreciation;
 import com.epsgrau.pe.sicodetri.model.InputData;
 import com.epsgrau.pe.sicodetri.repository.FinancialFixedAssetJdbcRepository;
 import com.epsgrau.pe.sicodetri.repository.FinancialFixedAssetRepository;
-import com.epsgrau.pe.sicodetri.service.TaxTableSunatService;
-import com.epsgrau.pe.sicodetri.service.FinancialDepreciationService;
-import com.epsgrau.pe.sicodetri.service.TaxDepreciationService;
 import com.epsgrau.pe.sicodetri.service.AdditionService;
 import com.epsgrau.pe.sicodetri.service.DeductionService;
+import com.epsgrau.pe.sicodetri.service.FinancialDepreciationService;
+import com.epsgrau.pe.sicodetri.service.TaxDepreciationService;
+import com.epsgrau.pe.sicodetri.service.TaxTableSunatService;
 import com.epsgrau.pe.sicodetri.service.projection.ProjectionGenerator;
 import com.epsgrau.pe.sicodetri.service.projection.ProjectionType;
 import com.epsgrau.pe.sicodetri.util.DataTest;
-import org.apache.poi.ss.usermodel.Workbook;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
-import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
-import org.mockito.ArgumentCaptor;
-import org.springframework.mock.web.MockMultipartFile;
-import org.springframework.test.util.ReflectionTestUtils;
-import org.springframework.web.multipart.MultipartFile;
 import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.time.format.DateTimeFormatter;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+import org.apache.poi.ss.usermodel.Sheet;
+import org.apache.poi.ss.usermodel.Workbook;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
+import org.springframework.mock.web.MockMultipartFile;
+import org.springframework.test.util.ReflectionTestUtils;
+import org.springframework.web.multipart.MultipartFile;
 
 /**
  * This class test for FinancialFixedAssetServiceImpl. <br/>
@@ -88,7 +88,7 @@ class FinancialFixedAssetServiceImplTest {
     private FinancialFixedAssetRepository repository;
 
     @Mock
-    FinancialFixedAssetJdbcRepository repositoryJdbc;
+    private FinancialFixedAssetJdbcRepository repositoryJdbc;
 
     @Mock
     private TaxTableSunatService taxTableService;
@@ -401,42 +401,6 @@ class FinancialFixedAssetServiceImplTest {
     }
 
     @Test
-    @DisplayName("Persist projection records when tax table is non-null")
-    void persistProjectionRecordsWhenTaxTableIsNonNull() {
-        // Arrange
-        LocalDate accountingPeriod = LocalDate.parse("2022-01-01", DateTimeFormatter.ofPattern(FORMATTER_YYYY_MM_DD));
-        List<FinancialFixedAsset> fixedAssets = getListFinancialFixedAsset332();
-        TaxTableSunat taxTable = getTaxTable332();
-        when(taxTableService.findByAccountigAccountService(S_VAL_332)).thenReturn(taxTable);
-
-        // Act
-        service.generateTemporayDeductionsService(accountingPeriod, fixedAssets, S_VAL_332);
-
-        // Assert
-        verify(taxTableService).findByAccountigAccountService(S_VAL_332);
-        verify(financialDepreciationService, atLeastOnce()).saveAllService(anyList());
-        verify(taxDepreciationService, atLeastOnce()).saveAllService(anyList());
-        verify(deductionService, atLeastOnce()).saveAllService(anyList());
-        verify(additionService, atLeastOnce()).saveAllService(anyList());
-    }
-
-    @Test
-    @DisplayName("Skip saving when tax table is null in projection generation")
-    void skipSavingWhenTaxTableIsNullInProjectionGeneration() {
-        // Arrange
-        LocalDate accountingPeriod = LocalDate.parse("2022-01-01", DateTimeFormatter.ofPattern(FORMATTER_YYYY_MM_DD));
-        FinancialFixedAsset fixedAsset = getFinancialFixedAsset332();
-        when(taxTableService.findByAccountigAccountService(S_VAL_332)).thenReturn(null);
-        List<FinancialFixedAsset> fixedAssets = List.of(fixedAsset);
-
-        // Act
-        service.generateTemporayDeductionsService(accountingPeriod, fixedAssets, S_VAL_332);
-
-        // Assert
-        verify(financialDepreciationService, never()).saveService(any(FinancialDepreciation.class));
-    }
-
-    @Test
     @DisplayName("Return asset when findByIdService is called with existing ID")
     void returnAssetWhenFindByIdServiceIsCalledWithExistingId() {
         // Arrange
@@ -707,87 +671,6 @@ class FinancialFixedAssetServiceImplTest {
     }
 
     @Test
-    @DisplayName("generate temporay deductions service does nothing when taxTable null")
-    void generateTemporayDeductionsServiceSkipsWhenTaxTableNull() {
-        LocalDate date = LocalDate.now();
-        when(taxTableService.findByAccountigAccountService(S_VAL_332)).thenReturn(null);
-        service.generateTemporayDeductionsService(date, List.of(new FinancialFixedAsset()), S_VAL_332);
-        verifyNoInteractions(financialDepreciationService, taxDepreciationService, additionService, deductionService);
-    }
-
-    @Test
-    @DisplayName("generate temporay deductions service skips non-eligible")
-    void generateTemporayDeductionsServiceSkipsNonEligible() {
-        LocalDate date = LocalDate.now();
-        FinancialFixedAsset fa = getFinancialFixedAsset332();
-        fa.setAcquisitionDate(LocalDate.of(1970,1,1));
-        fa.setFixedAssetAccountingAccount(S_VAL_332 + "123");
-        fa.setInitialBalance(java.math.BigDecimal.ZERO);
-        when(taxTableService.findByAccountigAccountService(S_VAL_332))
-            .thenReturn(getTaxTable332());
-        service.generateTemporayDeductionsService(date, List.of(fa), S_VAL_332);
-        verifyNoInteractions(financialDepreciationService, taxDepreciationService, additionService, deductionService);
-    }
-
-    @Test
-    @DisplayName("generate temporay deductions service invokes saves on eligible")
-    void generateTemporayDeductionsServiceInvokesOnEligible() {
-        LocalDate date = LocalDate.of(2022,1,1);
-        FinancialFixedAsset fa = DataTest.getFinancialFixedAsset332();
-        fa.setAcquisitionDate(LocalDate.of(2020,1,1));
-        fa.setInitialBalance(new java.math.BigDecimal("100"));
-        // revaluedAmount = zero by default in DataTest asset
-        when(taxTableService.findByAccountigAccountService(S_VAL_332))
-            .thenReturn(DataTest.getTaxTable332());
-
-        service.generateTemporayDeductionsService(date, List.of(fa), S_VAL_332);
-
-        verify(financialDepreciationService).saveAllService(anyList());
-        verify(taxDepreciationService).saveAllService(anyList());
-        verify(deductionService).saveAllService(anyList());
-        verify(additionService).saveAllService(anyList());
-    }
-
-    @Test
-    @DisplayName("generate temporary addition service skips when taxTable null")
-    void generateTemporaryAdditionServiceSkipsWhenTaxTableNull() {
-        LocalDate date = LocalDate.now();
-        FinancialFixedAsset fa = getFinancialFixedAsset332();
-        when(taxTableService.findByAccountigAccountService(anyString()))
-            .thenReturn(null);
-        service.generateTemporaryAdditionService(date, List.of(fa));
-        verifyNoInteractions(financialDepreciationService, taxDepreciationService, additionService, deductionService);
-    }
-
-    @Test
-    @DisplayName("generate temporary addition service skips non-eligible by description")
-    void generateTemporaryAdditionServiceSkipsNonEligibleByDescription() {
-        LocalDate date = LocalDate.now();
-        FinancialFixedAsset fa = DataTest.getFinancialFixedAsset332();
-        fa.setAcquisitionDate(LocalDate.of(2020,1,1));
-        fa.setInitialBalance(new java.math.BigDecimal("100"));
-        fa.setWellAppraisedPreInvestmentStudyDry("Con TAsacion"); // contiene ‘tasacion’ no elegible
-        when(taxTableService.findByAccountigAccountService(anyString()))
-            .thenReturn(DataTest.getTaxTable332());
-        service.generateTemporaryAdditionService(date, List.of(fa));
-        verifyNoInteractions(additionService, deductionService, financialDepreciationService, taxDepreciationService);
-    }
-
-    @Test
-    @DisplayName("generate temporary additions service invokes on eligible")
-    void generateTemporaryAdditionServiceInvokesOnEligible() {
-        LocalDate date = LocalDate.of(2022,1,1);
-        FinancialFixedAsset fa = DataTest.getFinancialFixedAsset332();
-        when(taxTableService.findByAccountigAccountService(fa.getFixedAssetAccountingAccount().substring(0,3)))
-            .thenReturn(DataTest.getTaxTable332());
-        service.generateTemporaryAdditionService(date, List.of(fa));
-        verify(financialDepreciationService).saveAllService(anyList());
-        verify(taxDepreciationService).saveAllService(anyList());
-        verify(additionService).saveAllService(anyList());
-        verify(deductionService).saveAllService(anyList());
-    }
-
-    @Test
     @DisplayName("findByAccountingAccountPrefixesService delegates to repository")
     void findByAccountingAccountPrefixesServiceDelegates() {
         List<String> prefixes = List.of("332","333");
@@ -803,7 +686,7 @@ class FinancialFixedAssetServiceImplTest {
     void callGetReportTaxBookServiceDelegates() throws Exception {
         ParamReportDto prm = new ParamReportDto();
         when(repositoryJdbc.callGetReportTaxBookJdbc(prm))
-            .thenReturn(List.of(new com.epsgrau.pe.sicodetri.dto.FinancialFixedAssetDto()));
+            .thenReturn(List.of(new FinancialFixedAssetDto()));
         var out = service.callGetReportTaxBookService(prm);
         assertEquals(1, out.size());
         verify(repositoryJdbc).callGetReportTaxBookJdbc(prm);
@@ -814,10 +697,416 @@ class FinancialFixedAssetServiceImplTest {
     void callGetReportDetailFinancialAndTaxDepreciationServiceDelegates() {
         ParamReportDto prm = new ParamReportDto();
         when(repositoryJdbc.callGetReportDetailFinancialAndTaxDepreciationJdbc(prm))
-            .thenReturn(List.of(new com.epsgrau.pe.sicodetri.dto.FinancialFixedAssetDto()));
+            .thenReturn(List.of(new FinancialFixedAssetDto()));
         var out = service.callGetReportDetailFinancialAndTaxDepreciationService(prm);
         assertEquals(1, out.size());
         verify(repositoryJdbc).callGetReportDetailFinancialAndTaxDepreciationJdbc(prm);
+    }
+
+    @Test
+    @DisplayName("Return empty list when MultipartFile.isEmpty() == true")
+    void returnEmptyListWhenMultipartFileIsEmpty() throws IOException {
+        // Arrange
+        String period = "2022-01-01";
+        // Creamos un workbook válido en memoria
+        XSSFWorkbook workbook = new XSSFWorkbook();
+        Sheet sheet = workbook.createSheet("Hoja1");
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        workbook.write(baos);
+        workbook.close();
+        byte[] workbookBytes = baos.toByteArray();
+
+        // Mock del MultipartFile que indica isEmpty == true
+        MultipartFile file = mock(MultipartFile.class);
+        when(file.isEmpty()).thenReturn(true);
+        when(file.getInputStream()).thenReturn(new ByteArrayInputStream(workbookBytes));
+
+        // Act
+        List<InputData> result = service.loadExcelFileToObjectService(file, period);
+
+        // Assert
+        assertNotNull(result, "No debe ser null aunque isEmpty sea true");
+        assertTrue(result.isEmpty(), "Debe devolver lista vacía cuando el archivo está vacío");
+    }
+
+    @Test
+    @DisplayName("generate projection service delegates to additions generator")
+    void generateProjectionServiceDelegatesToAdditionsGenerator() {
+        // Arrange
+        LocalDate date = LocalDate.of(2023, 6, 1);
+        List<FinancialFixedAsset> assets = List.of(new FinancialFixedAsset());
+
+        // Act
+        service.generateProjectionService(
+            ProjectionType.TEMPORARY_ADDITIONS,
+            date,
+            assets,
+            "ACC"
+        );
+
+        // Assert
+        verify(generateTemporaryAdditions).generate(date, assets);
+        verify(generateTemporaryDeductions, never()).generate(any(), any());
+    }
+
+    @Test
+    @DisplayName("Return empty list when findByAccountingAccountPrefixesService returns empty result")
+    void returnEmptyListWhenFindByAccountingAccountPrefixesServiceReturnsEmptyResult() {
+        // Arrange
+        List<String> prefixes = List.of("999", "888");
+        when(repository.findByAccountingAccountPrefixes(prefixes))
+            .thenReturn(Collections.emptyList());
+
+        // Act
+        List<FinancialFixedAsset> result = service.findByAccountingAccountPrefixesService(prefixes);
+
+        // Assert
+        assertNotNull(result, "No debe ser null aunque no haya coincidencias");
+        assertTrue(result.isEmpty(), "Debe devolver lista vacía cuando el repositorio no encuentra nada");
+        verify(repository).findByAccountingAccountPrefixes(prefixes);
+    }
+
+    @Test
+    @DisplayName("Entity InputData getters/setters and toString")
+    void inputDataGettersSettersAndToString() {
+        InputData d = new InputData();
+        d.setAccountingPeriod("2022-01-01");
+        d.setMainFixedAssetCode("CODE1");
+        d.setFixedAssetCodeComponent("COMP1");
+        d.setRowNum(7);
+        d.setPhysicalNumberOfRows(42);
+
+        assertEquals("2022-01-01", d.getAccountingPeriod());
+        assertEquals("CODE1",      d.getMainFixedAssetCode());
+        assertEquals("COMP1",      d.getFixedAssetCodeComponent());
+        assertEquals(7,            d.getRowNum());
+        assertEquals(42,           d.getPhysicalNumberOfRows());
+        String s = d.toString();
+        assertTrue(s.contains("accountingPeriod='2022-01-01'"));
+        assertTrue(s.contains("mainFixedAssetCode='CODE1'"));
+        assertTrue(s.contains("rowNum=7"));
+    }
+
+    @Test
+    @DisplayName("Entity FinancialFixedAsset getters/setters and toString")
+    void financialFixedAssetGettersSettersAndToString() {
+        FinancialFixedAsset f = new FinancialFixedAsset();
+
+        // básicos
+        f.setId(555L);
+        LocalDate ap = LocalDate.of(2025, 6, 28);
+        f.setAccountingPeriod(ap);
+        f.setMainFixedAssetCode("MFC555");
+        f.setFixedAssetCodeComponent("COMP555");
+        f.setFixedAssetAccountingAccount("332000000");
+        f.setDescription("Desc");
+        f.setFixedAssetBrand("BrandX");
+        f.setFixedAssetModel("ModelY");
+        f.setFixedAssetSerialNumberAndOrPlate("SN123");
+
+        // BigDecimals
+        f.setInitialBalance(new BigDecimal("1000.01"));
+        f.setAcquisitionsAdditions(new BigDecimal("10.00"));
+        f.setImprovements(new BigDecimal("5.00"));
+        f.setTransfersAndOrReclassifications(new BigDecimal("2.00"));
+        f.setWithdrawalsAndOrRetirements(new BigDecimal("1.00"));
+        f.setOtherAdjustments(new BigDecimal("0.50"));
+        f.setBookValueOfFixedAssets(new BigDecimal("800.00"));
+        f.setInflationAdjustment(new BigDecimal("0.10"));
+        f.setAdjustedValueOfFixedAssets(new BigDecimal("800.10"));
+
+        // fechas
+        LocalDate d1 = LocalDate.of(2020,1,1);
+        LocalDate d2 = LocalDate.of(2020,2,1);
+        LocalDate d3 = LocalDate.of(2030,1,1);
+        f.setAcquisitionDate(d1);
+        f.setStartDateFixedAssetUsage(d2);
+        f.setRetirementDate(d3);
+
+        // strings
+        f.setAppliedMethod("LINEA RECTA");
+        f.setAuthorizationDocumentNumber("AUTH123");
+        f.setUsefulLifeYears(30.0);
+
+        // más BigDecimals
+        f.setAccumulatedDepreciationTheEndPrevious(new BigDecimal("100.00"));
+        f.setCurrentDepreciation(new BigDecimal("50.00"));
+        f.setCurrentDepreciationRelatedWithdrawalsRetirements(new BigDecimal("5.00"));
+        f.setCurrentDepreciationRelatedOtherAdjustments(new BigDecimal("2.00"));
+        f.setAccumulatedHistoricalDepreciation(new BigDecimal("150.00"));
+        f.setDepreciationInflationAdjustment(new BigDecimal("1.00"));
+        f.setAccumulatedDepreciationAdjustedInflation(new BigDecimal("151.00"));
+        f.setNetFixedAssets(new BigDecimal("649.00"));
+        f.setHistoricalCost(new BigDecimal("1200.00"));
+        f.setRevaluedAmount(new BigDecimal("1300.00"));
+        f.setWellAppraisedPreInvestmentStudyDry("estudio tasacion");
+
+        // transients
+        f.setRowNum(9);
+        f.setPhysicalNumberOfRows(99);
+
+        // listas
+        FinancialDepreciation fd = new FinancialDepreciation();
+        TaxDepreciation td = new TaxDepreciation();
+        f.setDepreciacionFinancieraList(List.of(fd));
+        f.setDepreciacionTributariaList(List.of(td));
+
+        // auditoría
+        f.setAddedBy("USR_ADD");
+        LocalDateTime dt1 = LocalDateTime.of(2025,6,28,12,0);
+        LocalDateTime dt2 = dt1.plusHours(2);
+        f.setAdditionDate(dt1);
+        f.setModifiedBy("USR_MOD");
+        f.setModificationDate(dt2);
+
+        // asserts
+        assertEquals(555L, f.getId());
+        assertEquals(ap,   f.getAccountingPeriod());
+        assertEquals("MFC555", f.getMainFixedAssetCode());
+        assertEquals("COMP555", f.getFixedAssetCodeComponent());
+        assertEquals("332000000", f.getFixedAssetAccountingAccount());
+        assertEquals("Desc", f.getDescription());
+        assertEquals("BrandX", f.getFixedAssetBrand());
+        assertEquals("ModelY", f.getFixedAssetModel());
+        assertEquals("SN123", f.getFixedAssetSerialNumberAndOrPlate());
+
+        assertEquals(new BigDecimal("1000.01"), f.getInitialBalance());
+        assertEquals(new BigDecimal("10.00"), f.getAcquisitionsAdditions());
+        assertEquals(new BigDecimal("5.00"), f.getImprovements());
+        assertEquals(new BigDecimal("2.00"), f.getTransfersAndOrReclassifications());
+        assertEquals(new BigDecimal("1.00"), f.getWithdrawalsAndOrRetirements());
+        assertEquals(new BigDecimal("0.50"), f.getOtherAdjustments());
+        assertEquals(new BigDecimal("800.00"), f.getBookValueOfFixedAssets());
+        assertEquals(new BigDecimal("0.10"), f.getInflationAdjustment());
+        assertEquals(new BigDecimal("800.10"), f.getAdjustedValueOfFixedAssets());
+
+        assertEquals(d1, f.getAcquisitionDate());
+        assertEquals(d2, f.getStartDateFixedAssetUsage());
+        assertEquals(d3, f.getRetirementDate());
+
+        assertEquals("LINEA RECTA", f.getAppliedMethod());
+        assertEquals("AUTH123", f.getAuthorizationDocumentNumber());
+        assertEquals(30.0, f.getUsefulLifeYears());
+
+        assertEquals(new BigDecimal("100.00"), f.getAccumulatedDepreciationTheEndPrevious());
+        assertEquals(new BigDecimal("50.00"), f.getCurrentDepreciation());
+        assertEquals(new BigDecimal("5.00"), f.getCurrentDepreciationRelatedWithdrawalsRetirements());
+        assertEquals(new BigDecimal("2.00"), f.getCurrentDepreciationRelatedOtherAdjustments());
+        assertEquals(new BigDecimal("150.00"), f.getAccumulatedHistoricalDepreciation());
+        assertEquals(new BigDecimal("1.00"), f.getDepreciationInflationAdjustment());
+        assertEquals(new BigDecimal("151.00"), f.getAccumulatedDepreciationAdjustedInflation());
+        assertEquals(new BigDecimal("649.00"), f.getNetFixedAssets());
+        assertEquals(new BigDecimal("1200.00"), f.getHistoricalCost());
+        assertEquals(new BigDecimal("1300.00"), f.getRevaluedAmount());
+        assertEquals("estudio tasacion", f.getWellAppraisedPreInvestmentStudyDry());
+
+        assertEquals(9, f.getRowNum());
+        assertEquals(99, f.getPhysicalNumberOfRows());
+
+        assertSame(fd, f.getDepreciacionFinancieraList().get(0));
+        assertSame(td, f.getDepreciacionTributariaList().get(0));
+
+        assertEquals("USR_ADD", f.getAddedBy());
+        assertEquals(dt1, f.getAdditionDate());
+        assertEquals("USR_MOD", f.getModifiedBy());
+        assertEquals(dt2, f.getModificationDate());
+
+        // toString
+        String str = f.toString();
+        System.out.println("str: " + str);
+        assertTrue(str.contains("id=555"));
+        assertTrue(str.contains("mainFixedAssetCode='MFC555'"));
+        assertTrue(str.contains("netFixedAssets=649.00"));
+        assertTrue(str.contains("wellAppraisedPreInvestmentStudyDry=estudio tasacion"));
+        assertTrue(str.contains("rowNum=9"));
+    }
+
+    @Test
+    @DisplayName("Entity ParamReportDto all-args constructor, getters and toString")
+    void paramReportDtoAllArgsAndToString() {
+        ParamReportDto p = new ParamReportDto(
+            2024,
+            "MAIN",
+            "ACC001",
+            "2020-01-01",
+            "2020-12-31",
+            "2021-01-01",
+            "2021-12-31"
+        );
+        assertEquals(2024,    p.getYear());
+        assertEquals("MAIN",  p.getMainCode());
+        assertEquals("ACC001",p.getAccountingAccount());
+
+        String s = p.toString();
+        assertTrue(s.contains("year=2024"));
+        assertTrue(s.contains("mainCode=MAIN"));
+        assertTrue(s.contains("accountingAccount=ACC001"));
+    }
+
+    @Test
+    @DisplayName("Entity FinancialFixedAssetDto getters/setters and toString")
+    void financialFixedAssetDtoGettersSettersAndToString() {
+        FinancialFixedAssetDto dto = getFinancialFixedAssetDto();
+
+        assertEquals(77,  dto.getId());
+        assertEquals("MFC77", dto.getMainFixedAssetCode());
+        assertEquals("3321161001", dto.getFixedAssetAccountingAccount());
+        assertEquals(new BigDecimal("12345.67"), dto.getNetFixedAssets());
+        assertEquals("E01", dto.getErrorCode());
+        assertEquals("Mensaje de error", dto.getErrorMessage());
+
+        String s = dto.toString();
+        assertTrue(s.contains("id=77"));
+        assertTrue(s.contains("mainFixedAssetCode=MFC77"));
+        assertTrue(s.contains("netFixedAssets=12345.67"));
+        assertTrue(s.contains("errorCode=E01"));
+    }
+
+    @Test
+    @DisplayName("FinancialFixedAsset AllArgsConstructor sets all fields")
+    void financialFixedAssetAllArgsConstructor() {
+        // Arrange: crear datos para cada campo, en el mismo orden que el AllArgsConstructor
+        Long id = 1L;
+        LocalDate accountingPeriod = LocalDate.of(2025, 7, 1);
+        String mainCode      = "MFC001";
+        String compCode      = "COMP001";
+        String acctAccount   = "332000111";
+        String desc          = "Descripción X";
+        String brand         = "MarcaY";
+        String model         = "ModeloZ";
+        String serial        = "SN-123";
+        BigDecimal initial   = new BigDecimal("1000.00");
+        BigDecimal adds      = new BigDecimal("50.00");
+        BigDecimal improves  = new BigDecimal("10.00");
+        BigDecimal transfers = new BigDecimal("5.00");
+        BigDecimal withdrawals= new BigDecimal("2.50");
+        BigDecimal otherAdj  = new BigDecimal("1.25");
+        BigDecimal bookValue = new BigDecimal("900.00");
+        BigDecimal inflation = new BigDecimal("0.10");
+        BigDecimal adjusted  = new BigDecimal("900.10");
+        LocalDate acqDate    = LocalDate.of(2020,1,1);
+        LocalDate startUsage = LocalDate.of(2020,2,1);
+        LocalDate retireDate = LocalDate.of(2030,1,1);
+        String method        = "LINEA RECTA";
+        String authDoc       = "AUTH-001";
+        Double usefulYears   = 20.0;
+        BigDecimal accDepPrev= new BigDecimal("100.00");
+        BigDecimal currDep   = new BigDecimal("50.00");
+        BigDecimal currDepW  = new BigDecimal("2.00");
+        BigDecimal currDepO  = new BigDecimal("1.00");
+        BigDecimal histAccDep= new BigDecimal("150.00");
+        BigDecimal depInflAdj= new BigDecimal("0.50");
+        BigDecimal accDepInfAdj= new BigDecimal("150.50");
+        BigDecimal netFixed  = new BigDecimal("849.50");
+        BigDecimal histCost  = new BigDecimal("1200.00");
+        BigDecimal revalued  = new BigDecimal("1300.00");
+        String wellApp      = "tasacion 2021";
+        int rowNum           = 7;
+        int physRows         = 99;
+        List<FinancialDepreciation> finList = List.of(new FinancialDepreciation());
+        List<TaxDepreciation> taxList = List.of(new TaxDepreciation());
+        String addedBy       = "USER_ADD";
+        LocalDateTime addDate= LocalDateTime.of(2025,7,2,9,0);
+        String modifiedBy    = "USER_MOD";
+        LocalDateTime modDate= addDate.plusHours(3);
+
+        // Act
+        FinancialFixedAsset f = new FinancialFixedAsset(
+            id,
+            accountingPeriod,
+            mainCode,
+            compCode,
+            acctAccount,
+            desc,
+            brand,
+            model,
+            serial,
+            initial,
+            adds,
+            improves,
+            transfers,
+            withdrawals,
+            otherAdj,
+            bookValue,
+            inflation,
+            adjusted,
+            acqDate,
+            startUsage,
+            retireDate,
+            method,
+            authDoc,
+            usefulYears,
+            accDepPrev,
+            currDep,
+            currDepW,
+            currDepO,
+            histAccDep,
+            depInflAdj,
+            accDepInfAdj,
+            netFixed,
+            histCost,
+            revalued,
+            wellApp,
+            rowNum,
+            physRows,
+            finList,
+            taxList,
+            addedBy,
+            addDate,
+            modifiedBy,
+            modDate
+        );
+
+        // Assert
+        assertEquals(id,             f.getId());
+        assertEquals(accountingPeriod, f.getAccountingPeriod());
+        assertEquals(mainCode,       f.getMainFixedAssetCode());
+        assertEquals(compCode,       f.getFixedAssetCodeComponent());
+        assertEquals(acctAccount,    f.getFixedAssetAccountingAccount());
+        assertEquals(desc,           f.getDescription());
+        assertEquals(brand,          f.getFixedAssetBrand());
+        assertEquals(model,          f.getFixedAssetModel());
+        assertEquals(serial,         f.getFixedAssetSerialNumberAndOrPlate());
+        assertEquals(initial,        f.getInitialBalance());
+        assertEquals(adds,           f.getAcquisitionsAdditions());
+        assertEquals(improves,       f.getImprovements());
+        assertEquals(transfers,      f.getTransfersAndOrReclassifications());
+        assertEquals(withdrawals,    f.getWithdrawalsAndOrRetirements());
+        assertEquals(otherAdj,       f.getOtherAdjustments());
+        assertEquals(bookValue,      f.getBookValueOfFixedAssets());
+        assertEquals(inflation,      f.getInflationAdjustment());
+        assertEquals(adjusted,       f.getAdjustedValueOfFixedAssets());
+        assertEquals(acqDate,        f.getAcquisitionDate());
+        assertEquals(startUsage,     f.getStartDateFixedAssetUsage());
+        assertEquals(retireDate,     f.getRetirementDate());
+        assertEquals(method,         f.getAppliedMethod());
+        assertEquals(authDoc,        f.getAuthorizationDocumentNumber());
+        assertEquals(usefulYears,    f.getUsefulLifeYears());
+        assertEquals(accDepPrev,     f.getAccumulatedDepreciationTheEndPrevious());
+        assertEquals(currDep,        f.getCurrentDepreciation());
+        assertEquals(currDepW,       f.getCurrentDepreciationRelatedWithdrawalsRetirements());
+        assertEquals(currDepO,       f.getCurrentDepreciationRelatedOtherAdjustments());
+        assertEquals(histAccDep,     f.getAccumulatedHistoricalDepreciation());
+        assertEquals(depInflAdj,     f.getDepreciationInflationAdjustment());
+        assertEquals(accDepInfAdj,   f.getAccumulatedDepreciationAdjustedInflation());
+        assertEquals(netFixed,       f.getNetFixedAssets());
+        assertEquals(histCost,       f.getHistoricalCost());
+        assertEquals(revalued,       f.getRevaluedAmount());
+        assertEquals(wellApp,        f.getWellAppraisedPreInvestmentStudyDry());
+        assertEquals(rowNum,         f.getRowNum());
+        assertEquals(physRows,       f.getPhysicalNumberOfRows());
+        assertSame(finList,          f.getDepreciacionFinancieraList());
+        assertSame(taxList,          f.getDepreciacionTributariaList());
+        assertEquals(addedBy,        f.getAddedBy());
+        assertEquals(addDate,        f.getAdditionDate());
+        assertEquals(modifiedBy,     f.getModifiedBy());
+        assertEquals(modDate,        f.getModificationDate());
+
+        // también cubrimos toString()
+        String repr = f.toString();
+        assertTrue(repr.contains("id=1"));
+        assertTrue(repr.contains("mainFixedAssetCode='MFC001'"));
+        assertTrue(repr.contains("wellAppraisedPreInvestmentStudyDry=tasacion 2021"));
     }
 
 }

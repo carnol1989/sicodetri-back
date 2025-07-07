@@ -1,6 +1,8 @@
 package com.epsgrau.pe.sicodetri.service;
 
 import com.epsgrau.pe.sicodetri.entity.Deduction;
+import com.epsgrau.pe.sicodetri.entity.TaxDepreciation;
+import java.util.List;
 
 /**
  * This interface with the operations of the Deduction class. <br/>
@@ -21,4 +23,7 @@ import com.epsgrau.pe.sicodetri.entity.Deduction;
  * @version 1.0
  */
 public interface DeductionService extends CrudService<Deduction, Long> {
+
+    List<Deduction> findByTaxDepreciationInService(List<TaxDepreciation> taxDepreciations);
+
 }

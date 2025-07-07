@@ -15,8 +15,11 @@ import com.epsgrau.pe.sicodetri.util.enums.ReportTypeEnum;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+import net.sf.jasperreports.engine.JREmptyDataSource;
 import net.sf.jasperreports.engine.JRException;
 import net.sf.jasperreports.engine.JasperCompileManager;
 import net.sf.jasperreports.engine.JasperFillManager;
@@ -31,10 +34,22 @@ import org.mockito.Mockito;
 import org.springframework.util.ResourceUtils;
 
 /**
- * Tests para ReportJasperServiceImpl, cubriendo:
- *  1) Éxito cuando el template existe, la compilación y llenado funcionan, y JasperReportsHelper devuelve bytes.
- *  2) FileNotFoundException si ResourceUtils.getFile falla.
- *  3) JRException si JasperCompileManager.compileReport falla.
+ * This class for ReportJasperServiceImpl. <br/>
+ * <b>Class</b>: {@link ReportJasperServiceImplTest}<br/>
+ * <b>Copyright</b>: &Copy; 2024 EPS Grau. <br/>
+ * <b>Company</b>: EPS Grau. <br/>
+ *
+ * @author EPS Grau <br/>
+ *     <u>Service Provider</u>: Consultor TI <br/>
+ *     <u>Developed by</u>: <br/>
+ *     <ul>
+ *     <li>Carlos Augusto Nole Machaca</li>
+ *     </ul>
+ *     <u>Changes</u>:<br/>
+ *     <ul>
+ *     <li>Jun 06, 2025 (JAR) Creation class.</li>
+ *     </ul>
+ * @version 1.0
  */
 @DisplayName("ReportJasperServiceImpl Tests")
 class ReportJasperServiceImplTest {
@@ -265,6 +280,116 @@ class ReportJasperServiceImplTest {
             assertTrue(ex.getMessage().contains("Tipo de reporte desconocido"));
         } catch (Exception e) {
             fail("No se esperaba otra excepción: " + e.getMessage());
+        }
+    }
+
+    @Test
+    @DisplayName("Return report bytes when optionReport equals '2'")
+    void returnReportBytesWhenOption2() throws Exception {
+        // Arrange
+        String option = "2";
+        String templateName = "dummy2.jrxml";
+        String fileType = "XLSX";
+        // Uso de HashMap para poder verificar la mutación
+        HashMap<String, Object> parameters = new HashMap<>();
+        parameters.put("INITIAL", "VALUE");
+        List<FinancialFixedAssetDto> dataSource = List.of(new FinancialFixedAssetDto());
+
+        try (MockedStatic<ResourceUtils> resourceUtilsMock = Mockito.mockStatic(ResourceUtils.class);
+             MockedStatic<JasperCompileManager> compileMock = Mockito.mockStatic(JasperCompileManager.class);
+             MockedStatic<JasperFillManager> fillMock = Mockito.mockStatic(JasperFillManager.class);
+             MockedStatic<JasperReportsHelper> helperMock = Mockito.mockStatic(JasperReportsHelper.class)) {
+
+            File fakeFile = new File("/path/to/" + templateName);
+            resourceUtilsMock
+                .when(() -> ResourceUtils.getFile("classpath:reports/" + templateName))
+                .thenReturn(fakeFile);
+
+            JasperReport jrMock = mock(JasperReport.class);
+            compileMock
+                .when(() -> JasperCompileManager.compileReport(fakeFile.getAbsolutePath()))
+                .thenReturn(jrMock);
+
+            JasperPrint jpMock = mock(JasperPrint.class);
+            fillMock
+                .when(() -> JasperFillManager.fillReport(
+                    eq(jrMock),
+                    eq(parameters),
+                    any(JREmptyDataSource.class)
+                ))
+                .thenReturn(jpMock);
+
+            byte[] expected = new byte[]{0x0A, 0x0B, 0x0C};
+            helperMock
+                .when(() -> JasperReportsHelper.exportJasperReportBytes(
+                    eq(jpMock),
+                    eq(ReportTypeEnum.XLSX)
+                ))
+                .thenReturn(expected);
+
+            // Act
+            byte[] actual = service.getJasperReportInBytes(
+                option, templateName, fileType, parameters, dataSource
+            );
+
+            // Assert
+            assertArrayEquals(expected, actual, "Debe devolver los bytes generados por JasperReportsHelper");
+            // Verificar que se haya añadido el bean en parámetros
+            assertTrue(parameters.containsKey("financialFixedAssetList"));
+            assertTrue(parameters.get("financialFixedAssetList") instanceof JRBeanCollectionDataSource);
+            // Verificar llamadas estáticas
+            resourceUtilsMock.verify(() -> ResourceUtils.getFile("classpath:reports/" + templateName));
+            compileMock.verify(() -> JasperCompileManager.compileReport(fakeFile.getAbsolutePath()));
+            fillMock.verify(() -> JasperFillManager.fillReport(
+                eq(jrMock), eq(parameters), any(JREmptyDataSource.class)
+            ));
+            helperMock.verify(() -> JasperReportsHelper.exportJasperReportBytes(jpMock, ReportTypeEnum.XLSX));
+        }
+    }
+
+    @Test
+    @DisplayName("Throw JRException when fillReport fails for optionReport '2'")
+    void throwJrExceptionWhenFillReportFailsOption2() {
+        // Arrange
+        String option = "2";
+        String templateName = "broken2.jrxml";
+        String fileType = "PDF";
+        HashMap<String, Object> parameters = new HashMap<>();
+        List<FinancialFixedAssetDto> dataSource = List.of(new FinancialFixedAssetDto());
+
+        try (MockedStatic<ResourceUtils> resourceUtilsMock = Mockito.mockStatic(ResourceUtils.class);
+             MockedStatic<JasperCompileManager> compileMock = Mockito.mockStatic(JasperCompileManager.class);
+             MockedStatic<JasperFillManager> fillMock = Mockito.mockStatic(JasperFillManager.class)) {
+
+            File fakeFile = new File("/path/to/" + templateName);
+            resourceUtilsMock
+                .when(() -> ResourceUtils.getFile("classpath:reports/" + templateName))
+                .thenReturn(fakeFile);
+
+            JasperReport jrMock = mock(JasperReport.class);
+            compileMock
+                .when(() -> JasperCompileManager.compileReport(fakeFile.getAbsolutePath()))
+                .thenReturn(jrMock);
+
+            fillMock
+                .when(() -> JasperFillManager.fillReport(
+                    eq(jrMock),
+                    anyMap(),
+                    any(JREmptyDataSource.class)
+                ))
+                .thenThrow(new JRException("Empty-DS fill failure"));
+
+            // Act & Assert
+            JRException ex = assertThrows(
+                JRException.class,
+                () -> service.getJasperReportInBytes(
+                    option, templateName, fileType, parameters, dataSource
+                ),
+                "Debe propagarse el JRException lanzado por JasperFillManager"
+            );
+            assertTrue(ex.getMessage().contains("Empty-DS fill failure"));
+            // Verificar que el bean también se haya agregado antes de fallar
+            assertTrue(parameters.containsKey("financialFixedAssetList"));
         }
     }
 }

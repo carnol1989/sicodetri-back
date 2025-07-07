@@ -10,6 +10,9 @@ import static com.epsgrau.pe.sicodetri.util.Constants.S_VAL_335;
 import static com.epsgrau.pe.sicodetri.util.Constants.S_VAL_336;
 import static com.epsgrau.pe.sicodetri.util.Constants.S_VAL_337;
 
+import com.epsgrau.pe.sicodetri.entity.Addition;
+import com.epsgrau.pe.sicodetri.entity.Deduction;
+import com.epsgrau.pe.sicodetri.entity.FinancialDepreciation;
 import com.epsgrau.pe.sicodetri.entity.FinancialFixedAsset;
 import com.epsgrau.pe.sicodetri.entity.TaxDepreciation;
 import com.epsgrau.pe.sicodetri.entity.TaxTableSunat;
@@ -85,7 +88,7 @@ public class TemporaryAdditionProjectionGenerator extends AbstractProjectionGene
             && f.getInitialBalance().compareTo(BigDecimal.ZERO) > N_VAL_0;
     }
 
-    private void processAsset(FinancialFixedAsset f,
+    private void processAsset(FinancialFixedAsset fixedAsset,
                               LocalDate period,
                               TaxTableSunat table) {
         TaxDepreciation firstTax = new TaxDepreciation();
@@ -105,14 +108,28 @@ public class TemporaryAdditionProjectionGenerator extends AbstractProjectionGene
         int years = 1;
         int remaining = table.getUsefulLifeYears();
         for (int i = 0; i < remaining; i++) {
-            proj = processYearDepreciation(f, proj, table, S_VAL_02, years);
+            proj = processYearDepreciation(fixedAsset, proj, table, S_VAL_02, years);
             years++;
         }
 
+        List<FinancialDepreciation> listFinancialDepreciation =
+            financialDepreciationService.findByFinancialFixedAssetIdService(fixedAsset.getId());
+        financialDepreciationService.deleteAllService(listFinancialDepreciation);
         financialDepreciationService.saveAllService(proj.getFinancialDepreciationList());
+
+        List<TaxDepreciation> listTaxDepreciation =
+            taxDepreciationService.findByFinancialFixedAssetIdService(fixedAsset.getId());
+        taxDepreciationService.deleteAllService(listTaxDepreciation);
         taxDepreciationService.saveAllService(proj.getTaxDepreciationList());
+
+        List<Deduction> listDeduction =
+            deductionService.findByTaxDepreciationInService(listTaxDepreciation);
+        deductionService.deleteAllService(listDeduction);
         deductionService.saveAllService(proj.getDeductionList());
+
+        List<Addition> listAddition =
+            additionService.findByTaxDepreciationInService(listTaxDepreciation);
+        additionService.deleteAllService(listAddition);
         additionService.saveAllService(proj.getAdditionList());
     }
-
 }

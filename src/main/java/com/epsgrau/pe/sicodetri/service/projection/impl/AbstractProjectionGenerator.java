@@ -1,6 +1,7 @@
 package com.epsgrau.pe.sicodetri.service.projection.impl;
 
 import static com.epsgrau.pe.sicodetri.util.Constants.S_VAL_01;
+import static com.epsgrau.pe.sicodetri.util.Constants.S_VAL_03;
 
 import com.epsgrau.pe.sicodetri.entity.Addition;
 import com.epsgrau.pe.sicodetri.entity.Deduction;
@@ -104,11 +105,12 @@ public abstract class AbstractProjectionGenerator {
                 ded.setAdditionDate(LocalDateTime.now());
                 projection.getDeductionList().add(ded);
             } else {
-                BigDecimal valueToAdd = typeProjection.equals(S_VAL_01)
-                    ? fin.getValueDepreciation()
-                    : (numberYears <= fixedAsset.getUsefulLifeYears().intValue()
-                    ? tax.getValueDepreciation()
-                    : BigDecimal.ZERO);
+                BigDecimal valueToAdd = (typeProjection.equals(S_VAL_01)
+                    || typeProjection.equals(S_VAL_03))
+                        ? fin.getValueDepreciation()
+                            : (numberYears <= fixedAsset.getUsefulLifeYears().intValue()
+                                ? tax.getValueDepreciation() : BigDecimal.ZERO);
+
                 Addition add = new Addition();
                 add.setAccountingPeriod(projection.getAccountigPeriodNext());
                 add.setTaxDepreciation(tax);

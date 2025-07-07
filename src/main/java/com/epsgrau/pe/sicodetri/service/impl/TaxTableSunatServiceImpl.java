@@ -8,6 +8,7 @@ import java.util.List;
 import java.util.Optional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 /**
  * This class is the implementation of the service for Tax Table SUNAT. <br/>
@@ -34,6 +35,7 @@ public class TaxTableSunatServiceImpl implements TaxTableSunatService {
     private TaxTableSunatRepository repository;
 
     @Override
+    @Transactional
     public TaxTableSunat saveService(TaxTableSunat obj) {
         TaxTableSunat objCreated = repository.save(obj);
         return objCreated;
@@ -45,22 +47,32 @@ public class TaxTableSunatServiceImpl implements TaxTableSunatService {
     }
 
     @Override
+    @Transactional
     public void updateService(TaxTableSunat obj) {
         repository.save(obj);
     }
 
     @Override
+    @Transactional
     public void deleteByIdService(Long id) {
         repository.deleteById(id);
     }
 
     @Override
+    @Transactional
+    public void deleteAllService(List<TaxTableSunat> listObj) {
+        repository.deleteAll(listObj);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public TaxTableSunat findByIdService(Long id) {
         Optional<TaxTableSunat> optionalTaxTableSunat = repository.findById(id);
         return optionalTaxTableSunat.orElseGet(TaxTableSunat::new);
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<TaxTableSunat> findAllService() {
         List<TaxTableSunat> listTaxTableSunat = new ArrayList<>();
         repository.findAll().forEach(listTaxTableSunat::add);
@@ -68,6 +80,7 @@ public class TaxTableSunatServiceImpl implements TaxTableSunatService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public TaxTableSunat findByAccountigAccountService(String accountingAccount) {
         return repository.findByAccountingAccount(accountingAccount);
     }

@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.Optional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 /**
  * This class implements the operations of the FinancialDepreciationService. <br/>
@@ -33,34 +34,51 @@ public class FinancialDepreciationServiceImpl implements FinancialDepreciationSe
     private FinancialDepreciationRepository repository;
 
     @Override
+    @Transactional
     public FinancialDepreciation saveService(FinancialDepreciation obj) {
         FinancialDepreciation objCreated = repository.save(obj);
         return objCreated;
     }
 
     @Override
+    @Transactional
     public void saveAllService(List<FinancialDepreciation> listObj) {
         repository.saveAll(listObj);
     }
 
     @Override
+    @Transactional
     public void updateService(FinancialDepreciation obj) {
         repository.save(obj);
     }
 
     @Override
+    @Transactional
     public void deleteByIdService(Long id) {
         repository.deleteById(id);
     }
 
     @Override
+    @Transactional
+    public void deleteAllService(List<FinancialDepreciation> listObj) {
+        repository.deleteAll(listObj);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public FinancialDepreciation findByIdService(Long id) {
         Optional<FinancialDepreciation> optionalFinancialDepreciation = repository.findById(id);
         return optionalFinancialDepreciation.orElseGet(FinancialDepreciation::new);
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<FinancialDepreciation> findAllService() {
         return repository.findAll();
+    }
+
+    @Override
+    public List<FinancialDepreciation> findByFinancialFixedAssetIdService(Long fixedAssetId) {
+        return repository.findByFinancialFixedAssetId(fixedAssetId);
     }
 }
