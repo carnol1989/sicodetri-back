@@ -179,7 +179,7 @@ public class TaxTableSunatController {
                 responseCode = "404",
                 description = "No se encontró información.",
                 content = @Content)})
-    @GetMapping(value = "/", produces = MediaType.APPLICATION_JSON_VALUE)
+    @GetMapping(produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<List<TaxTableSunat>> getAllTaxesController() {
         List<TaxTableSunat> taxes = service.findAllService();
         return ResponseEntity.ok(taxes);

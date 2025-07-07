@@ -48,6 +48,8 @@
 		<jasperreports.version>6.21.3</jasperreports.version>
 		<google.guava.version>30.1-jre</google.guava.version>
 		<spotbugs.annotations.version>4.0.0</spotbugs.annotations.version>
+		<karate.version>1.4.0</karate.version>
+		<antlr4.runtime.version>4.9.3</antlr4.runtime.version>
 		<plugin.maven.checkstyle.version>3.3.1</plugin.maven.checkstyle.version>
 		<plugin.maven.site.version>3.12.0</plugin.maven.site.version>
 		<plugin.maven.antrun.version>3.0.0</plugin.maven.antrun.version>
@@ -71,18 +73,6 @@
 			<groupId>org.projectlombok</groupId>
 			<artifactId>lombok</artifactId>
 			<optional>true</optional>
-		</dependency>
-
-		<dependency>
-			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-starter-test</artifactId>
-			<scope>test</scope>
-		</dependency>
-		<dependency>
-			<groupId>org.mockito</groupId>
-			<artifactId>mockito-core</artifactId>
-			<version>${mockito.core.version}</version>
-			<scope>test</scope>
 		</dependency>
 
 		<dependency>
@@ -147,20 +137,52 @@
 			<version>${spotbugs.annotations.version}</version>
 			<scope>compile</scope>
 		</dependency>
+
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-test</artifactId>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.mockito</groupId>
+			<artifactId>mockito-core</artifactId>
+			<version>${mockito.core.version}</version>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>com.h2database</groupId>
+			<artifactId>h2</artifactId>
+			<scope>test</scope>
+		</dependency>
+
+		<dependency>
+			<groupId>com.intuit.karate</groupId>
+			<artifactId>karate-junit5</artifactId>
+			<version>${karate.version}</version>
+			<scope>test</scope>
+		</dependency>
 	</dependencies>
 	<build>
 		<plugins>
 			<plugin>
 				<groupId>org.springframework.boot</groupId>
 				<artifactId>spring-boot-maven-plugin</artifactId>
-				<configuration>
-					<excludes>
-						<exclude>
-							<groupId>org.projectlombok</groupId>
-							<artifactId>lombok</artifactId>
-						</exclude>
-					</excludes>
-				</configuration>
+				<executions>
+					<execution>
+						<id>repackage</id>
+						<goals>
+							<goal>repackage</goal>
+						</goals>
+						<configuration>
+							<excludes>
+								<exclude>
+									<groupId>org.projectlombok</groupId>
+									<artifactId>lombok</artifactId>
+								</exclude>
+							</excludes>
+						</configuration>
+					</execution>
+				</executions>
 			</plugin>
 			<!-- Plugin de JaCoCo para la cobertura del código -->
 			<plugin>
@@ -220,6 +242,29 @@
 					</execution>
 				</executions>
 			</plugin>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-failsafe-plugin</artifactId>
+				<executions>
+					<execution>
+						<goals>
+							<goal>integration-test</goal>
+							<goal>verify</goal>
+						</goals>
+					</execution>
+				</executions>
+				<configuration>
+					<!-- Activa el perfil 'integration' durante los ITs -->
+					<systemPropertyVariables>
+						<spring.profiles.active>integration</spring.profiles.active>
+					</systemPropertyVariables>
+					<!-- Detecta tests con sufijo *IT.java -->
+					<includes>
+						<include>**/*IT.java</include>
+					</includes>
+				</configuration>
+			</plugin>
+
 		</plugins>
 	</build>
 	<reporting>
