@@ -41,7 +41,6 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -204,6 +203,7 @@ public class FinancialFixedAssetController {
         try {
             LocalDate periodDate = LocalDate.parse(period, DateTimeFormatter
                 .ofPattern(Constants.FORMATTER_YYYY_MM_DD));
+
             service.deleteByAccountingPeriod(periodDate);
             service.saveAllService(period, listInputData);
             return buildResponse("Información guardada correctamente para el periodo: " + period,

@@ -260,11 +260,10 @@
 					</systemPropertyVariables>
 					<!-- Detecta tests con sufijo *IT.java -->
 					<includes>
-						<include>**/*IT.java</include>
+						<include>**/AllKarateFeaturesIT.java</include>
 					</includes>
 				</configuration>
 			</plugin>
-
 		</plugins>
 	</build>
 	<reporting>

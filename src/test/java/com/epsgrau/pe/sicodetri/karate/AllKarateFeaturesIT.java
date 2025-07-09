@@ -11,9 +11,8 @@ import org.springframework.test.context.ActiveProfiles;
     classes = com.epsgrau.pe.sicodetri.SicodetriApplication.class
 )
 @ActiveProfiles("integration")
-class TaxTableKarateIT {
+public class AllKarateFeaturesIT {
 
-  // inyecta el puerto que elegirá Spring al azar
   @LocalServerPort
   int port;
 
@@ -21,12 +20,13 @@ class TaxTableKarateIT {
   String karateConfigLocation;
 
   @Karate.Test
-  Karate runIntegrationTests() {
-    // le pasamos la URL base a Karate via system property
+  Karate testUploadEndpoint() {
     return Karate
-        .run("tax-table-sunat.feature")
+        .run("tax-table-sunat.feature",
+            "upload.feature",
+            "save-financial-fixed-assets.feature",
+            "projection.feature")
         .systemProperty("baseUrl", "http://localhost:" + port)
         .relativeTo(getClass());
   }
-
 }
