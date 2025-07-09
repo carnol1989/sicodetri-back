@@ -37,6 +37,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.epsgrau.pe.sicodetri.dto.FinancialFixedAssetDto;
 import com.epsgrau.pe.sicodetri.dto.ParamReportDto;
 import com.epsgrau.pe.sicodetri.entity.FinancialFixedAsset;
+import com.epsgrau.pe.sicodetri.exception.ExceptionResponse;
 import com.epsgrau.pe.sicodetri.exception.GlobalExceptionHandler;
 import com.epsgrau.pe.sicodetri.exception.ResourceNotFoundException;
 import com.epsgrau.pe.sicodetri.model.InputData;
@@ -46,8 +47,16 @@ import com.epsgrau.pe.sicodetri.service.ReportJasperService;
 import com.epsgrau.pe.sicodetri.service.projection.ProjectionType;
 import com.epsgrau.pe.sicodetri.service.report.ReportStrategy;
 import com.epsgrau.pe.sicodetri.service.report.ReportStrategyFactory;
+import com.epsgrau.pe.sicodetri.util.Constants;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
+import java.io.ByteArrayInputStream;
+import java.sql.SQLException;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import lombok.extern.slf4j.Slf4j;
 import net.sf.jasperreports.engine.JRException;
 import org.junit.jupiter.api.BeforeEach;
@@ -70,13 +79,6 @@ import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.multipart.MultipartFile;
-import java.io.ByteArrayInputStream;
-import java.sql.SQLException;
-import java.time.LocalDate;
-import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
 
 /**
  * This class test for FinancialFixedAssetController. <br/>
@@ -524,26 +526,13 @@ class FinancialFixedAssetControllerTest {
     void throwResourceNotFoundExceptionWhenJasperReturnNull() throws Exception {
         // Arrange
         String option = "1";
-
-        // 1) Fábrica → estrategia mockeada
         when(reportStrategyFactory.getStrategy(option)).thenReturn(reportStrategy);
-
-        // 2) Estrategia → lista NO vacía
-        List<FinancialFixedAssetDto> reportList = List.of(new FinancialFixedAssetDto());
         when(reportStrategy.generateReport(any(ParamReportDto.class)))
-            .thenReturn(reportList);
-
-        // 3) **Muy importante**: indicamos qué template y fileName maneja la estrategia
+            .thenReturn(List.of(new FinancialFixedAssetDto()));
         when(reportStrategy.getTemplate()).thenReturn("rpt_tax_book.jrxml");
         when(reportStrategy.getBaseFileName()).thenReturn("Libro_Tributario_Activo_Fijo_");
-
-        // 4) Jasper devuelve null → forzamos el 404
         when(reportJasperService.getJasperReportInBytes(
-            anyString(),//option
-            anyString(),    // templateReport
-            anyString(),    // fileType
-            anyMap(),       // parameters
-            anyList()       // dataSource
+            anyString(), anyString(), anyString(), anyMap(), anyList()
         )).thenReturn(null);
 
         // Act & Assert
@@ -561,22 +550,25 @@ class FinancialFixedAssetControllerTest {
             )
             .andExpect(status().isNotFound())
             .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-            // Aquí el GlobalExceptionHandler ya no envuelve en ResponseData con 'code',
-            // sino que construye un JSON con timestamp, message y details:
+            // Si tu ResponseData incluye timestamp:
             .andExpect(jsonPath("$.timestamp").exists())
-            .andExpect(jsonPath("$.message").value("Error al obtener reporte"))
-            .andExpect(jsonPath("$.details").exists());
+            // Nuevo: comprobamos el código que tu DTO monta
+            .andExpect(jsonPath("$.code").value(1))
+            .andExpect(jsonPath("$.message")
+                .value("Error al generar el reporte."))
+            // Ahora sí comprobamos el campo details
+            .andExpect(jsonPath("$.exception.details")
+                .value("Periodo: 2022, Opción: 1, Tipo de archivo: PDF"));
 
         // Verificaciones de invocaciones
         verify(reportStrategyFactory).getStrategy(option);
         verify(reportStrategy).generateReport(any(ParamReportDto.class));
-        // Ahora sí coincide: primero argumento = "rpt_tax_book.jrxml"
         verify(reportJasperService).getJasperReportInBytes(
             eq(option),
             eq("rpt_tax_book.jrxml"),
             eq("PDF"),
             anyMap(),
-            eq(reportList)
+            anyList()
         );
     }
 
@@ -740,7 +732,7 @@ class FinancialFixedAssetControllerTest {
             .andExpect(status().isNotFound())
             .andExpect(content().contentType(MediaType.APPLICATION_JSON))
             .andExpect(jsonPath("$.message").value("No hay información para el periodo."))
-            .andExpect(jsonPath("$.details").exists());
+            .andExpect(jsonPath("$.exception.details").exists());
 
         verify(reportStrategyFactory).getStrategy(eq(option));
         verify(reportStrategy).generateReport(any(ParamReportDto.class));
@@ -781,16 +773,23 @@ class FinancialFixedAssetControllerTest {
         // Arrange
         String option = "1";
         when(reportStrategyFactory.getStrategy(option)).thenReturn(reportStrategy);
-        when(reportStrategy.generateReport(any(ParamReportDto.class))).thenReturn(Collections.emptyList());
+        when(reportStrategy.generateReport(any(ParamReportDto.class)))
+            .thenReturn(Collections.emptyList());
 
-        // Act & Assert
-        ResourceNotFoundException ex = assertThrows(ResourceNotFoundException.class, () ->
-            controller.callGetReportsController(
-                option, "xlsx", "2022", "A", "B",
-                "2022-01-01", "2022-12-31", "2022-02-01", "2022-11-30"
-            )
+        // Act
+        ResponseEntity<?> response = controller.callGetReportsController(
+            option, "xlsx", "2022", "A", "B",
+            "2022-01-01", "2022-12-31", "2022-02-01", "2022-11-30"
         );
-        assertEquals("No hay información para el periodo.", ex.getMessage());
+
+        // Assert HTTP status
+        assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
+
+        // Cast correcto a ResponseData
+        ResponseData body = (ResponseData) response.getBody();
+        assertNotNull(body, "El cuerpo no debe ser null");
+        assertEquals("No hay información para el periodo.", body.getMessage());
+        assertEquals("01", body.getCode());
     }
 
     @Test
@@ -798,23 +797,57 @@ class FinancialFixedAssetControllerTest {
     void throwResourceNotFoundExceptionWhenJasperReturnsNullDirectCall() throws Exception {
         // Arrange
         String option = "1";
+        // 1) Fábrica → estrategia mockeada
         when(reportStrategyFactory.getStrategy(option)).thenReturn(reportStrategy);
+        // 2) Estrategia → lista NO vacía
         List<FinancialFixedAssetDto> reportList = List.of(new FinancialFixedAssetDto());
-        when(reportStrategy.generateReport(any(ParamReportDto.class))).thenReturn(reportList);
+        when(reportStrategy.generateReport(any(ParamReportDto.class)))
+            .thenReturn(reportList);
+        // 3) Template y nombre base
         when(reportStrategy.getTemplate()).thenReturn("rpt_tax_book.jrxml");
         when(reportStrategy.getBaseFileName()).thenReturn("file_");
+        // 4) Jasper devuelve null → devolverá ResponseEntity de error
         when(reportJasperService.getJasperReportInBytes(
             eq(option), eq("rpt_tax_book.jrxml"), eq("xlsx"), anyMap(), eq(reportList)
         )).thenReturn(null);
 
-        // Act & Assert
-        ResourceNotFoundException ex = assertThrows(ResourceNotFoundException.class, () ->
-            controller.callGetReportsController(
-                option, "xlsx", "2022", "A", "B",
-                "2022-01-01", "2022-12-31", "2022-02-01", "2022-11-30"
-            )
+        // Act
+        ResponseEntity<ResponseData> response = (ResponseEntity<ResponseData>) controller.callGetReportsController(
+            option, "xlsx", "2022", "A", "B",
+            "2022-01-01", "2022-12-31", "2022-02-01", "2022-11-30"
         );
-        assertEquals("Error al obtener reporte", ex.getMessage());
+
+        // Assert HTTP status
+        assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode(),
+            "Cuando Jasper devuelve null, debe devolver 404");
+
+        // Assert body is ResponseData
+        ResponseData body = response.getBody();
+        assertNotNull(body, "El cuerpo no debe ser null");
+
+        // Comprueba el código interno (Constants.S_VAL_01)
+        assertEquals(Constants.S_VAL_01, body.getCode(),
+            "Debe usar el código de error de la constante");
+
+        // Mensaje de error según buildResponseWithError
+        assertEquals("Error al generar el reporte.", body.getMessage());
+
+        // Y el detalle dentro del objeto exception
+        ExceptionResponse ex = body.getException();
+        assertNotNull(ex, "ExceptionResponse no debe ser null");
+        assertEquals("Periodo: 2022, Opción: 1, Tipo de archivo: xlsx",
+            ex.getDetails());
+
+        // Verifica que se invocaron correctamente los mocks
+        verify(reportStrategyFactory).getStrategy(option);
+        verify(reportStrategy).generateReport(any(ParamReportDto.class));
+        verify(reportJasperService).getJasperReportInBytes(
+            eq(option),
+            eq("rpt_tax_book.jrxml"),
+            eq("xlsx"),
+            anyMap(),
+            eq(reportList)
+        );
     }
 
     @Test

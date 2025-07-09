@@ -8,7 +8,10 @@ import org.springframework.test.context.ActiveProfiles;
 
 @SpringBootTest(
     webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
-    classes = com.epsgrau.pe.sicodetri.SicodetriApplication.class
+    classes = {
+        com.epsgrau.pe.sicodetri.SicodetriApplication.class,
+        com.epsgrau.pe.sicodetri.config.IntegrationTestConfig.class
+    }
 )
 @ActiveProfiles("integration")
 public class AllKarateFeaturesIT {
@@ -26,7 +29,8 @@ public class AllKarateFeaturesIT {
             "upload.feature",
             "save-financial-fixed-assets.feature",
             "projection.feature",
-            "get-financial-fixed-assets.feature")
+            "get-financial-fixed-assets.feature",
+            "report.feature")
         .systemProperty("baseUrl", "http://localhost:" + port)
         .relativeTo(getClass());
   }
