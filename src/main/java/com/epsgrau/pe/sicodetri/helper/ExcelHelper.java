@@ -4,6 +4,7 @@ import static com.epsgrau.pe.sicodetri.util.Constants.FORMATTER_DD_MM_YYYY;
 import static com.epsgrau.pe.sicodetri.util.Constants.TYPE_XLSX;
 import static com.epsgrau.pe.sicodetri.util.Functions.convertDateToLocalDateString;
 
+import java.util.Locale;
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.CellType;
 import org.apache.poi.ss.usermodel.DataFormatter;
@@ -30,8 +31,19 @@ import org.springframework.web.multipart.MultipartFile;
  */
 public class ExcelHelper {
 
+    /**
+     * Validate that a file is an Excel file.
+     *
+     * @param file File to validate
+     * @return True if the file is an Excel file, false otherwise
+     */
     public static boolean hasExcelFormat(MultipartFile file) {
-        return TYPE_XLSX.equals(file.getContentType());
+        String contentType = file.getContentType();
+        if (TYPE_XLSX.equals(contentType)) {
+            return true;
+        }
+        String filename = file.getOriginalFilename();
+        return filename != null && filename.toLowerCase(Locale.ROOT).endsWith(".xlsx");
     }
 
     /**

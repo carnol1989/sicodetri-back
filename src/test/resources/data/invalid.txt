@@ -1,0 +1,1 @@
+Tipo de archivo no valido. Por favor, sube un archivo con una extensión válida.

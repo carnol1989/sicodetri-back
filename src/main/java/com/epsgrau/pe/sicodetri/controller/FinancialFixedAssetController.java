@@ -41,7 +41,6 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -204,6 +203,7 @@ public class FinancialFixedAssetController {
         try {
             LocalDate periodDate = LocalDate.parse(period, DateTimeFormatter
                 .ofPattern(Constants.FORMATTER_YYYY_MM_DD));
+
             service.deleteByAccountingPeriod(periodDate);
             service.saveAllService(period, listInputData);
             return buildResponse("Información guardada correctamente para el periodo: " + period,
@@ -387,12 +387,25 @@ public class FinancialFixedAssetController {
                 accountingAccount, startAcquisitionDate, endAcquisitionDate, startDateUse,
                 endDateUse);
 
-            ReportStrategy strategy = reportStrategyFactory.getStrategy(option);
+            ReportStrategy strategy;
+            try {
+                strategy = reportStrategyFactory.getStrategy(option);
+            } catch (ResourceNotFoundException rnfe) {
+                return buildResponseWithError(
+                    "Tipo de reporte no soportado para opción: " + option,
+                    HttpStatus.NOT_FOUND,
+                    rnfe.getMessage()
+                );
+            }
+
             List<FinancialFixedAssetDto> reportList = strategy.generateReport(params);
             log.debug("reportList: {}", reportList.size());
 
             if (reportList.isEmpty()) {
-                throw new ResourceNotFoundException("No hay información para el periodo.");
+                return buildResponseWithError(
+                    "No hay información para el periodo.",
+                    HttpStatus.NOT_FOUND,
+                    "Periodo: " + year + ", Opción: " + option);
             }
 
             Map<String, Object> parameters = new HashMap<>();
@@ -405,7 +418,12 @@ public class FinancialFixedAssetController {
             );
 
             if (data == null) {
-                throw new ResourceNotFoundException("Error al obtener reporte");
+                return buildResponseWithError(
+                    "Error al generar el reporte.",
+                    HttpStatus.NOT_FOUND,
+                    "Periodo: " + year + ", Opción: " + option
+                        + ", Tipo de archivo: " + fileType
+                );
             }
 
             ReportTypeEnum reportType = ReportTypeEnum.getReportTypeByCode(fileType);
@@ -424,7 +442,10 @@ public class FinancialFixedAssetController {
                 .contentType(MediaType.APPLICATION_OCTET_STREAM)
                 .body(resource);
         } catch (ResourceNotFoundException rnfe) {
-            throw rnfe;
+            return buildResponseWithError(
+                "No se encontró información para el periodo: " + year,
+                HttpStatus.NOT_FOUND, rnfe.getMessage()
+            );
         }
     }
 
