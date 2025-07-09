@@ -25,7 +25,8 @@ public class AllKarateFeaturesIT {
         .run("tax-table-sunat.feature",
             "upload.feature",
             "save-financial-fixed-assets.feature",
-            "projection.feature")
+            "projection.feature",
+            "get-financial-fixed-assets.feature")
         .systemProperty("baseUrl", "http://localhost:" + port)
         .relativeTo(getClass());
   }
