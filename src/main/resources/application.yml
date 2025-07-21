@@ -36,6 +36,26 @@ info:
 server:
   port: 8082
 
+authorization-server:
+  provider:
+    issuer: "http://localhost:8082"
+  jwk:
+    key-size: 2048
+  client:
+    id: sicodetriapp
+    secret: eps2025
+    redirect-uris:
+      - "http://localhost:8082/v1/callback"
+      - "https://oauth.pstmn.io/v1/callback"
+    scopes:
+      - openid
+      - roles
+    require-authorization-consent: false
+  token:
+    access-token-time-to-live: 15m
+    refresh-token-time-to-live: 30d
+    reuse-refresh-tokens: false
+
 springdoc:
   api-docs:
     enabled: true
@@ -48,8 +68,8 @@ logging:
     org:
       hibernate:
         SQL: debug
-        type: trace
+        type: debug
     com:
       epsgrau:
         pe:
-          sicodetri: trace
+          sicodetri: debug

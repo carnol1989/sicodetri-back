@@ -12,6 +12,7 @@ import static org.mockito.Mockito.when;
 
 import com.epsgrau.pe.sicodetri.entity.TaxTableSunat;
 import com.epsgrau.pe.sicodetri.repository.TaxTableSunatRepository;
+import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -231,6 +232,8 @@ class TaxTableSunatServiceImplTest {
         Integer rate      = 5;
         Integer lifeYears = 20;
         String status     = "S";
+        String addedBy = "TEST";
+        LocalDateTime additionDate = LocalDateTime.now();
 
         TaxTableSunat t = new TaxTableSunat(
             id,
@@ -238,7 +241,11 @@ class TaxTableSunatServiceImplTest {
             desc,
             rate,
             lifeYears,
-            status
+            status,
+            addedBy,
+            additionDate,
+            null,
+            null
         );
 
         // getters
@@ -279,9 +286,12 @@ class TaxTableSunatServiceImplTest {
     @Test
     @DisplayName("equals & hashCode")
     void equalsAndHashCode() {
-        TaxTableSunat a = new TaxTableSunat(1L, "X", "D", 1, 1, "Y");
-        TaxTableSunat b = new TaxTableSunat(1L, "X", "D", 1, 1, "Y");
-        TaxTableSunat c = new TaxTableSunat(2L, "Z", "D2", 2, 2, "N");
+        TaxTableSunat a = new TaxTableSunat(1L, "X", "D", 1, 1,
+            "Y", null, null, null, null);
+        TaxTableSunat b = new TaxTableSunat(1L, "X", "D", 1, 1,
+            "Y", null, null, null, null);
+        TaxTableSunat c = new TaxTableSunat(2L, "Z", "D2", 2, 2,
+            "N", null, null, null, null);
 
         assertTrue(a.equals(b));
         assertEquals(a.hashCode(), b.hashCode());

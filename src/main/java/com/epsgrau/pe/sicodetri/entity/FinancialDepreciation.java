@@ -79,7 +79,7 @@ public class FinancialDepreciation {
     private FinancialFixedAsset financialFixedAsset;
 
     @Schema(description = "Usuario que realizó el registro", example = "CANO")
-    @Column
+    @Column(length = 50)
     private String addedBy;
 
     @Schema(description = "Fecha y hora del registro", example = "2018-02-27T12:26:30.107")
@@ -87,7 +87,7 @@ public class FinancialDepreciation {
     private LocalDateTime additionDate;
 
     @Schema(description = "Usuario que realizó una modificación", example = "WIJI")
-    @Column
+    @Column(length = 50)
     private String modifiedBy;
 
     @Schema(description = "Fecha y hora de la modificación", example = "2018-02-28T12:26:30.107")

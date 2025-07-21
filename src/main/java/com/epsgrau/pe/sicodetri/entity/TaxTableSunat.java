@@ -9,6 +9,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
+import java.time.LocalDateTime;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -70,5 +71,17 @@ public class TaxTableSunat {
     @NotNull
     @Size(max = 1)
     private String status;
+
+    @Column(length = 50)
+    private String addedBy;
+
+    @Column
+    private LocalDateTime additionDate;
+
+    @Column(length = 50)
+    private String modifiedBy;
+
+    @Column
+    private LocalDateTime modificationDate;
 
 }
