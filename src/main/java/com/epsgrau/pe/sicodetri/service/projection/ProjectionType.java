@@ -5,9 +5,14 @@ import com.fasterxml.jackson.annotation.JsonValue;
 
 /**
  * Enum representing the different types of fixed asset projection generation.
- * Each value has a code (for HTTP/JSON exchange) and a human-readable description. <br/>
+ * Each enum value has:
+ * <ul>
+ *   <li>a code (used in HTTP query parameters or JSON payloads)</li>
+ *   <li>a human-readable description (for logs or UI display)</li>
+ * </ul>
+ *
  * <b>Class</b>: {@link ProjectionType}<br/>
- * <b>Copyright</b>: &Copy; 2024 EPS Grau. <br/>
+ * <b>Copyright</b>: &copy; 2024 EPS Grau. <br/>
  * <b>Company</b>: EPS Grau. <br/>
  *
  * @author EPS Grau <br/>
@@ -50,10 +55,10 @@ public enum  ProjectionType {
     private final String description;
 
     /**
-     * Constructor.
+     * Constructs a ProjectionType enum value with the given code and description.
      *
-     * @param code Code
-     * @param description Description
+     * @param code        the string code for HTTP/JSON exchange
+     * @param description a human-readable description
      */
     ProjectionType(String code, String description) {
         this.code = code;
@@ -61,10 +66,10 @@ public enum  ProjectionType {
     }
 
     /**
-     * Returns the code for this projection type. Annotated with @JsonValue so
-     * Jackson can automatically serialize it.
+     * Returns the code for this projection type.
+     * Annotated with {@link JsonValue} so that Jackson serializes this value directly.
      *
-     * @return Code
+     * @return the code string
      */
     @JsonValue
     public String getCode() {
@@ -72,21 +77,21 @@ public enum  ProjectionType {
     }
 
     /**
-     * Useful short description to display in interfaces or logs.
+     * Returns the human-readable description of this projection type.
      *
-     * @return Description
+     * @return the description string
      */
     public String getDescription() {
         return description;
     }
 
     /**
-     * Creates an instance of ProjectionType from code.
-     * Case-insensitive comparison.
+     * Creates a {@code ProjectionType} from the given code.
+     * Comparison is case-insensitive and trims whitespace.
      *
-     * @param value The code received (e.g. "TEMPORARY_ADDITION")
-     * @return The corresponding value of the enum
-     * @throws IllegalArgumentException If a valid code does not exist
+     * @param value the code (e.g. "TEMPORARY_ADDITION")
+     * @return the corresponding {@link ProjectionType}
+     * @throws IllegalArgumentException if the code is null, empty, or does not match any type
      */
     @JsonCreator
     public static ProjectionType fromValue(String value) {
@@ -101,6 +106,11 @@ public enum  ProjectionType {
         throw new IllegalArgumentException("Tipo de proyección desconocido: " + value);
     }
 
+    /**
+     * Returns the code of this projection type.
+     *
+     * @return the code string
+     */
     @Override
     public String toString() {
         return code;

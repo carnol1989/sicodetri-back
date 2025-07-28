@@ -7,9 +7,11 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 /**
- * This class is custom exception response. <br/>
+ * Payload for returning detailed information about errors that occur during API execution.
+ * This response object is used to convey a timestamp of occurrence, a human-readable
+ * message, and any additional technical details useful for debugging.
  * <b>Class</b>: {@link ExceptionResponse}<br/>
- * <b>Copyright</b>: &Copy; 2024 EPS Grau. <br/>
+ * <b>Copyright</b>: &copy; 2024 EPS Grau. <br/>
  * <b>Company</b>: EPS Grau. <br/>
  *
  * @author EPS Grau <br/>
@@ -20,7 +22,7 @@ import lombok.NoArgsConstructor;
  *     </ul>
  *     <u>Changes</u>:<br/>
  *     <ul>
- *     <li>Ago 15, 2024 (JAR) Creation class.</li>
+ *     <li>Jun 06, 2025 (JAR) Creation class.</li>
  *     </ul>
  * @version 1.0
  */

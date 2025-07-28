@@ -5,9 +5,11 @@ import com.epsgrau.pe.sicodetri.entity.TaxDepreciation;
 import java.util.List;
 
 /**
- * This interface with the operations of the Deduction class. <br/>
+ * Service interface defining operations for managing {@link Deduction} entities.
+ * Extends common CRUD operations from {@link CrudService} and adds
+ * methods specific to handling deductions in the context of tax depreciation.
  * <b>Class</b>: {@link DeductionService}<br/>
- * <b>Copyright</b>: &Copy; 2024 EPS Grau. <br/>
+ * <b>Copyright</b>: &copy; 2024 EPS Grau. <br/>
  * <b>Company</b>: EPS Grau. <br/>
  *
  * @author EPS Grau <br/>
@@ -18,12 +20,19 @@ import java.util.List;
  *     </ul>
  *     <u>Changes</u>:<br/>
  *     <ul>
- *     <li>Ago 25, 2024 (JAR) Creation class.</li>
+ *     <li>Jun 06, 2025 (JAR) Creation class.</li>
  *     </ul>
  * @version 1.0
  */
 public interface DeductionService extends CrudService<Deduction, Long> {
 
+    /**
+     * Finds all {@link Deduction} records linked to any of the provided
+     * {@link TaxDepreciation} entries.
+     *
+     * @param taxDepreciations the list of tax depreciation entities to filter by
+     * @return a list of matching Deduction entities
+     */
     List<Deduction> findByTaxDepreciationInService(List<TaxDepreciation> taxDepreciations);
 
 }

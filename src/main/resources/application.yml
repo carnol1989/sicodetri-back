@@ -46,6 +46,7 @@ authorization-server:
     secret: eps2025
     redirect-uris:
       - "http://localhost:8082/v1/callback"
+      - "http://localhost:3000/callback"
       - "https://oauth.pstmn.io/v1/callback"
     scopes:
       - openid
@@ -64,12 +65,11 @@ springdoc:
 
 logging:
   level:
-    root: debug  # Asegúrate de que el nivel general esté en DEBUG
+    root: INFO
+    com.epsgrau.pe.sicodetri: DEBUG
     org:
       hibernate:
         SQL: debug
         type: debug
-    com:
-      epsgrau:
-        pe:
-          sicodetri: debug
+  file:
+    name: sicodetri.log

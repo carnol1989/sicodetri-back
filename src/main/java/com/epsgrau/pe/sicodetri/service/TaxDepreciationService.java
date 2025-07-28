@@ -4,9 +4,11 @@ import com.epsgrau.pe.sicodetri.entity.TaxDepreciation;
 import java.util.List;
 
 /**
- * This interface with the operations of the TaxDepreciation class. <br/>
+ * Service interface for managing tax depreciation entries.
+ * Extends the generic {@link CrudService} for basic CRUD operations
+ * and adds a method to query depreciations by fixed asset ID.
  * <b>Class</b>: {@link TaxDepreciationService}<br/>
- * <b>Copyright</b>: &Copy; 2024 EPS Grau. <br/>
+ * <b>Copyright</b>: &copy; 2024 EPS Grau. <br/>
  * <b>Company</b>: EPS Grau. <br/>
  *
  * @author EPS Grau <br/>
@@ -17,12 +19,20 @@ import java.util.List;
  *     </ul>
  *     <u>Changes</u>:<br/>
  *     <ul>
- *     <li>Ago 25, 2024 (JAR) Creation class.</li>
+ *     <li>Jun 06, 2025 (JAR) Creation class.</li>
  *     </ul>
  * @version 1.0
  */
 public interface TaxDepreciationService extends CrudService<TaxDepreciation, Long> {
 
+    /**
+     * Retrieves all {@link TaxDepreciation} records associated with the given financial
+     * fixed asset ID.
+     *
+     * @param fixedAssetId the ID of the financial fixed asset
+     * @return a list of TaxDepreciation entries linked to the specified asset,
+     *         or an empty list if none are found
+     */
     List<TaxDepreciation> findByFinancialFixedAssetIdService(Long fixedAssetId);
 
 }

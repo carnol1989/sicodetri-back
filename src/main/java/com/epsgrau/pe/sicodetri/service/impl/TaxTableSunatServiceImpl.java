@@ -11,9 +11,11 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * This class is the implementation of the service for Tax Table SUNAT. <br/>
+ * Service implementation for managing {@link TaxTableSunat} entities.
+ * Provides transactional methods for creating, updating, deleting, and
+ * retrieving tax table entries, as well as querying by accounting account.
  * <b>Class</b>: {@link TaxTableSunatServiceImpl}<br/>
- * <b>Copyright</b>: &Copy; 2024 EPS Grau. <br/>
+ * <b>Copyright</b>: &copy; 2024 EPS Grau. <br/>
  * <b>Company</b>: EPS Grau. <br/>
  *
  * @author EPS Grau <br/>
@@ -24,7 +26,7 @@ import org.springframework.transaction.annotation.Transactional;
  *     </ul>
  *     <u>Changes</u>:<br/>
  *     <ul>
- *     <li>Ago 15, 2024 (JAR) Creation class.</li>
+ *     <li>Jun 06, 2025 (JAR) Creation class.</li>
  *     </ul>
  * @version 1.0
  */
@@ -34,6 +36,12 @@ public class TaxTableSunatServiceImpl implements TaxTableSunatService {
     @Autowired
     private TaxTableSunatRepository repository;
 
+    /**
+     * Saves a single {@link TaxTableSunat} entity.
+     *
+     * @param obj the TaxTableSunat to save
+     * @return the saved TaxTableSunat instance
+     */
     @Override
     @Transactional
     public TaxTableSunat saveService(TaxTableSunat obj) {
@@ -41,29 +49,55 @@ public class TaxTableSunatServiceImpl implements TaxTableSunatService {
         return objCreated;
     }
 
+    /**
+     * Saves a list of {@link TaxTableSunat} entities in batch.
+     *
+     * @param listObj the list of TaxTableSunat records to save
+     */
     @Override
     public void saveAllService(List<TaxTableSunat> listObj) {
         repository.saveAll(listObj);
     }
 
+    /**
+     * Updates an existing {@link TaxTableSunat} entity.
+     *
+     * @param obj the TaxTableSunat to update
+     */
     @Override
     @Transactional
     public void updateService(TaxTableSunat obj) {
         repository.save(obj);
     }
 
+    /**
+     * Deletes the {@link TaxTableSunat} entity with the given identifier.
+     *
+     * @param id the ID of the TaxTableSunat to delete
+     */
     @Override
     @Transactional
     public void deleteByIdService(Long id) {
         repository.deleteById(id);
     }
 
+    /**
+     * Deletes all provided {@link TaxTableSunat} entities.
+     *
+     * @param listObj the list of TaxTableSunat records to delete
+     */
     @Override
     @Transactional
     public void deleteAllService(List<TaxTableSunat> listObj) {
         repository.deleteAll(listObj);
     }
 
+    /**
+     * Finds a {@link TaxTableSunat} by its identifier.
+     *
+     * @param id the ID of the TaxTableSunat to find
+     * @return the found TaxTableSunat, or a new empty instance if not found
+     */
     @Override
     @Transactional(readOnly = true)
     public TaxTableSunat findByIdService(Long id) {
@@ -71,6 +105,11 @@ public class TaxTableSunatServiceImpl implements TaxTableSunatService {
         return optionalTaxTableSunat.orElseGet(TaxTableSunat::new);
     }
 
+    /**
+     * Retrieves all {@link TaxTableSunat} entities.
+     *
+     * @return a list of all TaxTableSunat records
+     */
     @Override
     @Transactional(readOnly = true)
     public List<TaxTableSunat> findAllService() {
@@ -79,6 +118,12 @@ public class TaxTableSunatServiceImpl implements TaxTableSunatService {
         return listTaxTableSunat;
     }
 
+    /**
+     * Retrieves the {@link TaxTableSunat} entry matching the given accounting account code.
+     *
+     * @param accountingAccount the accounting account code to search for
+     * @return the matching TaxTableSunat entity, or {@code null} if none found
+     */
     @Override
     @Transactional(readOnly = true)
     public TaxTableSunat findByAccountigAccountService(String accountingAccount) {

@@ -19,9 +19,11 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 /**
- * This class entity for tax additions. <br/>
+ * Entity representing a tax addition record.
+ * Maps to the {@code additions} table and stores information about tax additions
+ * for a given accounting period, including the addition amount and audit data.
  * <b>Class</b>: {@link Addition}<br/>
- * <b>Copyright</b>: &Copy; 2024 EPS Grau. <br/>
+ * <b>Copyright</b>: &copy; 2024 EPS Grau. <br/>
  * <b>Company</b>: EPS Grau. <br/>
  *
  * @author EPS Grau <br/>
@@ -32,7 +34,7 @@ import lombok.NoArgsConstructor;
  *     </ul>
  *     <u>Changes</u>:<br/>
  *     <ul>
- *     <li>Ago 25, 2024 (JAR) Creation class.</li>
+ *     <li>Jun 06, 2025 (JAR) Creation class.</li>
  *     </ul>
  * @version 1.0
  */

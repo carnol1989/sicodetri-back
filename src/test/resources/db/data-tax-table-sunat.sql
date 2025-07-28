@@ -1,3 +1,4 @@
+--src/test/resources/db/data-tax-table-sunat.sql
 INSERT INTO tax_table_sunat(accounting_account, description, annual_rate, useful_life_years, status) VALUES ('331', 'Terrenos', 0, 0, 'S');
 INSERT INTO tax_table_sunat(accounting_account, description, annual_rate, useful_life_years, status) VALUES ('332', 'Edificaciones y Otras Construcciones', 5, 20, 'S');
 INSERT INTO tax_table_sunat(accounting_account, description, annual_rate, useful_life_years, status) VALUES ('333', 'Maquinaria y equipo utilizados por las actividades minera, petrolera y de construcción; excepto muebles, enseres y equipo de oficinas.', 20, 5, 'S');

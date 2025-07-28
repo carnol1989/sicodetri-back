@@ -20,9 +20,11 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 /**
- * This class entity for tax additions. <br/>
+ * Entity representing an application user.
+ * Stores authentication credentials, enabled status, and assigned roles.
+ * Also tracks audit information for creation and modification.
  * <b>Class</b>: {@link User}<br/>
- * <b>Copyright</b>: &Copy; 2024 EPS Grau. <br/>
+ * <b>Copyright</b>: &copy; 2024 EPS Grau. <br/>
  * <b>Company</b>: EPS Grau. <br/>
  *
  * @author EPS Grau <br/>
@@ -78,18 +80,18 @@ public class User {
     private LocalDateTime modificationDate;
 
     /**
-    * All-args constructor used by the builder.
-    * Defensive copy of 'roles' to avoid saving the external reference.
-    *
-    * @param id Id
-    * @param username Username
-    * @param password Password
-    * @param enabled Enabled
-    * @param roles Roles
-    * @param addedBy AddedBy
-    * @param additionDate AdditionDate
-    * @param modifiedBy ModifiedBy
-    * @param modificationDate ModificationDate
+     * All-args constructor used by the Lombok builder.
+     * Performs a defensive copy of the provided roles set to avoid external mutation.
+     *
+     * @param id               the user ID
+     * @param username         the unique username
+     * @param password         the encrypted password
+     * @param enabled          whether the account is enabled
+     * @param roles            the roles to assign
+     * @param addedBy          the creator username
+     * @param additionDate     the creation timestamp
+     * @param modifiedBy       the last modifier username
+     * @param modificationDate the last modification timestamp
     */
     @Builder
     public User(Long id,
@@ -113,10 +115,10 @@ public class User {
     }
 
     /**
-    * Custom setter: Empty and copy the contents,
-    * ensuring that the original reference is not saved.
-    *
-    * @param roles Roles
+     * Sets the roles for the user.
+     * Clears any existing roles and adds all entries from the given set.
+     *
+     * @param roles the new set of roles to assign
     */
     public void setRoles(Set<Role> roles) {
         this.roles.clear();
@@ -126,25 +128,23 @@ public class User {
     }
 
     /**
-    * Custom getter: Returns an unmodifiable view
-    * to prevent external mutations.
-    *
-    * @return Set Role
+     * Returns an unmodifiable view of the user's roles to prevent external mutation.
+     *
+     * @return an unmodifiable set of assigned roles
     */
     public Set<Role> getRoles() {
         return Collections.unmodifiableSet(this.roles);
     }
 
     /**
-    * Builder customization: Lombok will see this method and will NOT generate
-    * its own conflicting method, but it will generate the rest of the UserBuilder class.
+    * Builder customization: ensures a defensive copy of the roles set within the builder.
     */
     public static class UserBuilder {
         /**
-        * Defensive copy of 'roles' within the builder.
-        *
-        * @param roles Roles
-        * @return UserBuilder
+         * Sets the roles in the builder with a defensive copy.
+         *
+         * @param roles the roles to assign
+         * @return the builder instance
         */
         public UserBuilder roles(Set<Role> roles) {
             this.roles = (roles == null) ? new HashSet<>() : new HashSet<>(roles);

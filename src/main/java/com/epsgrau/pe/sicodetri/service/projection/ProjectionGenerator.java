@@ -5,9 +5,12 @@ import java.time.LocalDate;
 import java.util.List;
 
 /**
- * This class abstract for generate projection. <br/>
+ * Defines the contract for generating different types of depreciation projections.
+ * Implementations must specify the projection type they handle and provide
+ * the logic to generate projection entries for a list of fixed assets over
+ * a given accounting period.
  * <b>Class</b>: {@link ProjectionGenerator}<br/>
- * <b>Copyright</b>: &Copy; 2024 EPS Grau. <br/>
+ * <b>Copyright</b>: &copy; 2024 EPS Grau. <br/>
  * <b>Company</b>: EPS Grau. <br/>
  *
  * @author EPS Grau <br/>
@@ -25,17 +28,21 @@ import java.util.List;
 public interface ProjectionGenerator {
 
     /**
-     * Identify the type of projection you implement.
+     * Returns the {@link ProjectionType} that this generator supports.
      *
-     * @return ProjectionType
+     * @return the projection type handled by this implementation
      */
     ProjectionType getType();
 
     /**
-     * Generation logic for that type of projection.
+     * Executes the projection computation for the specified accounting period
+     * and list of fixed assets.
+     * Implementations should iterate over the assets, apply the appropriate
+     * depreciation and addition/deduction logic, and persist or return the
+     * results as needed.
      *
-     * @param accountingPeriod Accounting period
-     * @param fixedAssets Fixed asset list
+     * @param accountingPeriod the starting period for projection (e.g., month/year)
+     * @param fixedAssets      the list of {@link FinancialFixedAsset} entities to process
      */
     void generate(LocalDate accountingPeriod, List<FinancialFixedAsset> fixedAssets);
 

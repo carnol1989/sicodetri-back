@@ -22,9 +22,14 @@ import lombok.Setter;
 import lombok.ToString;
 
 /**
- * This class entity for Financial Fixed Asset. <br/>
+ * Entity representing a financial fixed asset, storing all relevant details
+ * such as identification, valuation, acquisition and usage dates, depreciation
+ * data, and audit information.
+ * Maps to the {@code financial_fixed_asset} table. Associated depreciation
+ * entries (both financial and tax) are maintained via one-to-many relationships.
+ * Transient fields support runtime metadata (e.g., row numbers for import).
  * <b>Class</b>: {@link FinancialFixedAsset}<br/>
- * <b>Copyright</b>: &Copy; 2024 EPS Grau. <br/>
+ * <b>Copyright</b>: &copy; 2024 EPS Grau. <br/>
  * <b>Company</b>: EPS Grau. <br/>
  *
  * @author EPS Grau <br/>
@@ -35,7 +40,7 @@ import lombok.ToString;
  *     </ul>
  *     <u>Changes</u>:<br/>
  *     <ul>
- *     <li>Ago 15, 2024 (JAR) Creation class.</li>
+ *     <li>Jun 06, 2025 (JAR) Creation class.</li>
  *     </ul>
  * @version 1.0
  */

@@ -13,9 +13,11 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 /**
- * This class entity for tax additions. <br/>
+ * Entity representing a security role in the application.
+ * Roles define a set of authorities granted to users. By convention, the {@code name}
+ * field is stored without the "ROLE_" prefix (e.g., "AssetUploader", "DepreciationProcessor").
  * <b>Class</b>: {@link Role}<br/>
- * <b>Copyright</b>: &Copy; 2024 EPS Grau. <br/>
+ * <b>Copyright</b>: &copy; 2024 EPS Grau. <br/>
  * <b>Company</b>: EPS Grau. <br/>
  *
  * @author EPS Grau <br/>

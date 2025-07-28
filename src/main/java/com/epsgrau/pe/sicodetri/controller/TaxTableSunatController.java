@@ -19,6 +19,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -26,9 +27,11 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
- * This class provide the endpoints for Tax Table of SUNAT. <br/>
+ * REST controller for managing SUNAT tax table entries.
+ * Exposes endpoints to retrieve a specific tax rate by ID or accounting account,
+ * and to fetch all tax table entries.
  * <b>Class</b>: {@link TaxTableSunatController}<br/>
- * <b>Copyright</b>: &Copy; 2024 EPS Grau. <br/>
+ * <b>Copyright</b>: &copy; 2024 EPS Grau. <br/>
  * <b>Company</b>: EPS Grau. <br/>
  *
  * @author EPS Grau <br/>
@@ -39,7 +42,7 @@ import org.springframework.web.bind.annotation.RestController;
  *     </ul>
  *     <u>Changes</u>:<br/>
  *     <ul>
- *     <li>Ago 15, 2024 (JAR) Creation class.</li>
+ *     <li>Jun 06, 2024 (JAR) Creation class.</li>
  *     </ul>
  * @version 1.0
  */
@@ -51,12 +54,13 @@ public class TaxTableSunatController {
     private TaxTableSunatService service;
 
     /**
-     * Obtain SUNAT tax table information.
+     * Retrieves a SUNAT tax rate entry based on the specified search option.
      *
-     * @param option Option of search
-     * @param id Identifier
-     * @param accountingAccount Accounting account
-     * @return ResponseEntity of ResponseData
+     * @param option            the search option (1 = by ID, 2 = by accounting account)
+     * @param id                the tax table record ID when option = 1
+     * @param accountingAccount the accounting account when option = 2
+     * @return a ResponseEntity containing ResponseData with the found TaxTableSunat,
+     *         or an error payload if not found or on failure
      */
     @Operation(summary = "Obtener información de tabla de impuesto de la SUNAT.")
     @ApiResponses(
@@ -72,6 +76,7 @@ public class TaxTableSunatController {
                 description = "ID no encontrado.",
                 content = @Content)})
     @GetMapping("/{option}")
+    @PreAuthorize("hasRole('TaxTableViewer')")
     public ResponseEntity<ResponseData> getTaxTableSunatController(@PathVariable Long option,
         @RequestParam Long id, @RequestParam String accountingAccount) {
         ResponseData responseData = new ResponseData();
@@ -118,13 +123,13 @@ public class TaxTableSunatController {
     }
 
     /**
-     * Build error response.
+     * Builds a standardized error response without an exception detail.
      *
-     * @param responseData Response data
-     * @param exceptionResponse Object exception responde
-     * @param message Message
-     * @param statusCode HttpStatusCode
-     * @return ResponseEntity of ResponseData
+     * @param responseData      the response data object to populate
+     * @param exceptionResponse the exception response wrapper
+     * @param message           the error message
+     * @param statusCode        the HTTP status to return
+     * @return a ResponseEntity containing ResponseData with error detail
      */
     private ResponseEntity<ResponseData> buildErrorResponse(ResponseData responseData,
         ExceptionResponse exceptionResponse, String message, HttpStatus statusCode) {
@@ -132,14 +137,14 @@ public class TaxTableSunatController {
     }
 
     /**
-     * Build error response.
+     * Builds a standardized error response including exception details.
      *
-     * @param responseData ResponseData
-     * @param exceptionResponse ExceptionResponse
-     * @param message Message
-     * @param statusCode HttpStatusCode
-     * @param e Object exception
-     * @return ResponseEntity of ResponseData
+     * @param responseData      the response data object to populate
+     * @param exceptionResponse the exception response wrapper
+     * @param message           the error message
+     * @param statusCode        the HTTP status to return
+     * @param e                 the exception that occurred (may be null)
+     * @return a ResponseEntity containing ResponseData with error and exception details
      */
     private ResponseEntity<ResponseData> buildErrorResponse(ResponseData responseData,
         ExceptionResponse exceptionResponse, String message, HttpStatus statusCode, Exception e) {
@@ -162,9 +167,9 @@ public class TaxTableSunatController {
     }
 
     /**
-     * Obtain information on the entire SUNAT tax table.
+     * Retrieves all entries in the SUNAT tax table.
      *
-     * @return ResponseEntity of List of TaxTableSunat
+     * @return a ResponseEntity containing a list of TaxTableSunat objects
      */
     @Operation(summary = "Obtener información de toda la tabla de impuesto de la SUNAT.")
     @ApiResponses(

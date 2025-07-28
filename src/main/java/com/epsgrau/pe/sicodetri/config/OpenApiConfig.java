@@ -8,9 +8,11 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 /**
- * This class configures the information API Docs. <br/>
+ * Configuration class for OpenAPI (Swagger) documentation of the SICODETRI API.
+ * Provides beans to customize the OpenAPI metadata (title, version, description,
+ * terms of service, contact, license) and to define a default API group.
  * <b>Class</b>: {@link OpenApiConfig}<br/>
- * <b>Copyright</b>: &Copy; 2024 EPS Grau. <br/>
+ * <b>Copyright</b>: &copy; 2024 EPS Grau. <br/>
  * <b>Company</b>: EPS Grau. <br/>
  *
  * @author EPS Grau <br/>
@@ -21,7 +23,7 @@ import org.springframework.context.annotation.Configuration;
  *     </ul>
  *     <u>Changes</u>:<br/>
  *     <ul>
- *     <li>Ago 08, 2024 (JAR) Creation class.</li>
+ *     <li>Jun 06, 2024 (JAR) Creation class.</li>
  *     </ul>
  * @version 1.0
  */
@@ -29,10 +31,11 @@ import org.springframework.context.annotation.Configuration;
 public class OpenApiConfig {
 
     /**
-     * Define the basic information that will appear in your API documentation,
-     * including title, description, version, terms of service, contact, and license.
+     * Creates a customized {@link OpenAPI} bean containing metadata for the API documentation.
+     * Sets the API title, version, description, terms of service URL, contact information,
+     * and license details, which will appear in the generated Swagger UI.
      *
-     * @return OpenAPI bean custom.
+     * @return a configured {@link OpenAPI} instance
      */
     @Bean
     public OpenAPI customOpenApi() {
@@ -54,10 +57,11 @@ public class OpenApiConfig {
     }
 
     /**
-     * Configure the default API group. You can adjust this if you need to create
-     * additional groups of APIs.
+     * Defines the default API grouping for all endpoints.
+     * Registers a {@link GroupedOpenApi} bean named "default" that matches all paths.
+     * Additional groupings can be configured if needed.
      *
-     * @return GroupedOpenApi groups of APIs.
+     * @return a {@link GroupedOpenApi} instance for the default API group
      */
     @Bean
     public GroupedOpenApi defaultApi() {

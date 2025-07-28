@@ -19,9 +19,12 @@ import java.time.LocalDateTime;
 import org.springframework.beans.factory.annotation.Autowired;
 
 /**
- * This class abstract for generate projection. <br/>
+ * Abstract base class for generating depreciation projections.
+ * Implements the common logic for iterating through months within a year,
+ * calculating financial and tax depreciations, and determining additions or
+ * deductions for each period.
  * <b>Class</b>: {@link AbstractProjectionGenerator}<br/>
- * <b>Copyright</b>: &Copy; 2024 EPS Grau. <br/>
+ * <b>Copyright</b>: &copy; 2024 EPS Grau. <br/>
  * <b>Company</b>: EPS Grau. <br/>
  *
  * @author EPS Grau <br/>
@@ -51,15 +54,19 @@ public abstract class AbstractProjectionGenerator {
     protected DeductionService deductionService;
 
     /**
-     * Extract all the logic of iterating months/years and creating FinancialDepreciation,
-     * TaxDepreciation, Addition/Deduction.
+     * Processes an entire year of depreciation for the given fixed asset,
+     * advancing month by month, and populates the provided {@link Projection}
+     * with financial depreciation, tax depreciation, and any required additions or deductions.
      *
-     * @param fixedAsset Fixed Asset
-     * @param projection Projection
-     * @param taxTable Tax table Sunat
-     * @param typeProjection Type projection (ProjectionType)
-     * @param numberYears Number years for projection
-     * @return Projection
+     * @param fixedAsset     the fixed asset for which to generate the projection
+     * @param projection     the projection model to populate (initial and next periods
+     *                       set externally)
+     * @param taxTable       the SUNAT tax table entry to use for tax depreciation calculations
+     * @param typeProjection the projection type code (e.g., "TEMPORARY_DEDUCTION",
+     *                       "PERMANENT_ADDITIONS")
+     * @param numberYears    the number of years elapsed since acquisition, used to
+     *                       limit projections
+     * @return the updated {@link Projection} containing one year’s worth of entries
      */
     protected Projection processYearDepreciation(FinancialFixedAsset fixedAsset,
         Projection projection, TaxTableSunat taxTable, String typeProjection,

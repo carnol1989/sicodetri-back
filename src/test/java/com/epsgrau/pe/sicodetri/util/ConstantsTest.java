@@ -3,7 +3,13 @@ package com.epsgrau.pe.sicodetri.util;
 import java.math.BigDecimal;
 
 /**
- * Util class for handler constants. <br/>
+ * Collection of constants used in unit tests across the Sicodetri project.
+ *
+ * <p>
+ * Provides string keys, MIME types, numeric values, format patterns, and stored
+ * procedure definitions to simplify test setup and verification.
+ * </p>
+ *
  * <b>Class</b>: {@link ConstantsTest}<br/>
  * <b>Copyright</b>: &Copy; 2024 EPS Grau. <br/>
  * <b>Company</b>: EPS Grau. <br/>
@@ -16,7 +22,7 @@ import java.math.BigDecimal;
  *     </ul>
  *     <u>Changes</u>:<br/>
  *     <ul>
- *     <li>Ago 25, 2024 (JAR) Creation class.</li>
+ *     <li>Jun 06, 2025 (JAR) Creation class.</li>
  *     </ul>
  * @version 1.0
  */

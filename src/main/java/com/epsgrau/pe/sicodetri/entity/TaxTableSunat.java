@@ -15,9 +15,11 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 /**
- * This class entity for Tax Table SUNAT. <br/>
+ * Entity representing a SUNAT tax rate entry.
+ * Maps to the {@code tax_table_sunat} domain model, storing the accounting account,
+ * description, annual rate, useful life, status, and audit metadata.
  * <b>Class</b>: {@link TaxTableSunat}<br/>
- * <b>Copyright</b>: &Copy; 2024 EPS Grau. <br/>
+ * <b>Copyright</b>: &copy; 2024 EPS Grau. <br/>
  * <b>Company</b>: EPS Grau. <br/>
  *
  * @author EPS Grau <br/>
@@ -28,7 +30,7 @@ import lombok.NoArgsConstructor;
  *     </ul>
  *     <u>Changes</u>:<br/>
  *     <ul>
- *     <li>Ago 15, 2024 (JAR) Creation class.</li>
+ *     <li>Jun 06, 2025 (JAR) Creation class.</li>
  *     </ul>
  * @version 1.0
  */

@@ -14,25 +14,64 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.servlet.config.annotation.CorsRegistration;
 import org.springframework.web.servlet.config.annotation.CorsRegistry;
 
+/**
+ * Unit tests for {@link CorsConfig}.
+ *
+ * <p>
+ * Verifies that CORS mappings are registered properly with the expected
+ * allowed origins, HTTP methods, credential flag, and exposed headers.
+ * </p>
+ *
+ * <b>Class</b>: {@link CorsConfigTest}<br/>
+ * <b>Copyright</b>: &Copy; 2024 EPS Grau. <br/>
+ * <b>Company</b>: EPS Grau. <br/>
+ *
+ * @author EPS Grau <br/>
+ *     <u>Service Provider</u>: Consultor TI <br/>
+ *     <u>Developed by</u>: <br/>
+ *     <ul>
+ *     <li>Carlos Augusto Nole Machaca</li>
+ *     </ul>
+ *     <u>Changes</u>:<br/>
+ *     <ul>
+ *     <li>Jun 06, 2025 (JAR) Creation class.</li>
+ *     </ul>
+ * @version 1.0
+ */
 @DisplayName("CorsConfig Tests")
 class CorsConfigTest {
 
     private CorsConfig corsConfig;
     private CorsRegistry registry;
 
+    /**
+     * Initializes a fresh {@link CorsConfig} instance and a new {@link CorsRegistry}
+     * before each test, ensuring a clean registry state.
+     */
     @BeforeEach
     void setUp() {
         corsConfig = new CorsConfig();
         registry   = new CorsRegistry();
     }
 
+    /**
+     * Tests that {@code CorsConfig#addCorsMappings(CorsRegistry)}:
+     * <ul>
+     *   <li>Registers exactly one {@link CorsRegistration} for all paths ("**").</li>
+     *   <li>Sets the allowed origin to "http://localhost:3000".</li>
+     *   <li>Enables GET, POST, PUT, and DELETE methods.</li>
+     *   <li>Allows credentials.</li>
+     *   <li>Exposes the Content-Disposition header.</li>
+     * </ul>
+     *
+     * @throws NoSuchFieldException   if the private field cannot be located by reflection
+     * @throws IllegalAccessException if the private field cannot be made accessible
+     */
     @Test
     @DisplayName("Configure CORS mapping with allowed origin, methods, credentials, and exposed headers")
     void configureCorsMappingWithAllowedOriginsMethodsCredentialsAndExposedHeaders() throws IllegalAccessException, NoSuchFieldException {
-        // Act: invocamos addCorsMappings, que internamente rellenará `registrations`
         corsConfig.addCorsMappings(registry);
 
-        // 1. Accedemos por reflexión a la lista privada `registrations` en CorsRegistry
         Field registrationsField = CorsRegistry.class.getDeclaredField("registrations");
         registrationsField.setAccessible(true);
 
@@ -40,46 +79,52 @@ class CorsConfigTest {
         List<CorsRegistration> registrations =
                 (List<CorsRegistration>) registrationsField.get(registry);
 
-        // Debe haber exactamente una CorsRegistration, resultado de addMapping("/**")
-        assertNotNull(registrations, "La lista de registrations no debe ser null");
-        assertEquals(1, registrations.size(), "Debe existir una única CorsRegistration para '/**'");
+        assertNotNull(registrations, "Registrations must not be null");
+        assertEquals(1, registrations.size(), "There must be exactly one CorsRegistration");
 
         CorsRegistration firstRegistration = registrations.get(0);
-        assertNotNull(firstRegistration, "No se obtuvo el primer CorsRegistration");
+        assertNotNull(firstRegistration, "First CorsRegistration must not be null");
 
-        // 2. Ahora, para extraer el CorsConfiguration
+        Field patternField = CorsRegistration.class.getDeclaredField("pathPattern");
+        patternField.setAccessible(true);
+        String pathPattern = (String) patternField.get(firstRegistration);
+        assertEquals("/**", pathPattern, "Path pattern must be /**");
+
         Field configField = CorsRegistration.class.getDeclaredField("config");
         configField.setAccessible(true);
-
         CorsConfiguration config = (CorsConfiguration) configField.get(firstRegistration);
-        assertNotNull(config, "El CorsConfiguration asociado no debe ser null");
+        assertNotNull(config, "CorsConfiguration must not be null");
 
-        // 3. Verificamos el origen permitido
         List<String> allowedOrigins = config.getAllowedOrigins();
-        assertNotNull(allowedOrigins, "La lista de allowedOrigins no debe ser null");
-        assertEquals(1, allowedOrigins.size(), "Debe haber exactamente un origen permitido");
-        assertEquals("http://localhost:3000", allowedOrigins.get(0),
-                "El origen permitido debe ser http://localhost:3000");
+        assertNotNull(allowedOrigins, "Allowed origins must not be null");
+        assertEquals(1, allowedOrigins.size(), "Exactly one allowed origin is expected");
+        assertEquals("http://localhost:3000", allowedOrigins.get(0));
 
-        // 4. Verificamos los métodos permitidos
         List<String> allowedMethods = config.getAllowedMethods();
-        assertNotNull(allowedMethods, "La lista de allowedMethods no debe ser null");
-        assertTrue(allowedMethods.contains("GET"),    "Debe permitir GET");
-        assertTrue(allowedMethods.contains("POST"),   "Debe permitir POST");
-        assertTrue(allowedMethods.contains("PUT"),    "Debe permitir PUT");
-        assertTrue(allowedMethods.contains("DELETE"), "Debe permitir DELETE");
-        assertEquals(4, allowedMethods.size(), "Deben permitirse exactamente 4 métodos HTTP");
+        assertNotNull(allowedMethods, "Allowed methods must not be null");
+        assertTrue(allowedMethods.contains("GET"),    "Must allow GET");
+        assertTrue(allowedMethods.contains("POST"),   "Must allow POST");
+        assertTrue(allowedMethods.contains("PUT"),    "Must allow PUT");
+        assertTrue(allowedMethods.contains("DELETE"), "Must allow DELETE");
+        assertTrue(allowedMethods.contains("OPTIONS"), "Must allow OPTIONS");
+        assertEquals(5, allowedMethods.size(), "Exactly five HTTP methods should be allowed");
 
-        // 5. Verificamos allowCredentials
+        List<String> allowedHeaders = config.getAllowedHeaders();
+        assertNotNull(allowedHeaders, "Allowed headers must not be null");
+        assertTrue(allowedHeaders.contains("Authorization"));
+        assertTrue(allowedHeaders.contains("Content-Type"));
+        assertTrue(allowedHeaders.contains("X-Requested-With"));
+        assertTrue(allowedHeaders.contains("X-XSRF-TOKEN"));
+        assertEquals(4, allowedHeaders.size(), "Exactly four allowed headers are expected");
+
         Boolean allowCredentials = config.getAllowCredentials();
         assertNotNull(allowCredentials, "El flag allowCredentials no debe ser null");
         assertTrue(allowCredentials, "allowCredentials debe ser true");
 
-        // 6. Verificamos los encabezados expuestos
         List<String> exposedHeaders = config.getExposedHeaders();
-        assertNotNull(exposedHeaders, "La lista de exposedHeaders no debe ser null");
-        assertEquals(1, exposedHeaders.size(), "Debe haber exactamente un encabezado expuesto");
-        assertEquals(HttpHeaders.CONTENT_DISPOSITION, exposedHeaders.get(0),
-                "Debe exponerse Content-Disposition");
+        assertNotNull(exposedHeaders, "Exposed headers must not be null");
+        assertTrue(exposedHeaders.contains(HttpHeaders.CONTENT_DISPOSITION));
+        assertTrue(exposedHeaders.contains(HttpHeaders.AUTHORIZATION));
+        assertEquals(2, exposedHeaders.size(), "Exactly two exposed headers are expected");
     }
 }

@@ -9,9 +9,13 @@ import lombok.Setter;
 import lombok.ToString;
 
 /**
- * This class dto for financial fixed asset. <br/>
+ * Data Transfer Object representing a financial fixed asset, including its
+ * identification, accounting details, depreciation values, and any error
+ * information encountered during processing.
+ * This DTO is used to carry asset data between layers, such as service and
+ * controller, and to serialize/deserialize asset information in API responses.
  * <b>Class</b>: {@link FinancialFixedAssetDto}<br/>
- * <b>Copyright</b>: &Copy; 2024 EPS Grau. <br/>
+ * <b>Copyright</b>: &copy; 2024 EPS Grau. <br/>
  * <b>Company</b>: EPS Grau. <br/>
  *
  * @author EPS Grau <br/>
@@ -22,7 +26,7 @@ import lombok.ToString;
  *     </ul>
  *     <u>Changes</u>:<br/>
  *     <ul>
- *     <li>Sep 08, 2024 (JAR) Creation class.</li>
+ *     <li>Jun 06, 2024 (JAR) Creation class.</li>
  *     </ul>
  * @version 1.0
  */

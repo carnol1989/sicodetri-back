@@ -7,9 +7,12 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
 /**
- * This interface is to handle the data access operations of the Addition entity. <br/>
+ * Repository interface for performing CRUD operations on {@link Addition} entities.
+ * Extends {@link JpaRepository} to provide standard data access methods, and
+ * defines a custom finder for retrieving additions associated with a list of
+ * tax depreciation records.
  * <b>Class</b>: {@link AdditionRepository}<br/>
- * <b>Copyright</b>: &Copy; 2024 EPS Grau. <br/>
+ * <b>Copyright</b>: &copy; 2024 EPS Grau. <br/>
  * <b>Company</b>: EPS Grau. <br/>
  *
  * @author EPS Grau <br/>
@@ -20,13 +23,20 @@ import org.springframework.stereotype.Repository;
  *     </ul>
  *     <u>Changes</u>:<br/>
  *     <ul>
- *     <li>Ago 25, 2024 (JAR) Creation Interface.</li>
+ *     <li>Jun 06, 2025 (JAR) Creation Interface.</li>
  *     </ul>
  * @version 1.0
  */
 @Repository
 public interface AdditionRepository extends JpaRepository<Addition, Long> {
 
+    /**
+     * Retrieves all {@link Addition} records associated with any of the given
+     * {@link TaxDepreciation} entities.
+     *
+     * @param taxDepreciations the list of tax depreciation entities to filter by
+     * @return a list of matching Addition entities; empty if none found
+     */
     List<Addition> findByTaxDepreciationIn(List<TaxDepreciation> taxDepreciations);
 
 }

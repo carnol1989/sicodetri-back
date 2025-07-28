@@ -62,7 +62,14 @@ import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.web.multipart.MultipartFile;
 
 /**
- * This class test for FinancialFixedAssetServiceImpl. <br/>
+ * Unit tests for {@link FinancialFixedAssetServiceImpl}.
+ *
+ * <p>
+ * Verifies loading and parsing of Excel files, persisting and updating
+ * fixed assets, deletion operations, various query methods, projection
+ * delegation, JDBC report delegation, and entity getters/setters/toString.
+ * </p>
+ *
  * <b>Class</b>: {@link FinancialFixedAssetServiceImplTest}<br/>
  * <b>Copyright</b>: &Copy; 2024 EPS Grau. <br/>
  * <b>Company</b>: EPS Grau. <br/>
@@ -75,7 +82,7 @@ import org.springframework.web.multipart.MultipartFile;
  *     </ul>
  *     <u>Changes</u>:<br/>
  *     <ul>
- *     <li>Ago 17, 2024 (JAR) Creation class.</li>
+ *     <li>Jun 06, 2025 (JAR) Creation class.</li>
  *     </ul>
  * @version 1.0
  */
@@ -116,6 +123,9 @@ class FinancialFixedAssetServiceImplTest {
 
     private FinancialFixedAssetServiceImpl service;
 
+    /**
+     * Initializes Mockito mocks and injects dependencies before each test.
+     */
     @BeforeEach
     void setUp() {
         MockitoAnnotations.openMocks(this);
@@ -134,6 +144,11 @@ class FinancialFixedAssetServiceImplTest {
         ReflectionTestUtils.setField(service, "taxTableService",           taxTableService);
     }
 
+    /**
+     * Should parse a non-empty Excel .xlsx file into a list of InputData.
+     *
+     * @throws IOException if reading the file fails
+     */
     @Test
     @DisplayName("Return non-empty list when Excel file has content")
     void returnNonEmptyListWhenExcelFileHasContent() throws IOException {
@@ -153,6 +168,11 @@ class FinancialFixedAssetServiceImplTest {
         assertEquals("", result.get(0).getFixedAssetCodeComponent());
     }
 
+    /**
+     * Should return an empty list when the Excel workbook contains no rows.
+     *
+     * @throws IOException if reading the file fails
+     */
     @Test
     @DisplayName("Return empty list when Excel file is empty")
     void returnEmptyListWhenExcelFileIsEmpty() throws IOException {
@@ -169,6 +189,11 @@ class FinancialFixedAssetServiceImplTest {
         assertTrue(result.isEmpty());
     }
 
+    /**
+     * Should wrap IOExceptions during Excel parsing as RuntimeException.
+     *
+     * @throws IOException simulation of file read error
+     */
     @Test
     @DisplayName("Throw RuntimeException when IOException occurs during Excel parsing")
     void throwRuntimeExceptionWhenIOExceptionOccursDuringExcelParsing() throws IOException {
@@ -186,6 +211,9 @@ class FinancialFixedAssetServiceImplTest {
         assertTrue(thrown.getMessage().contains("Failed to parse Excel file"), "Exception message should indicate failure to parse Excel file.");
     }
 
+    /**
+     * Should save all FinancialFixedAsset entities parsed from InputData.
+     */
     @Test
     @DisplayName("Save all assets when inputDataList is non-empty")
     void saveAllAssetsWhenInputDataListIsNonEmpty() {
@@ -215,6 +243,9 @@ class FinancialFixedAssetServiceImplTest {
         }
     }
 
+    /**
+     * Should save an empty list when no InputData is provided.
+     */
     @Test
     @DisplayName("Save empty list when inputDataList is empty")
     void saveEmptyListWhenInputDataListIsEmpty() {
@@ -233,9 +264,12 @@ class FinancialFixedAssetServiceImplTest {
         assertEquals(expectedList.size(), capturedList.size());
     }
 
+    /**
+     * Should build FinancialFixedAsset list matching input data.
+     */
     @Test
     @DisplayName("Return matching assets when getListFinancialFixedAsset is called with matching data")
-    public void returnMatchingAssetsWhenGetListFinancialFixedAssetIsCalledWithMatchingData() {
+    void returnMatchingAssetsWhenGetListFinancialFixedAssetIsCalledWithMatchingData() {
         String accountingPeriod = "2022-01-01";
         List<InputData> inputDataList = getListInputData();
         FinancialFixedAsset expectedAsset = getFinancialFixedAsset012();
@@ -255,9 +289,12 @@ class FinancialFixedAssetServiceImplTest {
         assertNotNull(actualAsset.getAdditionDate()); // Check if additionDate is set
     }
 
+    /**
+     * Should return an empty list for getListFinancialFixedAsset when input is empty.
+     */
     @Test
     @DisplayName("Return empty list when getListFinancialFixedAsset is called with empty inputDataList")
-    public void returnEmptyListWhenGetListFinancialFixedAssetIsCalledWithEmptyList() {
+    void returnEmptyListWhenGetListFinancialFixedAssetIsCalledWithEmptyList() {
         // Arrange
         String accountingPeriod = "2022-01-01";
         List<InputData> inputDataList = new ArrayList<>();
@@ -270,6 +307,9 @@ class FinancialFixedAssetServiceImplTest {
         assertTrue(result.isEmpty());
     }
 
+    /**
+     * Should throw IllegalArgumentException if inputDataList is null.
+     */
     @Test
     @DisplayName("Throw IllegalArgumentException when getListFinancialFixedAsset receives null InputData")
     void throwIllegalArgumentExceptionWhenGetListFinancialFixedAssetReceivesNullInputData() {
@@ -286,6 +326,9 @@ class FinancialFixedAssetServiceImplTest {
         assertEquals("listInputData nulo", thrown.getMessage());
     }
 
+    /**
+     * Should throw RuntimeException with cause when accounting period is null.
+     */
     @Test
     @DisplayName("Throw RuntimeException when getListFinancialFixedAsset receives null accountingPeriod")
     void throwIllegalArgumentExceptionWhenGetListFinancialFixedAssetReceivesNullAccountingPeriod() {
@@ -304,6 +347,9 @@ class FinancialFixedAssetServiceImplTest {
         assertTrue(thrown.getCause() instanceof IllegalArgumentException);
     }
 
+    /**
+     * Should throw RuntimeException when date parsing fails in getListFinancialFixedAsset.
+     */
     @Test
     @DisplayName("Throw RuntimeException when date parse fails in getListFinancialFixedAsset")
     void throwIllegalArgumentExceptionWhenDateParseFailsInGetListFinancialFixedAsset() {
@@ -323,6 +369,9 @@ class FinancialFixedAssetServiceImplTest {
         assertTrue(thrown.getCause() instanceof IllegalArgumentException);
     }
 
+    /**
+     * Should throw RuntimeException when numeric parsing fails in getListFinancialFixedAsset.
+     */
     @Test
     @DisplayName("Throw RuntimeException when BigDecimal parse fails in getListFinancialFixedAsset")
     void throwIllegalArgumentExceptionWhenBigDecimalParseFailsInGetListFinancialFixedAsset() {
@@ -342,6 +391,9 @@ class FinancialFixedAssetServiceImplTest {
         assertTrue(thrown.getCause() instanceof IllegalArgumentException);
     }
 
+    /**
+     * Should throw RuntimeException when double parsing fails in getListFinancialFixedAsset.
+     */
     @Test
     @DisplayName("Throw RuntimeException when Double parse fails in getListFinancialFixedAsset")
     void throwIllegalArgumentExceptionWhenDoubleParseFailsInGetListFinancialFixedAsset() {
@@ -361,6 +413,9 @@ class FinancialFixedAssetServiceImplTest {
         assertTrue(thrown.getCause() instanceof IllegalArgumentException);
     }
 
+    /**
+     * Should delegate updateService to repository.save.
+     */
     @Test
     @DisplayName("Save asset when updateService is called with valid financialFixedAsset")
     void saveAssetWhenUpdateServiceIsCalledWithValidFinancialFixedAsset() {
@@ -374,6 +429,9 @@ class FinancialFixedAssetServiceImplTest {
         verify(repository, times(1)).save(asset);
     }
 
+    /**
+     * Should delegate deleteByIdService to repository.deleteById.
+     */
     @Test
     @DisplayName("Delete asset when deleteByIdService is called with valid id")
     void deleteAssetWhenDeleteByIdServiceIsCalledWithValidId() {
@@ -387,6 +445,9 @@ class FinancialFixedAssetServiceImplTest {
         verify(repository, times(1)).deleteById(id);
     }
 
+    /**
+     * Should delegate deleteByAccountingPeriod to repository.
+     */
     @Test
     @DisplayName("Delete assets by accounting period when deleteByAccountingPeriod is called")
     void deleteAssetsByAccountingPeriodWhenDeleteByAccountingPeriodIsCalled() {
@@ -400,6 +461,9 @@ class FinancialFixedAssetServiceImplTest {
         verify(repository, times(1)).deleteByAccountingPeriod(period);
     }
 
+    /**
+     * Should return existing asset by ID or a new instance if not found.
+     */
     @Test
     @DisplayName("Return asset when findByIdService is called with existing ID")
     void returnAssetWhenFindByIdServiceIsCalledWithExistingId() {
@@ -416,6 +480,9 @@ class FinancialFixedAssetServiceImplTest {
         assertEquals(expectedAsset.getMainFixedAssetCode(), result.getMainFixedAssetCode());
     }
 
+    /**
+     * Should return a new FinancialFixedAsset when ID not found.
+     */
     @Test
     @DisplayName("Return new asset when findByIdService is called with non-existing ID")
     void returnNewAssetWhenFindByIdServiceIsCalledWithNonExistingId() {
@@ -432,6 +499,9 @@ class FinancialFixedAssetServiceImplTest {
         verify(repository).findById(assetId);
     }
 
+    /**
+     * Should return list when searching by mainFixedAssetCode.
+     */
     @Test
     @DisplayName("Return list when findByMainFixedAssetCodeService is called with non-empty result")
     void returnListWhenFindByMainFixedAssetCodeServiceIsCalledWithNonEmptyResult() {
@@ -453,6 +523,9 @@ class FinancialFixedAssetServiceImplTest {
         verify(repository).findByMainFixedAssetCode(mainFixedAssetCode);
     }
 
+    /**
+     * Should return empty list when mainFixedAssetCode search yields no results.
+     */
     @Test
     @DisplayName("Return empty when findByMainFixedAssetCodeService is called with empty result")
     void returnEmptyWhenFindByMainFixedAssetCodeServiceIsCalledWithEmptyResult() {
@@ -469,6 +542,9 @@ class FinancialFixedAssetServiceImplTest {
         verify(repository).findByMainFixedAssetCode(mainFixedAssetCode);
     }
 
+    /**
+     * Should return list when accountingAccount search yields results.
+     */
     @Test
     @DisplayName("Return list when findByFixedAssetAccountingAccountService is called with non-empty result")
     void returnListWhenFindByFixedAssetAccountingAccountServiceIsCalledWithNonEmptyResult() {
@@ -490,6 +566,9 @@ class FinancialFixedAssetServiceImplTest {
         verify(repository).findByFixedAssetAccountingAccount(accountingAccount);
     }
 
+    /**
+     * Should return empty list when accountingAccount search yields no results.
+     */
     @Test
     @DisplayName("Return empty when findByFixedAssetAccountingAccountService is called with empty result")
     void returnEmptyWhenFindByFixedAssetAccountingAccountServiceIsCalledWithEmptyResult() {
@@ -506,6 +585,9 @@ class FinancialFixedAssetServiceImplTest {
         verify(repository).findByFixedAssetAccountingAccount(accountingAccount);
     }
 
+    /**
+     * Should return list when findAllService yields results.
+     */
     @Test
     @DisplayName("Return list when findAllService is called with non-empty result")
     void returnListWhenFindAllServiceIsCalledWithNonEmptyResult() {
@@ -526,6 +608,9 @@ class FinancialFixedAssetServiceImplTest {
         verify(repository).findAll();
     }
 
+    /**
+     * Should return empty list when findAllService yields no results.
+     */
     @Test
     @DisplayName("Return empty when findAllService is called with empty result")
     void returnEmptyWhenFindAllServiceIsCalledWithEmptyResult() {
@@ -541,6 +626,9 @@ class FinancialFixedAssetServiceImplTest {
         verify(repository).findAll();
     }
 
+    /**
+     * Should return list when querying by period.
+     */
     @Test
     @DisplayName("Return list when findByPeriodService is called with non-empty result")
     void returnListWhenFindByPeriodServiceIsCalledWithNonEmptyResult() {
@@ -562,6 +650,9 @@ class FinancialFixedAssetServiceImplTest {
         verify(repository).findByAccountingPeriod(period);
     }
 
+    /**
+     * Should return empty list when period query yields no results.
+     */
     @Test
     @DisplayName("Return empty when findByPeriodService is called with empty result")
     void returnEmptyWhenFindByPeriodServiceIsCalledWithEmptyResult() {
@@ -578,6 +669,9 @@ class FinancialFixedAssetServiceImplTest {
         verify(repository).findByAccountingPeriod(period);
     }
 
+    /**
+     * Should return list when querying by period and account prefix.
+     */
     @Test
     @DisplayName("Return list when findByPeriodAndAccountStartingWithService is called with non-empty result")
     void returnListWhenFindByPeriodAndAccountStartingWithServiceIsCalledWithNonEmptyResult() {
@@ -601,6 +695,9 @@ class FinancialFixedAssetServiceImplTest {
         verify(repository).findByAccountingPeriodAndFixedAssetAccountingAccountStartingWith(period, accountPrefix);
     }
 
+    /**
+     * Should return empty list when period & account prefix query yields no results.
+     */
     @Test
     @DisplayName("Return empty when findByPeriodAndAccountStartingWithService is called with empty result")
     void returnEmptyWhenFindByPeriodAndAccountStartingWithServiceIsCalledWithEmptyResult() {
@@ -619,9 +716,12 @@ class FinancialFixedAssetServiceImplTest {
         verify(repository).findByAccountingPeriodAndFixedAssetAccountingAccountStartingWith(period, accountPrefix);
     }
 
+    /**
+     * Should handle null-detail fields gracefully in getListFinancialFixedAsset.
+     */
     @Test
     @DisplayName("Return new asset when getListFinancialFixedAsset is called with null-detail fields")
-    public void returnNewAssetWhenGetListFinancialFixedAssetIsCalledWithNullFields() {
+    void returnNewAssetWhenGetListFinancialFixedAssetIsCalledWithNullFields() {
         // Arrange
         String accountingPeriod = "2022-01-01";
         List<InputData> inputDataList = getListInputData();
@@ -642,6 +742,9 @@ class FinancialFixedAssetServiceImplTest {
         assertNotNull(actualAsset.getAdditionDate());
     }
 
+    /**
+     * Should throw IllegalArgumentException for unsupported projection type.
+     */
     @Test
     @DisplayName("generate projection service throws on unsupported type")
     void generateProjectionServiceThrowsOnUnsupportedType() {
@@ -659,6 +762,9 @@ class FinancialFixedAssetServiceImplTest {
         assertTrue(ex.getMessage().contains("no soportado"));
     }
 
+    /**
+     * Should delegate projection generation to the correct generator.
+     */
     @Test
     @DisplayName("generate projection service delegates to correct generator")
     void generateProjectionServiceDelegatesToGenerator() {
@@ -670,6 +776,9 @@ class FinancialFixedAssetServiceImplTest {
         verify(generateTemporaryAdditions, never()).generate(any(), any());
     }
 
+    /**
+     * Should delegate findByAccountingAccountPrefixesService to repository.
+     */
     @Test
     @DisplayName("findByAccountingAccountPrefixesService delegates to repository")
     void findByAccountingAccountPrefixesServiceDelegates() {
@@ -681,6 +790,9 @@ class FinancialFixedAssetServiceImplTest {
         verify(repository).findByAccountingAccountPrefixes(prefixes);
     }
 
+    /**
+     * Should delegate callGetReportTaxBookService to JDBC repository.
+     */
     @Test
     @DisplayName("call get report tax book service delegates to JDBC repo")
     void callGetReportTaxBookServiceDelegates() throws Exception {
@@ -692,6 +804,9 @@ class FinancialFixedAssetServiceImplTest {
         verify(repositoryJdbc).callGetReportTaxBookJdbc(prm);
     }
 
+    /**
+     * Should delegate callGetReportDetailFinancialAndTaxDepreciationService to JDBC repository.
+     */
     @Test
     @DisplayName("call get report detail financial and tax depreciation service delegates")
     void callGetReportDetailFinancialAndTaxDepreciationServiceDelegates() {
@@ -703,6 +818,11 @@ class FinancialFixedAssetServiceImplTest {
         verify(repositoryJdbc).callGetReportDetailFinancialAndTaxDepreciationJdbc(prm);
     }
 
+    /**
+     * Should return empty list when MultipartFile.isEmpty() is true.
+     *
+     * @throws IOException if reading the file fails
+     */
     @Test
     @DisplayName("Return empty list when MultipartFile.isEmpty() == true")
     void returnEmptyListWhenMultipartFileIsEmpty() throws IOException {
@@ -729,6 +849,9 @@ class FinancialFixedAssetServiceImplTest {
         assertTrue(result.isEmpty(), "Debe devolver lista vacía cuando el archivo está vacío");
     }
 
+    /**
+     * Should delegate additions projection generation.
+     */
     @Test
     @DisplayName("generate projection service delegates to additions generator")
     void generateProjectionServiceDelegatesToAdditionsGenerator() {
@@ -749,6 +872,9 @@ class FinancialFixedAssetServiceImplTest {
         verify(generateTemporaryDeductions, never()).generate(any(), any());
     }
 
+    /**
+     * Should return empty list when accounting account prefixes query yields no results.
+     */
     @Test
     @DisplayName("Return empty list when findByAccountingAccountPrefixesService returns empty result")
     void returnEmptyListWhenFindByAccountingAccountPrefixesServiceReturnsEmptyResult() {
@@ -766,6 +892,9 @@ class FinancialFixedAssetServiceImplTest {
         verify(repository).findByAccountingAccountPrefixes(prefixes);
     }
 
+    /**
+     * Verifies getters, setters, and toString for the InputData entity.
+     */
     @Test
     @DisplayName("Entity InputData getters/setters and toString")
     void inputDataGettersSettersAndToString() {
@@ -787,6 +916,9 @@ class FinancialFixedAssetServiceImplTest {
         assertTrue(s.contains("rowNum=7"));
     }
 
+    /**
+     * Verifies getters, setters, and toString for the FinancialFixedAsset entity.
+     */
     @Test
     @DisplayName("Entity FinancialFixedAsset getters/setters and toString")
     void financialFixedAssetGettersSettersAndToString() {
@@ -921,6 +1053,11 @@ class FinancialFixedAssetServiceImplTest {
         assertTrue(str.contains("rowNum=9"));
     }
 
+    /**
+     * Verifies that the Lombok-generated all-arguments constructor of {@link ParamReportDto}
+     * correctly assigns all fields, that its getters return the expected values,
+     * and that {@code toString()} contains the key property values.
+     */
     @Test
     @DisplayName("Entity ParamReportDto all-args constructor, getters and toString")
     void paramReportDtoAllArgsAndToString() {
@@ -943,6 +1080,11 @@ class FinancialFixedAssetServiceImplTest {
         assertTrue(s.contains("accountingAccount=ACC001"));
     }
 
+    /**
+     * Verifies that the getters and setters of {@link FinancialFixedAssetDto}
+     * correctly reflect the values provided by {@link DataTest#getFinancialFixedAssetDto()},
+     * and that {@code toString()} includes the main identifying fields.
+     */
     @Test
     @DisplayName("Entity FinancialFixedAssetDto getters/setters and toString")
     void financialFixedAssetDtoGettersSettersAndToString() {
@@ -962,6 +1104,12 @@ class FinancialFixedAssetServiceImplTest {
         assertTrue(s.contains("errorCode=E01"));
     }
 
+    /**
+     * Verifies that the Lombok-generated all-arguments constructor of {@link FinancialFixedAsset}
+     * correctly assigns every field in the same order as defined,
+     * and that the resulting object's getters return the matching values.
+     * Also confirms that {@code toString()} includes representative parts of the state.
+     */
     @Test
     @DisplayName("FinancialFixedAsset AllArgsConstructor sets all fields")
     void financialFixedAssetAllArgsConstructor() {

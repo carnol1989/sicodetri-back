@@ -14,9 +14,11 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * This class entity for tax additions. <br/>
+ * Service implementation of Spring Security's {@link UserDetailsService}.
+ * Loads user account data and authorities (roles) from the database
+ * for authentication purposes.
  * <b>Class</b>: {@link UserDetailsServiceImpl}<br/>
- * <b>Copyright</b>: &Copy; 2024 EPS Grau. <br/>
+ * <b>Copyright</b>: &copy; 2024 EPS Grau. <br/>
  * <b>Company</b>: EPS Grau. <br/>
  *
  * @author EPS Grau <br/>
@@ -36,11 +38,23 @@ public class UserDetailsServiceImpl implements UserDetailsService {
 
     private final UserRepository userRepository;
 
+    /**
+     * Constructs the service with the given user repository.
+     *
+     * @param userRepository the repository used to retrieve user entities
+     */
     @Autowired
     public UserDetailsServiceImpl(UserRepository userRepository) {
         this.userRepository = userRepository;
     }
 
+    /**
+     * Locates the user by their unique username.
+     *
+     * @param username the username identifying the user whose data is required
+     * @return a fully populated {@link UserDetails} object (never {@code null})
+     * @throws UsernameNotFoundException if the user could not be found or has no GrantedAuthority
+     */
     @Override
     @Transactional(readOnly = true)
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {

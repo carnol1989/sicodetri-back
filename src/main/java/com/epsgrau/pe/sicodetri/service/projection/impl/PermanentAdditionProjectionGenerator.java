@@ -25,9 +25,13 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 /**
- * This class implements the generation of permanent additions. <br/>
+ * {@link ProjectionGenerator} implementation for generating permanent additions projections.
+ * Selects assets eligible for permanent additions based on SUNAT tax table code "332",
+ * then iterates through the remaining useful life of each asset to calculate monthly
+ * financial and tax depreciation, and finally determines additions or deductions.
+ * After projection generation, existing records are removed and new projections are persisted.
  * <b>Class</b>: {@link PermanentAdditionProjectionGenerator}<br/>
- * <b>Copyright</b>: &Copy; 2024 EPS Grau. <br/>
+ * <b>Copyright</b>: &copy; 2024 EPS Grau. <br/>
  * <b>Company</b>: EPS Grau. <br/>
  *
  * @author EPS Grau <br/>
@@ -49,11 +53,25 @@ public class PermanentAdditionProjectionGenerator extends AbstractProjectionGene
     @Autowired
     private TaxTableSunatService taxTableService;
 
+    /**
+     * Returns the projection type handled by this generator.
+     *
+     * @return {@link ProjectionType#PERMANENT_ADDITIONS}
+     */
     @Override
     public ProjectionType getType() {
         return ProjectionType.PERMANENT_ADDITIONS;
     }
 
+    /**
+     * Generates permanent additions projections for each eligible fixed asset.
+     * Retrieves the SUNAT tax table entry for account "332". For each asset in
+     * {@code fixedAssets}, if it meets the eligibility criteria, processes the
+     * asset to create and persist depreciation, additions, and deductions.
+     *
+     * @param accountingPeriod the starting accounting period for projection
+     * @param fixedAssets      the list of fixed assets to project
+     */
     @Override
     public void generate(LocalDate accountingPeriod, List<FinancialFixedAsset> fixedAssets) {
         TaxTableSunat table = taxTableService.findByAccountigAccountService(S_VAL_332);
@@ -67,6 +85,20 @@ public class PermanentAdditionProjectionGenerator extends AbstractProjectionGene
         }
     }
 
+    /**
+     * Determines if a fixed asset is eligible for permanent additions projection.
+     * Eligibility criteria:
+     * <ul>
+     *   <li>Acquisition date is not the default placeholder</li>
+     *   <li>Accounting account prefix is "332"</li>
+     *   <li>Description contains "tasacion", "valor tasado", or "valortasado"
+     *   (case-insensitive)</li>
+     *   <li>Historical cost, revalued amount, and initial balance are all greater than zero</li>
+     * </ul>
+     *
+     * @param f the fixed asset to check
+     * @return {@code true} if the asset qualifies, {@code false} otherwise
+     */
     private boolean isEligible(FinancialFixedAsset f) {
         String desc = f.getWellAppraisedPreInvestmentStudyDry();
         String lower = desc == null ? "" : desc.toLowerCase(Locale.ROOT).trim();
@@ -80,6 +112,20 @@ public class PermanentAdditionProjectionGenerator extends AbstractProjectionGene
             && f.getInitialBalance().compareTo(BigDecimal.ZERO) > N_VAL_0;
     }
 
+    /**
+     * Processes a single fixed asset by.:
+     * <ol>
+     *   <li>Initializing a first-period tax depreciation record</li>
+     *   <li>Building a {@link Projection} model for the given period</li>
+     *   <li>Iteratively generating monthly depreciation, additions, and deductions</li>
+     *   <li>Deleting existing database records for this asset</li>
+     *   <li>Persisting the newly generated records</li>
+     * </ol>
+     *
+     * @param fixedAsset the fixed asset to project
+     * @param period     the accounting period to start projection
+     * @param table      the SUNAT tax table entry for code "332"
+     */
     private void processAsset(FinancialFixedAsset fixedAsset,
                               LocalDate period,
                               TaxTableSunat table) {

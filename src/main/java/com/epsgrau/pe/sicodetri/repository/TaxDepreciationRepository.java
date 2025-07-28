@@ -6,9 +6,11 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
 /**
- * This interface is to handle the data access operations of the TaxDepreciaction entity. <br/>
+ * Repository interface for performing CRUD operations on {@link TaxDepreciation} entities.
+ * Extends {@link JpaRepository} to provide standard data access methods and declares
+ * a custom finder to retrieve all tax depreciation records for a given fixed asset.
  * <b>Class</b>: {@link TaxDepreciationRepository}<br/>
- * <b>Copyright</b>: &Copy; 2024 EPS Grau. <br/>
+ * <b>Copyright</b>: &copy; 2024 EPS Grau. <br/>
  * <b>Company</b>: EPS Grau. <br/>
  *
  * @author EPS Grau <br/>
@@ -19,13 +21,20 @@ import org.springframework.stereotype.Repository;
  *     </ul>
  *     <u>Changes</u>:<br/>
  *     <ul>
- *     <li>Ago 25, 2024 (JAR) Creation Interface.</li>
+ *     <li>Jun 06, 2025 (JAR) Creation Interface.</li>
  *     </ul>
  * @version 1.0
  */
 @Repository
 public interface TaxDepreciationRepository extends JpaRepository<TaxDepreciation, Long> {
 
+    /**
+     * Retrieves all {@link TaxDepreciation} entries associated with the specified
+     * financial fixed asset ID.
+     *
+     * @param fixedAssetId the ID of the financial fixed asset
+     * @return a list of matching TaxDepreciation entities; empty if none found
+     */
     List<TaxDepreciation> findByFinancialFixedAssetId(Long fixedAssetId);
 
 }

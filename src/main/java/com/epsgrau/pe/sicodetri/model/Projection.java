@@ -14,9 +14,13 @@ import lombok.Setter;
 import lombok.ToString;
 
 /**
- * This class is a model for mapping a projection. <br/>
+ * Data model representing a full projection period for fixed asset depreciation,
+ * including financial and tax depreciation entries as well as related additions
+ * and deductions.
+ * Contains both the current and next accounting periods, individual and list
+ * forms of depreciation records, and the corresponding additions and deductions.
  * <b>Class</b>: {@link Projection}<br/>
- * <b>Copyright</b>: &Copy; 2024 EPS Grau. <br/>
+ * <b>Copyright</b>: &copy; 2024 EPS Grau. <br/>
  * <b>Company</b>: EPS Grau. <br/>
  *
  * @author EPS Grau <br/>
@@ -27,7 +31,7 @@ import lombok.ToString;
  *     </ul>
  *     <u>Changes</u>:<br/>
  *     <ul>
- *     <li>Ago 30, 2024 (JAR) Creation class.</li>
+ *     <li>Jun 06, 2025 (JAR) Creation class.</li>
  *     </ul>
  * @version 1.0
  */

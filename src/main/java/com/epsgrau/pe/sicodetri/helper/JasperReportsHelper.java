@@ -17,9 +17,10 @@ import net.sf.jasperreports.export.SimpleWriterExporterOutput;
 import net.sf.jasperreports.export.SimpleXmlExporterOutput;
 
 /**
- * This class is helper for generate reports with Jasper. <br/>
+ * Utility class for exporting JasperPrint objects to various report formats.
+ * Supports CSV, XLSX, HTML, XML, DOCX (RTF), and PDF outputs.
  * <b>Class</b>: {@link JasperReportsHelper}<br/>
- * <b>Copyright</b>: &Copy; 2024 EPS Grau. <br/>
+ * <b>Copyright</b>: &copy; 2024 EPS Grau. <br/>
  * <b>Company</b>: EPS Grau. <br/>
  *
  * @author EPS Grau <br/>
@@ -30,20 +31,29 @@ import net.sf.jasperreports.export.SimpleXmlExporterOutput;
  *     </ul>
  *     <u>Changes</u>:<br/>
  *     <ul>
- *     <li>Sep 08, 2024 (JAR) Creation class.</li>
+ *     <li>Jun 06, 2025 (JAR) Creation class.</li>
  *     </ul>
  * @version 1.0
  */
 public class JasperReportsHelper {
 
     /**
-     * Exporta el contenido de un JasperPrint a bytes en el formato indicado por reportType.
-     * Si jasperPrint es null, lanza un JRException con mensaje claro.
+     * Exports the given {@link JasperPrint} to a byte array in the specified format.
+     * If the {@code jasperPrint} parameter is null, a {@link JRException} is thrown.
+     * Otherwise, the report is exported according to {@code reportType}:
+     * <ul>
+     *   <li>CSV → {@link JRCsvExporter}</li>
+     *   <li>XLSX → {@link JRXlsxExporter}</li>
+     *   <li>HTML → {@link HtmlExporter}</li>
+     *   <li>XML → {@link JRXmlExporter}</li>
+     *   <li>DOCX (RTF) → {@link JRRtfExporter}</li>
+     *   <li>PDF (default) → {@link JasperExportManager}</li>
+     * </ul>
      *
-     * @param jasperPrint  el JasperPrint a exportar; no puede ser null
-     * @param reportType   el tipo de reporte (CSV, XLSX, HTML, XML, DOCX, PDF)
-     * @return arreglo de bytes con el contenido exportado
-     * @throws JRException si ocurre un error en JasperReports, o si jasperPrint es null
+     * @param jasperPrint the JasperPrint object to export; must not be null
+     * @param reportType  the target report format (CSV, XLSX, HTML, XML, DOCX, PDF)
+     * @return a byte array containing the exported report data
+     * @throws JRException if {@code jasperPrint} is null or an error occurs during export
      */
     public static byte[] exportJasperReportBytes(JasperPrint jasperPrint,
                                                  ReportTypeEnum reportType) throws JRException {

@@ -34,7 +34,22 @@ import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
 /**
- * This class test for TaxDepreciationServiceImpl. <br/>
+ * Unit tests for {@link TaxDepreciationServiceImpl}.
+ *
+ * <p>
+ * Exercises the key service methods including:
+ * <ul>
+ *   <li>Saving single and multiple TaxDepreciation entities</li>
+ *   <li>Updating and deleting by ID</li>
+ *   <li>Retrieval by ID with fallbacks for missing entities</li>
+ *   <li>Bulk retrieval and deletion operations</li>
+ *   <li>Association lookups by financial fixed asset ID</li>
+ *   <li>Validation of Lombok-generated all-args constructor and getters</li>
+ *   <li>Calculation logic for different depreciation types (TEMPORARY_DEDUCTION,
+ *       TEMPORARY_ADDITION, PERMANENT_ADDITIONS) against various asset and table conditions</li>
+ * </ul>
+ * </p>
+ *
  * <b>Class</b>: {@link TaxDepreciationServiceImplTest}<br/>
  * <b>Copyright</b>: &Copy; 2024 EPS Grau. <br/>
  * <b>Company</b>: EPS Grau. <br/>
@@ -47,7 +62,7 @@ import org.mockito.MockitoAnnotations;
  *     </ul>
  *     <u>Changes</u>:<br/>
  *     <ul>
- *     <li>Ago 28, 2024 (JAR) Creation class.</li>
+ *     <li>Jun 06, 2025 (JAR) Creation class.</li>
  *     </ul>
  * @version 1.0
  */
@@ -60,12 +75,17 @@ class TaxDepreciationServiceImplTest {
     @InjectMocks
     private TaxDepreciationServiceImpl service;
 
-
+    /**
+     * Initializes mocks before each test.
+     */
     @BeforeEach
     void setUp() {
         MockitoAnnotations.openMocks(this);
     }
 
+    /**
+     * Verifies that saveService returns the same instance provided by the repository.
+     */
     @Test
     @DisplayName("saveService returns the saved instance")
     void saveServiceReturnsSavedInstance() {
@@ -82,6 +102,9 @@ class TaxDepreciationServiceImplTest {
         assertSame(saved, result, "Debe devolver exactamente el objeto retornado por el repositorio");
     }
 
+    /**
+     * Verifies that saveAllService delegates to repository.saveAll().
+     */
     @Test
     @DisplayName("saveAllService invokes repository.saveAll with given list")
     void saveAllServiceInvokesSaveAll() {
@@ -95,6 +118,10 @@ class TaxDepreciationServiceImplTest {
         verify(repository).saveAll(list);
     }
 
+    /**
+     * Verifies that the service correctly delegates saving a valid TaxDepreciation
+     * entity to the repository.
+     */
     @Test
     @DisplayName("Save taxDepreciation when valid taxDepreciation is provided")
     void saveTaxDepreciationWhenValidTaxDepreciationIsProvided() {
@@ -108,6 +135,9 @@ class TaxDepreciationServiceImplTest {
         verify(repository, times(1)).save(taxDepreciation);
     }
 
+    /**
+     * Verifies that updateService persists changes by calling repository.save().
+     */
     @Test
     @DisplayName("Update taxDepreciation when valid taxDepreciation is provided")
     void updateTaxDepreciationWhenValidTaxDepreciationIsProvided() {
@@ -121,6 +151,9 @@ class TaxDepreciationServiceImplTest {
         verify(repository, times(1)).save(taxDepreciation);
     }
 
+    /**
+     * Verifies that deleteByIdService deletes the entity by ID via the repository.
+     */
     @Test
     @DisplayName("Delete taxDepreciation when valid id is provided")
     void deleteTaxDepreciationWhenValidIdIsProvided() {
@@ -134,6 +167,9 @@ class TaxDepreciationServiceImplTest {
         verify(repository, times(1)).deleteById(id);
     }
 
+    /**
+     * Verifies that findByIdService returns the existing entity for a known ID.
+     */
     @Test
     @DisplayName("Return taxDepreciation when it exists for given id")
     void returnTaxDepreciationWhenItExistsForGivenId() {
@@ -150,6 +186,9 @@ class TaxDepreciationServiceImplTest {
         assertEquals(taxDepreciation, result);
     }
 
+    /**
+     * Verifies that findByIdService returns a new, empty instance when no entity exists.
+     */
     @Test
     @DisplayName("Return new taxDepreciation when none exists for given id")
     void returnNewTaxDepreciationWhenNoneExistsForGivenId() {
@@ -165,6 +204,9 @@ class TaxDepreciationServiceImplTest {
         assertNull(result.getId());
     }
 
+    /**
+     * Verifies that findAllService retrieves all entities via the repository.
+     */
     @Test
     @DisplayName("Return all taxDepreciations when findAllService is called")
     void returnAllTaxDepreciationsWhenFindAllServiceIsCalled() {
@@ -183,14 +225,23 @@ class TaxDepreciationServiceImplTest {
         assertEquals(taxDepreciation, result.get(0));
     }
 
-    @Test @DisplayName("deleteAllService invokes repository.deleteAll")
+    /**
+     * Verifies that deleteAllService deletes the provided list via the repository.
+     */
+    @Test
+    @DisplayName("deleteAllService invokes repository.deleteAll")
     void deleteAllServiceInvokesDeleteAll() {
         List<TaxDepreciation> list = List.of(getTaxDepreciation(), new TaxDepreciation());
         service.deleteAllService(list);
         verify(repository).deleteAll(list);
     }
 
-    @Test @DisplayName("findByFinancialFixedAssetIdService returns list")
+    /**
+     * Verifies that findByFinancialFixedAssetIdService returns the list of
+     * TaxDepreciation entities associated with the given financial asset ID.
+     */
+    @Test
+    @DisplayName("findByFinancialFixedAssetIdService returns list")
     void findByFinancialFixedAssetIdServiceReturnsList() {
         long assetId = 123L;
         List<TaxDepreciation> expected = List.of(getTaxDepreciation());
@@ -202,6 +253,10 @@ class TaxDepreciationServiceImplTest {
         assertSame(expected, result);
     }
 
+    /**
+     * Verifies that findByFinancialFixedAssetIdService returns an empty list
+     * when no entities are associated with the given financial asset ID.
+     */
     @Test
     @DisplayName("findByFinancialFixedAssetIdService returns empty list when none")
     void findByFinancialFixedAssetIdServiceReturnsEmpty() {
@@ -214,7 +269,12 @@ class TaxDepreciationServiceImplTest {
         assertTrue(result.isEmpty());
     }
 
-    @Test @DisplayName("AllArgsConstructor and getters")
+    /**
+     * Verifies that the all-arguments constructor of {@link TaxDepreciation}
+     * correctly assigns each field, and that getters return matching values.
+     */
+    @Test
+    @DisplayName("AllArgsConstructor and getters")
     void allArgsConstructorAndGetters() {
         Long id = 7L;
         LocalDate period = LocalDate.of(2025,6,30);
@@ -267,7 +327,12 @@ class TaxDepreciationServiceImplTest {
         assertFalse(td.isLast());
     }
 
-    @Test @DisplayName("calculateDepreciation TEMPORARY_DEDUCTION")
+    /**
+     * Verifies the calculation logic for {@code TEMPORARY_DEDUCTION} type
+     * using sample asset and tax table values.
+     */
+    @Test
+    @DisplayName("calculateDepreciation TEMPORARY_DEDUCTION")
     void calculateDepreciationType01() {
         // preparas activo y tabla
         FinancialFixedAsset fa = new FinancialFixedAsset();
@@ -296,7 +361,12 @@ class TaxDepreciationServiceImplTest {
         assertEquals(new BigDecimal("120.00"), td.getAnnualAccumulatedDepreciationPriorPeriod());
     }
 
-    @Test @DisplayName("calculateDepreciation TEMPORARY_ADDITION")
+    /**
+     * Verifies the calculation logic for {@code TEMPORARY_ADDITION} type
+     * when the previous net tax value is zero and it is the first period.
+     */
+    @Test
+    @DisplayName("calculateDepreciation TEMPORARY_ADDITION")
     void calculateDepreciationType02() {
         FinancialFixedAsset fa = new FinancialFixedAsset();
         fa.setInitialBalance(new BigDecimal("500.00"));
@@ -325,7 +395,12 @@ class TaxDepreciationServiceImplTest {
         assertEquals(new BigDecimal("495.00"), td.getNetTaxValue());
     }
 
-    @Test @DisplayName("calculateDepreciation PERMANENT_ADDITIONS, old.isFirst=false & netTaxValue=0")
+    /**
+     * Verifies the calculation logic for {@code PERMANENT_ADDITIONS} type
+     * when the previous net tax value is zero and isFirst=false.
+     */
+    @Test
+    @DisplayName("calculateDepreciation PERMANENT_ADDITIONS, old.isFirst=false & netTaxValue=0")
     void calculateDepreciationType03CaseZero() {
         FinancialFixedAsset fa = new FinancialFixedAsset();
         fa.setInitialBalance(new BigDecimal("300.00"));
@@ -349,7 +424,12 @@ class TaxDepreciationServiceImplTest {
         assertEquals(BigDecimal.ZERO.setScale(2), td.getNetTaxValue());
     }
 
-    @Test @DisplayName("calculateDepreciation PERMANENT_ADDITIONS, old.isFirst=true & netTaxValue>0")
+    /**
+     * Verifies the calculation logic for {@code PERMANENT_ADDITIONS} type
+     * when the previous net tax value is non-zero and isFirst=true.
+     */
+    @Test
+    @DisplayName("calculateDepreciation PERMANENT_ADDITIONS, old.isFirst=true & netTaxValue>0")
     void calculateDepreciationType03CasePositive() {
         FinancialFixedAsset fa = new FinancialFixedAsset();
         fa.setInitialBalance(new BigDecimal("400.00"));
