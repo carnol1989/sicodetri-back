@@ -29,6 +29,34 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
+/**
+ * Unit tests for {@link PermanentAdditionProjectionGenerator}.
+ *
+ * <p>Verifies that this generator:
+ * <ul>
+ *   <li>Reports its correct projection type.</li>
+ *   <li>Skips generation when preconditions are not met (missing table, invalid asset data).</li>
+ *   <li>Invokes persistence services for eligible assets.</li>
+ *   <li>Handles empty input lists gracefully.</li>
+ * </ul>
+ * </p>
+ *
+ * <b>Class</b>: {@link PermanentAdditionProjectionGeneratorTest}<br/>
+ * <b>Copyright</b>: &Copy; 2024 EPS Grau. <br/>
+ * <b>Company</b>: EPS Grau. <br/>
+ *
+ * @author EPS Grau <br/>
+ *     <u>Service Provider</u>: Consultor TI <br/>
+ *     <u>Developed by</u>: <br/>
+ *     <ul>
+ *     <li>Carlos Augusto Nole Machaca</li>
+ *     </ul>
+ *     <u>Changes</u>:<br/>
+ *     <ul>
+ *     <li>Jun 25, 2025 (JAR) Creation class.</li>
+ *     </ul>
+ * @version 1.0
+ */
 @DisplayName("PermanentAdditionProjectionGenerator Tests")
 class PermanentAdditionProjectionGeneratorTest {
 
@@ -46,17 +74,26 @@ class PermanentAdditionProjectionGeneratorTest {
   @InjectMocks
   private PermanentAdditionProjectionGenerator generator;
 
+  /**
+   * Initializes Mockito mocks before each test.
+   */
   @BeforeEach
   void setUp() {
     MockitoAnnotations.openMocks(this);
   }
 
+  /**
+   * Verifies that {@code getType()} returns the PERMANENT_ADDITIONS projection type.
+   */
   @Test
   @DisplayName("getType returns PERMANENT_ADDITIONS")
   void getTypeReturnsPermanentAdditions() {
     assertEquals(ProjectionType.PERMANENT_ADDITIONS, generator.getType());
   }
 
+  /**
+   * Ensures that generation is skipped when no tax table is found for the asset's account prefix.
+   */
   @Test
   @DisplayName("generate skips when TaxTableSunatService returns null")
   void generateSkipsWhenTaxTableNull() {
@@ -72,6 +109,9 @@ class PermanentAdditionProjectionGeneratorTest {
     verifyNoInteractions(financialDepreciationService, taxDepreciationService, additionService, deductionService);
   }
 
+  /**
+   * Ensures that assets with default acquisition date or missing pre-investment description are skipped.
+   */
   @Test
   @DisplayName("generate skips non-eligible assets")
   void generateSkipsNonEligibleAssets() {
@@ -94,6 +134,9 @@ class PermanentAdditionProjectionGeneratorTest {
     verifyNoInteractions(financialDepreciationService, taxDepreciationService, additionService, deductionService);
   }
 
+  /**
+   * Verifies that persistence services are invoked for a fully eligible asset.
+   */
   @Test
   @DisplayName("generate invokes persistence on eligible asset")
   void generateInvokesPersistenceOnEligibleAsset() {
@@ -113,6 +156,9 @@ class PermanentAdditionProjectionGeneratorTest {
     verify(additionService, atLeastOnce()).saveAllService(anyList());
   }
 
+  /**
+   * Ensures that an empty asset list causes no interactions.
+   */
   @Test
   @DisplayName("generate does nothing when fixedAssets list is empty")
   void generateDoesNothingWhenNoAssets() {
@@ -132,6 +178,9 @@ class PermanentAdditionProjectionGeneratorTest {
     );
   }
 
+  /**
+   * Verifies skipping of assets missing a pre-investment description.
+   */
   @Test
   @DisplayName("generate skips asset when description is null")
   void generateSkipsWhenDescriptionNull() {
@@ -159,6 +208,9 @@ class PermanentAdditionProjectionGeneratorTest {
     );
   }
 
+  /**
+   * Verifies skipping of assets whose description does not contain the required keyword.
+   */
   @Test
   @DisplayName("generate skips asset when description lacks keyword")
   void generateSkipsWhenDescriptionWrong() {
@@ -186,6 +238,9 @@ class PermanentAdditionProjectionGeneratorTest {
     );
   }
 
+  /**
+   * Verifies skipping of assets with zero historical cost.
+   */
   @Test
   @DisplayName("generate skips asset when historicalCost is zero")
   void generateSkipsWhenHistoricalCostZero() {
@@ -213,6 +268,9 @@ class PermanentAdditionProjectionGeneratorTest {
     );
   }
 
+  /**
+   * Verifies skipping of assets with zero revalued amount.
+   */
   @Test
   @DisplayName("generate skips asset when revaluedAmount is zero")
   void generateSkipsWhenRevaluedAmountZero() {
@@ -240,6 +298,9 @@ class PermanentAdditionProjectionGeneratorTest {
     );
   }
 
+  /**
+   * Verifies skipping of assets with zero initial balance.
+   */
   @Test
   @DisplayName("generate skips asset when initialBalance is zero")
   void generateSkipsWhenInitialBalanceZero() {

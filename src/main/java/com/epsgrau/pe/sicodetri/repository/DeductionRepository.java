@@ -7,9 +7,12 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
 /**
- * This interface is to handle the data access operations of the Deduction entity. <br/>
+ * Repository interface for performing CRUD operations on {@link Deduction} entities.
+ * Extends {@link JpaRepository} to provide standard database operations, and
+ * declares a custom method to retrieve deductions associated with a list of
+ * tax depreciation records.
  * <b>Class</b>: {@link DeductionRepository}<br/>
- * <b>Copyright</b>: &Copy; 2024 EPS Grau. <br/>
+ * <b>Copyright</b>: &copy; 2024 EPS Grau. <br/>
  * <b>Company</b>: EPS Grau. <br/>
  *
  * @author EPS Grau <br/>
@@ -20,13 +23,20 @@ import org.springframework.stereotype.Repository;
  *     </ul>
  *     <u>Changes</u>:<br/>
  *     <ul>
- *     <li>Ago 25, 2024 (JAR) Creation Interface.</li>
+ *     <li>Jun 06, 2025 (JAR) Creation Interface.</li>
  *     </ul>
  * @version 1.0
  */
 @Repository
 public interface DeductionRepository extends JpaRepository<Deduction, Long> {
 
+    /**
+     * Retrieves all {@link Deduction} records linked to any of the specified
+     * {@link TaxDepreciation} entities.
+     *
+     * @param taxDepreciations the list of TaxDepreciation entities to filter by
+     * @return a list of matching Deduction entities; empty if none found
+     */
     List<Deduction> findByTaxDepreciationIn(List<TaxDepreciation> taxDepreciations);
 
 }

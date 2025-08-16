@@ -11,11 +11,40 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springdoc.core.models.GroupedOpenApi;
 
+/**
+ * Unit tests for {@link OpenApiConfig}.
+ *
+ * <p>
+ * Verifies that the OpenAPI definition and grouped API beans are configured
+ * with the correct metadata, group name, and path mappings.
+ * </p>
+ *
+ * <b>Class</b>: {@link OpenApiConfigTest}<br/>
+ * <b>Copyright</b>: &Copy; 2024 EPS Grau. <br/>
+ * <b>Company</b>: EPS Grau. <br/>
+ *
+ * @author EPS Grau <br/>
+ *     <u>Service Provider</u>: Consultor TI <br/>
+ *     <u>Developed by</u>: <br/>
+ *     <ul>
+ *     <li>Carlos Augusto Nole Machaca</li>
+ *     </ul>
+ *     <u>Changes</u>:<br/>
+ *     <ul>
+ *     <li>Jun 06, 2025 (JAR) Creation class.</li>
+ *     </ul>
+ * @version 1.0
+ */
 @DisplayName("OpenApiConfig Tests")
 class OpenApiConfigTest {
 
     private final OpenApiConfig openApiConfig = new OpenApiConfig();
 
+    /**
+     * Tests that {@link OpenApiConfig#customOpenApi()} returns an {@link OpenAPI}
+     * instance with the expected {@link Info} metadata: title, version, description,
+     * terms of service, contact details, and license information.
+     */
     @Test
     @DisplayName("Return customOpenAPI with correct metadata")
     void returnCustomOpenAPIWithCorrectMetadata() {
@@ -66,6 +95,10 @@ class OpenApiConfigTest {
         assertEquals("https://www.gob.pe/indecopi", license.getUrl(), "License URL should match");
     }
 
+    /**
+     * Tests that {@link OpenApiConfig#defaultApi()} returns a {@link GroupedOpenApi}
+     * instance configured with the group name "default" and a single path pattern "/**".
+     */
     @Test
     @DisplayName("Return defaultApi with correct group and path settings")
     void returnDefaultApiWithCorrectGroupAndPaths() {

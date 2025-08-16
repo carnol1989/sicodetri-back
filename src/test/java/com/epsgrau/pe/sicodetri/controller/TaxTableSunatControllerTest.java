@@ -45,7 +45,17 @@ import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 /**
- * This class test for TaxTableSunatController. <br/>
+ * Unit tests for {@link TaxTableSunatController}.
+ *
+ * <p>
+ * Verifies behavior of the TaxTableSunatController endpoints:
+ * <ul>
+ *   <li>Retrieval by ID or accounting account</li>
+ *   <li>Error handling when data is missing or exceptions occur</li>
+ *   <li>Retrieval of all records</li>
+ * </ul>
+ * </p>
+ *
  * <b>Class</b>: {@link TaxTableSunatControllerTest}<br/>
  * <b>Copyright</b>: &Copy; 2024 EPS Grau. <br/>
  * <b>Company</b>: EPS Grau. <br/>
@@ -58,7 +68,7 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
  *     </ul>
  *     <u>Changes</u>:<br/>
  *     <ul>
- *     <li>Ago 18, 2024 (JAR) Creation class.</li>
+ *     <li>Jun 06, 2025 (JAR) Creation class.</li>
  *     </ul>
  * @version 1.0
  */
@@ -74,6 +84,10 @@ class TaxTableSunatControllerTest {
     @InjectMocks
     private TaxTableSunatController controller;
 
+    /**
+     * Initializes mocks and configures MockMvc with the controller
+     * and global exception handler before each test.
+     */
     @BeforeEach
     void setUp() {
         MockitoAnnotations.openMocks(this);
@@ -83,6 +97,12 @@ class TaxTableSunatControllerTest {
                 .build();
     }
 
+    /**
+     * Provides parameter combinations for testing retrieval by option:
+     * 1 = by ID, 2 = by accounting account, 3 = invalid option.
+     *
+     * @return a stream of arguments: (option, id, accountingAccount, expectedEntity, expectedStatus)
+     */
     static Stream<Arguments> provideParameters() {
         return Stream.of(
                 Arguments.of(L_VAL_1, 1L, null, getTaxTable332(), HttpStatus.OK),
@@ -93,6 +113,21 @@ class TaxTableSunatControllerTest {
         );
     }
 
+    /**
+     * Parameterized test that verifies:
+     * <ul>
+     *   <li>Successful retrieval when valid parameters are provided</li>
+     *   <li>HTTP 404 when entity is not found</li>
+     *   <li>HTTP 417 for invalid option</li>
+     * </ul>
+     *
+     * @param option           retrieval option code
+     * @param id               ID parameter for option 1
+     * @param accountingAccount account parameter for option 2
+     * @param expected         expected TaxTableSunat entity or empty instance
+     * @param expectedStatus   expected HTTP status
+     * @throws Exception if MockMvc request fails
+     */
     @ParameterizedTest
     @MethodSource("provideParameters")
     @DisplayName("Return taxTableSunat when option and parameters are valid or handle not found properly")
@@ -141,6 +176,10 @@ class TaxTableSunatControllerTest {
         }
     }
 
+    /**
+     * Verifies that an unexpected runtime exception in the controller
+     * returns HTTP 417 with a ResponseData containing error details.
+     */
     @Test
     @DisplayName("Return expectation failed when unexpected exception is thrown in controller")
     void returnExpectationFailedWhenUnexpectedExceptionIsThrownInController() {
@@ -165,6 +204,14 @@ class TaxTableSunatControllerTest {
         assertTrue(responseData.getException().getDetails().contains("Error al obtener informacion"));
     }
 
+    /**
+     * Tests retrieval of all TaxTableSunat records:
+     * <ul>
+     *   <li>HTTP 200 and correct JSON array length when records exist</li>
+     * </ul>
+     *
+     * @throws Exception if MockMvc request fails
+     */
     @Test
     @DisplayName("Return all taxTableSunat records when data exists")
     void returnAllTaxTableSunatRecordsWhenDataExists() throws Exception {
@@ -183,6 +230,14 @@ class TaxTableSunatControllerTest {
         verify(service, atLeastOnce()).findAllService();
     }
 
+    /**
+     * Tests retrieval of all TaxTableSunat records when none exist:
+     * <ul>
+     *   <li>HTTP 200 and zero-length JSON array</li>
+     * </ul>
+     *
+     * @throws Exception if MockMvc request fails
+     */
     @Test
     @DisplayName("Return empty list when no taxTableSunat records exist")
     void returnEmptyListWhenNoTaxTableSunatRecordsExist() throws Exception {

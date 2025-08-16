@@ -37,9 +37,13 @@ import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 
 /**
- * This class entity for generate the tax depreciation. <br/>
+ * Entity representing tax depreciation records for fixed assets.
+ * Maps to the {@code tax_depreciation} table and stores values such as annual
+ * accumulated depreciation, net tax value, current period depreciation, and
+ * associations to additions and deductions. Provides methods to calculate
+ * tax depreciation based on various projection types.
  * <b>Class</b>: {@link TaxDepreciation}<br/>
- * <b>Copyright</b>: &Copy; 2024 EPS Grau. <br/>
+ * <b>Copyright</b>: &copy; 2024 EPS Grau. <br/>
  * <b>Company</b>: EPS Grau. <br/>
  *
  * @author EPS Grau <br/>
@@ -50,7 +54,7 @@ import lombok.extern.slf4j.Slf4j;
  *     </ul>
  *     <u>Changes</u>:<br/>
  *     <ul>
- *     <li>Ago 25, 2024 (JAR) Creation class.</li>
+ *     <li>Jun 06, 2025 (JAR) Creation class.</li>
  *     </ul>
  * @version 1.0
  */
@@ -104,7 +108,7 @@ public class TaxDepreciation {
     private List<Deduction> deductionsList;
 
     @Schema(description = "Usuario que realizó el registro", example = "CANO")
-    @Column
+    @Column(length = 50)
     private String addedBy;
 
     @Schema(description = "Fecha y hora del registro", example = "2018-02-27T12:26:30.107")
@@ -112,7 +116,7 @@ public class TaxDepreciation {
     private LocalDateTime additionDate;
 
     @Schema(description = "Usuario que realizó una modificación", example = "WIJI")
-    @Column
+    @Column(length = 50)
     private String modifiedBy;
 
     @Schema(description = "Fecha y hora de la modificación", example = "2018-02-28T12:26:30.107")
@@ -126,12 +130,19 @@ public class TaxDepreciation {
     private boolean isLast;
 
     /**
-     * Calculate tax depreciation.
+     * Calculates tax depreciation values based on the given fixed asset, tax rate,
+     * and projection type.
+     * - Computes historical cost or initial balance adjustments.<br>
+     * - Calculates annual and monthly tax rates.<br>
+     * - Applies logic for temporary deductions, temporary additions, or permanent additions.<br>
+     * - Updates accumulated depreciation, net tax value, and current depreciation fields,
+     *   rounding to two decimal places.
      *
-     * @param fixedAsset FinacialFixedAsset
-     * @param taxTable TaxTableSunat
-     * @param accountingPeriod Accountig period
-     * @param taxDepreciationOld Tax depreciation old
+     * @param fixedAsset          the {@link FinancialFixedAsset} to depreciate
+     * @param taxTable            the {@link TaxTableSunat} containing annual rate
+     * @param accountingPeriod    the current accounting period
+     * @param taxDepreciationOld  the previous period's depreciation record
+     * @param typeProjection      the projection type constant (e.g., S_VAL_01, S_VAL_02, S_VAL_03)
      */
     public void calculateDepreciation(FinancialFixedAsset fixedAsset, TaxTableSunat taxTable,
         LocalDate accountingPeriod, TaxDepreciation taxDepreciationOld, String typeProjection) {

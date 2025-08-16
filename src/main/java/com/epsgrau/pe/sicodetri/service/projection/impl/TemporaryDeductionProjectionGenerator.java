@@ -24,9 +24,13 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 /**
- * This class implements the generation of temporary deductions. <br/>
+ * {@link ProjectionGenerator} implementation for generating temporary deductions projections.
+ * Uses the SUNAT tax table code "332" to calculate monthly differences between
+ * tax and financial depreciation over the remaining useful life of each eligible fixed asset.
+ * After the projection, existing records are cleared and the newly generated
+ * depreciation, tax, deduction, and addition entries are persisted.
  * <b>Class</b>: {@link TemporaryDeductionProjectionGenerator}<br/>
- * <b>Copyright</b>: &Copy; 2024 EPS Grau. <br/>
+ * <b>Copyright</b>: &copy; 2024 EPS Grau. <br/>
  * <b>Company</b>: EPS Grau. <br/>
  *
  * @author EPS Grau <br/>
@@ -48,11 +52,27 @@ public class TemporaryDeductionProjectionGenerator extends AbstractProjectionGen
     @Autowired
     private TaxTableSunatService taxTableService;
 
+    /**
+     * Returns the projection type handled by this generator.
+     *
+     * @return {@link ProjectionType#TEMPORARY_DEDUCTIONS}
+     */
     @Override
     public ProjectionType getType() {
         return ProjectionType.TEMPORARY_DEDUCTIONS;
     }
 
+    /**
+     * Generates temporary deductions projections for each eligible fixed asset.
+     * Retrieves the SUNAT tax table for code "332". For each fixed asset,
+     * checks if it is eligible (acquisition date set, matching account prefix,
+     * non-zero initial balance, zero revalued amount) and then processes it
+     * over its remaining useful life to compute and persist depreciation,
+     * tax, deductions, and any additions.
+     *
+     * @param accountingPeriod the starting accounting period for projection
+     * @param fixedAssets      the list of fixed assets to project
+     */
     @Override
     public void generate(LocalDate accountingPeriod, List<FinancialFixedAsset> fixedAssets) {
         TaxTableSunat taxTable = taxTableService.findByAccountigAccountService(S_VAL_332);
@@ -66,6 +86,19 @@ public class TemporaryDeductionProjectionGenerator extends AbstractProjectionGen
         }
     }
 
+    /**
+     * Determines if a fixed asset is eligible for temporary deductions projection.
+     * Criteria:
+     * <ul>
+     *   <li>Acquisition date is not the default placeholder</li>
+     *   <li>Accounting account prefix is "332"</li>
+     *   <li>Initial balance greater than zero</li>
+     *   <li>Revalued amount equals zero</li>
+     * </ul>
+     *
+     * @param f the fixed asset to check
+     * @return {@code true} if the asset qualifies, {@code false} otherwise
+     */
     private boolean isEligible(FinancialFixedAsset f) {
         return !f.getAcquisitionDate().equals(LOCAL_DATE_DEFAULT)
             && f.getFixedAssetAccountingAccount().startsWith(S_VAL_332)
@@ -73,6 +106,20 @@ public class TemporaryDeductionProjectionGenerator extends AbstractProjectionGen
             && f.getRevaluedAmount().compareTo(BigDecimal.ZERO) == N_VAL_0;
     }
 
+    /**
+     * Processes a single fixed asset by.:
+     * <ol>
+     *   <li>Initializing the first-period tax depreciation record</li>
+     *   <li>Building a {@link Projection} model for the given period</li>
+     *   <li>Iteratively generating monthly depreciation and determining deductions</li>
+     *   <li>Deleting existing database records for this asset</li>
+     *   <li>Persisting the newly generated records</li>
+     * </ol>
+     *
+     * @param fixedAsset the fixed asset to project
+     * @param period     the accounting period to start projection
+     * @param table      the SUNAT tax table entry for code "332"
+     */
     private void processAsset(FinancialFixedAsset fixedAsset,
                               LocalDate period,
                               TaxTableSunat table) {

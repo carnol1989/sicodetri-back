@@ -34,7 +34,19 @@ import org.mockito.Mockito;
 import org.springframework.util.ResourceUtils;
 
 /**
- * This class for ReportJasperServiceImpl. <br/>
+ * Unit tests for {@link ReportJasperServiceImpl}.
+ *
+ * <p>
+ * Verifies the behavior of {@code getJasperReportInBytes} including:
+ * <ul>
+ *   <li>Successful report generation for different file types and options</li>
+ *   <li>Propagation of FileNotFoundException when the JRXML is missing</li>
+ *   <li>Propagation of JRException on compile or fill failures</li>
+ *   <li>IllegalArgumentException for unsupported file types</li>
+ *   <li>Injection of data source beans into report parameters for option "2"</li>
+ * </ul>
+ * </p>
+ *
  * <b>Class</b>: {@link ReportJasperServiceImplTest}<br/>
  * <b>Copyright</b>: &Copy; 2024 EPS Grau. <br/>
  * <b>Company</b>: EPS Grau. <br/>
@@ -56,11 +68,18 @@ class ReportJasperServiceImplTest {
 
     private ReportJasperServiceImpl service;
 
+    /**
+     * Initializes a fresh instance of the service before each test.
+     */
     @BeforeEach
     void setUp() {
         service = new ReportJasperServiceImpl();
     }
 
+    /**
+     * Verifies that {@code getJasperReportInBytes} returns the exact byte array
+     * provided by {@link JasperReportsHelper} when the template compiles and fills successfully.
+     */
     @Test
     @DisplayName("Return report bytes when template is valid and data provided")
     void returnReportBytesWhenTemplateIsValid() throws Exception {
@@ -129,6 +148,10 @@ class ReportJasperServiceImplTest {
         }
     }
 
+    /**
+     * Verifies that {@code getJasperReportInBytes} propagates a FileNotFoundException
+     * when the specified JRXML template cannot be found in the classpath.
+     */
     @Test
     @DisplayName("Throw FileNotFoundException when template not found")
     void throwFileNotFoundWhenTemplateMissing() {
@@ -157,9 +180,13 @@ class ReportJasperServiceImplTest {
         }
     }
 
+    /**
+     * Verifies that a JRException thrown during report compilation
+     * is propagated by {@code getJasperReportInBytes}.
+     */
     @Test
     @DisplayName("Throw JRException when compilation fails")
-    void throwJrExceptionWhenCompilationFails() {
+    void throwJrexceptionWhenCompilationFails() {
         // Arrange
         String badTemplate = "broken.jrxml";
         try (MockedStatic<ResourceUtils> resourceUtilsMock = Mockito.mockStatic(ResourceUtils.class);
@@ -192,9 +219,13 @@ class ReportJasperServiceImplTest {
         }
     }
 
+    /**
+     * Verifies that a JRException thrown during report filling
+     * is propagated by {@code getJasperReportInBytes}.
+     */
     @Test
     @DisplayName("Throw JRException when fillReport fails")
-    void throwJrExceptionWhenFillReportFails() {
+    void throwJrexceptionWhenFillReportFails() {
         // Arrange
         String templateName = "fill_error.jrxml";
         try (MockedStatic<ResourceUtils> resourceUtilsMock = Mockito.mockStatic(ResourceUtils.class);
@@ -236,6 +267,10 @@ class ReportJasperServiceImplTest {
         }
     }
 
+    /**
+     * Verifies that {@code getJasperReportInBytes} throws IllegalArgumentException
+     * when given an unsupported fileType code.
+     */
     @Test
     @DisplayName("Throw IllegalArgumentException when fileType is invalid")
     void throwIllegalArgumentExceptionWhenFileTypeInvalid() {
@@ -283,6 +318,11 @@ class ReportJasperServiceImplTest {
         }
     }
 
+    /**
+     * Verifies support for option "2", ensuring that the data list is wrapped
+     * in a {@link JREmptyDataSource} or {@link JRBeanCollectionDataSource} and
+     * included in the report parameters before exporting.
+     */
     @Test
     @DisplayName("Return report bytes when optionReport equals '2'")
     void returnReportBytesWhenOption2() throws Exception {
@@ -347,9 +387,14 @@ class ReportJasperServiceImplTest {
         }
     }
 
+    /**
+     * Verifies that a JRException thrown by {@link JasperFillManager}
+     * for option "2" is propagated and that the data source bean
+     * was added to the parameters prior to failure.
+     */
     @Test
     @DisplayName("Throw JRException when fillReport fails for optionReport '2'")
-    void throwJrExceptionWhenFillReportFailsOption2() {
+    void throwJrexceptionWhenFillReportFailsOption2() {
         // Arrange
         String option = "2";
         String templateName = "broken2.jrxml";

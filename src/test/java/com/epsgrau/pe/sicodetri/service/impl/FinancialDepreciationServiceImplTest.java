@@ -33,7 +33,22 @@ import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
 /**
- * This class test for FinancialDepreciationServiceImpl. <br/>
+ * Unit tests for {@link FinancialDepreciationServiceImpl}.
+ *
+ * <p>
+ * Verifies CRUD operations, custom queries, and depreciation calculation logic:
+ * <ul>
+ *   <li>Saving single and multiple entities</li>
+ *   <li>Updating and deleting by ID</li>
+ *   <li>Retrieving by ID—existing and fallback cases</li>
+ *   <li>Retrieving all entities</li>
+ *   <li>Deleting all entities in a list</li>
+ *   <li>Finding by FinancialFixedAsset ID</li>
+ *   <li>Depreciation calculations for different depreciation types</li>
+ *   <li>Lombok-generated all-args constructor and standard getters/setters</li>
+ * </ul>
+ * </p>
+ *
  * <b>Class</b>: {@link FinancialDepreciationServiceImplTest}<br/>
  * <b>Copyright</b>: &Copy; 2024 EPS Grau. <br/>
  * <b>Company</b>: EPS Grau. <br/>
@@ -46,7 +61,7 @@ import org.mockito.MockitoAnnotations;
  *     </ul>
  *     <u>Changes</u>:<br/>
  *     <ul>
- *     <li>Ago 27, 2024 (JAR) Creation class.</li>
+ *     <li>Jun 06, 2025 (JAR) Creation class.</li>
  *     </ul>
  * @version 1.0
  */
@@ -58,11 +73,18 @@ class FinancialDepreciationServiceImplTest {
     @InjectMocks
     private FinancialDepreciationServiceImpl financialDepreciationService;
 
+    /**
+     * Initializes Mockito mocks before each test.
+     */
     @BeforeEach
-    public void setup() {
+    void setup() {
         MockitoAnnotations.openMocks(this);
     }
 
+    /**
+     * Verifies that {@link FinancialDepreciationServiceImpl#saveService(FinancialDepreciation)}
+     * returns the exact instance from the repository.
+     */
     @Test
     @DisplayName("SaveService returns the saved instance")
     void saveServiceReturnsSavedInstance() {
@@ -79,6 +101,10 @@ class FinancialDepreciationServiceImplTest {
         assertSame(saved, result, "Debe devolver exactamente el objeto retornado por el repositorio");
     }
 
+    /**
+     * Verifies that {@link FinancialDepreciationServiceImpl#saveAllService(List)}
+     * invokes {@code repository.saveAll} on the provided list.
+     */
     @Test
     @DisplayName("SaveAllService invokes repository.saveAll with given list")
     void saveAllServiceInvokesSaveAll() {
@@ -95,9 +121,12 @@ class FinancialDepreciationServiceImplTest {
         verify(repository).saveAll(list);
     }
 
+    /**
+     * Verifies that saving a valid FinancialDepreciation calls {@code repository.save}.
+     */
     @Test
     @DisplayName("Save financial depreciation when valid object is provided")
-    public void saveFinancialDepreciationWhenValidObjectIsProvided() {
+    void saveFinancialDepreciationWhenValidObjectIsProvided() {
         // Arrange
         FinancialDepreciation financialDepreciation = new FinancialDepreciation();
 
@@ -108,9 +137,12 @@ class FinancialDepreciationServiceImplTest {
         verify(repository, times(1)).save(financialDepreciation);
     }
 
+    /**
+     * Verifies that updating a FinancialDepreciation calls {@code repository.save}.
+     */
     @Test
     @DisplayName("Update financial depreciation when valid object is provided")
-    public void updateFinancialDepreciationWhenValidObjectIsProvided() {
+    void updateFinancialDepreciationWhenValidObjectIsProvided() {
         // Arrange
         FinancialDepreciation financialDepreciation = new FinancialDepreciation();
 
@@ -121,9 +153,12 @@ class FinancialDepreciationServiceImplTest {
         verify(repository, times(1)).save(financialDepreciation);
     }
 
+    /**
+     * Verifies that deleting by ID calls {@code repository.deleteById}.
+     */
     @Test
     @DisplayName("Delete financial depreciation when valid id is provided")
-    public void deleteFinancialDepreciationWhenValidIdIsProvided() {
+    void deleteFinancialDepreciationWhenValidIdIsProvided() {
         // Arrange
         Long id = 1L;
 
@@ -134,9 +169,12 @@ class FinancialDepreciationServiceImplTest {
         verify(repository, times(1)).deleteById(id);
     }
 
+    /**
+     * Verifies retrieval by ID returns the existing entity when found.
+     */
     @Test
     @DisplayName("Return financial depreciation when it exists for given id")
-    public void returnFinancialDepreciationWhenItExistsForGivenId() {
+    void returnFinancialDepreciationWhenItExistsForGivenId() {
         // Arrange
         Long id = 1L;
         FinancialDepreciation fd = getFinancialDepreciation();
@@ -158,9 +196,12 @@ class FinancialDepreciationServiceImplTest {
         assertEquals(fd.getModificationDate(), result.getModificationDate());
     }
 
+    /**
+     * Verifies retrieval by ID returns a new entity when none exists.
+     */
     @Test
     @DisplayName("Return new financial depreciation when none exists for given id")
-    public void returnNewFinancialDepreciationWhenNoneExistsForGivenId() {
+    void returnNewFinancialDepreciationWhenNoneExistsForGivenId() {
         // Arrange
         Long id = 1L;
         when(repository.findById(id)).thenReturn(Optional.empty());
@@ -194,9 +235,13 @@ class FinancialDepreciationServiceImplTest {
         assertEquals(dt2, result.getModificationDate());
     }
 
+    /**
+     * Verifies that {@link FinancialDepreciationServiceImpl#findAllService()}
+     * returns all entities from {@code repository.findAll}.
+     */
     @Test
     @DisplayName("Return all financial depreciations when findAllService is called")
-    public void returnAllFinancialDepreciationsWhenFindAllServiceIsCalled() {
+    void returnAllFinancialDepreciationsWhenFindAllServiceIsCalled() {
         // Arrange
         List<FinancialDepreciation> financialDepreciations = List.of(new FinancialDepreciation(), new FinancialDepreciation());
         when(repository.findAll()).thenReturn(financialDepreciations);
@@ -209,6 +254,10 @@ class FinancialDepreciationServiceImplTest {
         assertEquals(financialDepreciations, result);
     }
 
+    /**
+     * Verifies that {@link FinancialDepreciationServiceImpl#deleteAllService(List)}
+     * calls {@code repository.deleteAll} for the provided list.
+     */
     @Test
     @DisplayName("Delete all financial depreciations when list is provided")
     void deleteAllFinancialDepreciationsWhenListIsProvided() {
@@ -225,6 +274,9 @@ class FinancialDepreciationServiceImplTest {
         verify(repository, times(1)).deleteAll(list);
     }
 
+    /**
+     * Verifies that finding by FinancialFixedAsset ID returns the repository result.
+     */
     @Test
     @DisplayName("Find by financialFixedAssetId returns repository result")
     void findByFinancialFixedAssetIdServiceReturnsList() {
@@ -242,6 +294,9 @@ class FinancialDepreciationServiceImplTest {
         assertSame(expected, result, "Debe devolver exactamente la lista que retorna el repositorio");
     }
 
+    /**
+     * Verifies that finding by FinancialFixedAsset ID returns an empty list when none found.
+     */
     @Test
     @DisplayName("Find by financialFixedAssetId returns empty list when none found")
     void findByFinancialFixedAssetIdServiceReturnsEmptyList() {
@@ -259,6 +314,9 @@ class FinancialDepreciationServiceImplTest {
         assertTrue(result.isEmpty(), "Cuando no hay depreciaciones, debe devolver lista vacía");
     }
 
+    /**
+     * Verifies depreciation calculation for types S_VAL_01 and S_VAL_03 produces correct values.
+     */
     @Test
     @DisplayName("calculateDepreciation with S_VAL_01 or S_VAL_03 computes correct value")
     void calculateDepreciationType01Or03() {
@@ -285,6 +343,9 @@ class FinancialDepreciationServiceImplTest {
         assertEquals(new BigDecimal("8.33"), fd.getValueDepreciation());
     }
 
+    /**
+     * Verifies depreciation calculation for type S_VAL_02 within useful life produces correct value.
+     */
     @Test
     @DisplayName("calculateDepreciation with S_VAL_02 and years <= usefulLife computes same value")
     void calculateDepreciationType02WithinYears() {
@@ -298,6 +359,9 @@ class FinancialDepreciationServiceImplTest {
         assertEquals(new BigDecimal("8.33"), fd.getValueDepreciation());
     }
 
+    /**
+     * Verifies depreciation calculation for type S_VAL_02 beyond useful life yields zero.
+     */
     @Test
     @DisplayName("calculateDepreciation with S_VAL_02 and years > usefulLife sets zero")
     void calculateDepreciationType02BeyondYears() {
@@ -311,6 +375,9 @@ class FinancialDepreciationServiceImplTest {
         assertEquals(BigDecimal.ZERO.setScale(N_VAL_2, RoundingMode.DOWN), fd.getValueDepreciation());
     }
 
+    /**
+     * Verifies that the Lombok-generated all-args constructor assigns all fields correctly.
+     */
     @Test
     @DisplayName("FinancialDepreciation AllArgsConstructor and getters")
     void financialDepreciationAllArgsConstructorAndGetters() {
@@ -352,6 +419,9 @@ class FinancialDepreciationServiceImplTest {
         assertEquals(modDate,   fd.getModificationDate());
     }
 
+    /**
+     * Verifies setter methods and standard getters for FinancialDepreciation.
+     */
     @Test
     @DisplayName("FinancialDepreciation setters and getters")
     void financialDepreciationSettersAndGetters() {

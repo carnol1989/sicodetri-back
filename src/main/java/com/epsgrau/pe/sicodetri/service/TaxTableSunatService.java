@@ -4,9 +4,11 @@ import com.epsgrau.pe.sicodetri.entity.TaxTableSunat;
 
 
 /**
- * This class is the interface of the service for Tax Table Sunat. <br/>
+ * Service interface for managing SUNAT tax table entries.
+ * Extends the generic {@link CrudService} for basic CRUD operations
+ * and adds a method to look up a tax table entry by its accounting account code.
  * <b>Class</b>: {@link TaxTableSunatService}<br/>
- * <b>Copyright</b>: &Copy; 2024 EPS Grau. <br/>
+ * <b>Copyright</b>: &copy; 2024 EPS Grau. <br/>
  * <b>Company</b>: EPS Grau. <br/>
  *
  * @author EPS Grau <br/>
@@ -17,12 +19,19 @@ import com.epsgrau.pe.sicodetri.entity.TaxTableSunat;
  *     </ul>
  *     <u>Changes</u>:<br/>
  *     <ul>
- *     <li>Ago 15, 2024 (JAR) Creation class.</li>
+ *     <li>Jun 06, 2025 (JAR) Creation class.</li>
  *     </ul>
  * @version 1.0
  */
 public interface TaxTableSunatService extends CrudService<TaxTableSunat, Long> {
 
+    /**
+     * Retrieves the {@link TaxTableSunat} entry corresponding to the specified
+     * accounting account code.
+     *
+     * @param accountingAccount the three-digit accounting account prefix
+     * @return the matching TaxTableSunat entity, or {@code null} if none found
+     */
     TaxTableSunat findByAccountigAccountService(String accountingAccount);
 
 }

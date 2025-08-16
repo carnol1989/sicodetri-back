@@ -2,7 +2,6 @@ package com.epsgrau.pe.sicodetri.service.projection.impl;
 
 import static com.epsgrau.pe.sicodetri.util.Constants.LOCAL_DATE_DEFAULT;
 import static com.epsgrau.pe.sicodetri.util.Constants.S_VAL_332;
-import static com.epsgrau.pe.sicodetri.util.DataTest.getFinancialFixedAsset332;
 import static com.epsgrau.pe.sicodetri.util.DataTest.getFinancialFixedAsset332ForTemporaryAddition;
 import static com.epsgrau.pe.sicodetri.util.DataTest.getTaxTable332;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -30,6 +29,34 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
+/**
+ * Unit tests for {@link TemporaryAdditionProjectionGenerator}.
+ *
+ * <p>Validates that this generator:
+ * <ul>
+ *   <li>Reports its correct projection type.</li>
+ *   <li>Skips processing when tax table is missing.</li>
+ *   <li>Skips assets failing eligibility criteria (default dates, zero balances/costs, banned descriptions, wrong prefixes).</li>
+ *   <li>Invokes persistence services for assets that meet all requirements.</li>
+ * </ul>
+ * </p>
+ *
+ * <b>Class</b>: {@link TemporaryAdditionProjectionGeneratorTest}<br/>
+ * <b>Copyright</b>: &Copy; 2024 EPS Grau. <br/>
+ * <b>Company</b>: EPS Grau. <br/>
+ *
+ * @author EPS Grau <br/>
+ *     <u>Service Provider</u>: Consultor TI <br/>
+ *     <u>Developed by</u>: <br/>
+ *     <ul>
+ *     <li>Carlos Augusto Nole Machaca</li>
+ *     </ul>
+ *     <u>Changes</u>:<br/>
+ *     <ul>
+ *     <li>Jun 11, 2025 (JAR) Creation class.</li>
+ *     </ul>
+ * @version 1.0
+ */
 @DisplayName("TemporaryAdditionProjectionGenerator Tests")
 class TemporaryAdditionProjectionGeneratorTest {
 
@@ -47,17 +74,26 @@ class TemporaryAdditionProjectionGeneratorTest {
   @InjectMocks
   private TemporaryAdditionProjectionGenerator generator;
 
+  /**
+   * Initializes mocks before each test.
+   */
   @BeforeEach
   void setUp() {
     MockitoAnnotations.openMocks(this);
   }
 
+  /**
+   * Verifies that {@code getType()} returns TEMPORARY_ADDITIONS.
+   */
   @Test
   @DisplayName("Return TEMPORARY_ADDITIONS when getType is called")
   void returnTemporaryAdditionsWhenGetTypeCalled() {
     assertEquals(ProjectionType.TEMPORARY_ADDITIONS, generator.getType());
   }
 
+  /**
+   * Ensures generation is skipped when no tax table exists for the asset's account prefix.
+   */
   @Test
   @DisplayName("generate skips all when tax table is null")
   void generateSkipsWhenTaxTableNull() {
@@ -74,6 +110,9 @@ class TemporaryAdditionProjectionGeneratorTest {
     verifyNoInteractions(financialDepreciationService, taxDepreciationService, additionService, deductionService);
   }
 
+  /**
+   * Ensures assets with default acquisition date or zero balances/costs are not processed.
+   */
   @Test
   @DisplayName("generate skips non-eligible assets")
   void generateSkipsNonEligible() {
@@ -94,6 +133,9 @@ class TemporaryAdditionProjectionGeneratorTest {
     verifyNoInteractions(financialDepreciationService, taxDepreciationService, additionService, deductionService);
   }
 
+  /**
+   * Verifies that all persistence services are invoked for a fully eligible asset.
+   */
   @Test
   @DisplayName("generate invokes services on eligible asset")
   void generateInvokesServicesWhenEligible() {
@@ -114,6 +156,9 @@ class TemporaryAdditionProjectionGeneratorTest {
     verify(additionService, atLeastOnce()).saveAllService(anyList());
   }
 
+  /**
+   * Ensures that assets whose descriptions contain a banned keyword are skipped.
+   */
   @Test
   @DisplayName("generate skips assets with banned description")
   void generateSkipsWhenDescriptionContainsBanned() {
@@ -135,6 +180,9 @@ class TemporaryAdditionProjectionGeneratorTest {
     verifyNoInteractions(financialDepreciationService, taxDepreciationService, additionService, deductionService);
   }
 
+  /**
+   * Ensures that assets with an invalid accounting-account prefix are not processed.
+   */
   @Test
   @DisplayName("generate skips assets with non-eligible accounting-account prefix")
   void generateSkipsWhenPrefixNotEligible() {

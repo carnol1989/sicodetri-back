@@ -16,9 +16,15 @@ import java.time.format.DateTimeParseException;
 import java.util.Date;
 
 /**
- * This class is a util for functions. <br/>
+ * Utility class providing common helper functions for:
+ * <ul>
+ *   <li>Converting {@link Date} to formatted LocalDate strings</li>
+ *   <li>Parsing and validating dates, numbers, and strings</li>
+ *   <li>Safely retrieving values from JDBC {@link ResultSet}</li>
+ * </ul>
+ *
  * <b>Class</b>: {@link Functions}<br/>
- * <b>Copyright</b>: &Copy; 2024 EPS Grau. <br/>
+ * <b>Copyright</b>: &copy; 2024 EPS Grau. <br/>
  * <b>Company</b>: EPS Grau. <br/>
  *
  * @author EPS Grau <br/>
@@ -29,7 +35,7 @@ import java.util.Date;
  *     </ul>
  *     <u>Changes</u>:<br/>
  *     <ul>
- *     <li>Ago 17, 2024 (JAR) Creation class.</li>
+ *     <li>Jun 06, 2025 (JAR) Creation class.</li>
  *     </ul>
  * @version 1.0
  */

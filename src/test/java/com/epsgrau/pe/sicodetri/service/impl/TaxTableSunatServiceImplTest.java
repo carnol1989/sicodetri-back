@@ -12,6 +12,7 @@ import static org.mockito.Mockito.when;
 
 import com.epsgrau.pe.sicodetri.entity.TaxTableSunat;
 import com.epsgrau.pe.sicodetri.repository.TaxTableSunatRepository;
+import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -24,7 +25,15 @@ import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
 /**
- * This class test for TaxTableSunatServiceImpl. <br/>
+ * Unit tests for {@link TaxTableSunatServiceImpl}.
+ *
+ * <p>
+ * Verifies the behavior of the TaxTableSunatServiceImpl, ensuring that it correctly
+ * delegates CRUD operations to the underlying {@link TaxTableSunatRepository}, handles
+ * lookup by accounting account, and properly implements its constructors, getters,
+ * setters, equals, and hashCode methods.
+ * </p>
+ *
  * <b>Class</b>: {@link TaxTableSunatServiceImplTest}<br/>
  * <b>Copyright</b>: &Copy; 2024 EPS Grau. <br/>
  * <b>Company</b>: EPS Grau. <br/>
@@ -37,7 +46,7 @@ import org.mockito.MockitoAnnotations;
  *     </ul>
  *     <u>Changes</u>:<br/>
  *     <ul>
- *     <li>Ago 18, 2024 (JAR) Creation class.</li>
+ *     <li>Jun 06, 2025 (JAR) Creation class.</li>
  *     </ul>
  * @version 1.0
  */
@@ -49,11 +58,17 @@ class TaxTableSunatServiceImplTest {
     @InjectMocks
     private TaxTableSunatServiceImpl service;
 
+    /**
+     * Initializes mocks before each test.
+     */
     @BeforeEach
     void setUp() {
         MockitoAnnotations.openMocks(this);
     }
 
+    /**
+     * Verifies that saveService returns the exact entity returned by the repository.
+     */
     @Test
     @DisplayName("saveService returns the saved entity")
     void saveServiceReturnsSavedEntity() {
@@ -70,6 +85,9 @@ class TaxTableSunatServiceImplTest {
         assertSame(saved, result, "Debe devolver exactamente el objeto retornado por el repositorio");
     }
 
+    /**
+     * Verifies that saveAllService delegates saving of a list to repository.saveAll.
+     */
     @Test
     @DisplayName("saveAllService invokes repository.saveAll with given list")
     void saveAllServiceInvokesSaveAll() {
@@ -83,6 +101,9 @@ class TaxTableSunatServiceImplTest {
         verify(repository).saveAll(list);
     }
 
+    /**
+     * Verifies that findAllService returns an empty list when repository is empty.
+     */
     @Test
     @DisplayName("findAllService returns empty list when repository is empty")
     void findAllServiceReturnsEmptyListWhenNoEntities() {
@@ -98,6 +119,9 @@ class TaxTableSunatServiceImplTest {
         assertTrue(result.isEmpty(), "La lista debe venir vacía si no hay entidades");
     }
 
+    /**
+     * Verifies that saveService persists a valid TaxTableSunat entity.
+     */
     @Test
     @DisplayName("Save TaxTableSunat when valid entity is provided")
     void saveTaxTableSunatWhenValidEntityIsProvided() {
@@ -109,6 +133,9 @@ class TaxTableSunatServiceImplTest {
         verify(repository, times(1)).save(taxTableSunat);
     }
 
+    /**
+     * Verifies that updateService persists updates to a TaxTableSunat entity.
+     */
     @Test
     @DisplayName("Update TaxTableSunat when valid entity is provided")
     void updateTaxTableSunatWhenValidEntityIsProvided() {
@@ -122,6 +149,9 @@ class TaxTableSunatServiceImplTest {
         verify(repository, times(1)).save(taxTableSunat);
     }
 
+    /**
+     * Verifies that deleteByIdService removes the entity with the given ID.
+     */
     @Test
     @DisplayName("Delete TaxTableSunat when valid id is provided")
     void deleteTaxTableSunatWhenValidIdIsProvided() {
@@ -135,6 +165,9 @@ class TaxTableSunatServiceImplTest {
         verify(repository, times(1)).deleteById(id);
     }
 
+    /**
+     * Verifies that deleteAllService delegates deletion of a list to repository.deleteAll.
+     */
     @Test
     @DisplayName("deleteAllService invokes repository.deleteAll")
     void deleteAllServiceInvokesDeleteAll() {
@@ -143,6 +176,9 @@ class TaxTableSunatServiceImplTest {
         verify(repository).deleteAll(list);
     }
 
+    /**
+     * Verifies that findByIdService returns an existing entity when present.
+     */
     @Test
     @DisplayName("Return existing TaxTableSunat when findByIdService is called with existing id")
     void returnExistingTaxTableSunatWhenFindByIdServiceCalledWithExistingId() {
@@ -159,6 +195,9 @@ class TaxTableSunatServiceImplTest {
         assertEquals(taxTableSunat, result);
     }
 
+    /**
+     * Verifies that findByIdService returns a new default entity when the ID is not found.
+     */
     @Test
     @DisplayName("Return new TaxTableSunat when findByIdService is called with non-existing id")
     void returnNewTaxTableSunatWhenFindByIdServiceCalledWithNonExistingId() {
@@ -174,6 +213,9 @@ class TaxTableSunatServiceImplTest {
         assertEquals(new TaxTableSunat(), result);
     }
 
+    /**
+     * Verifies that findAllService returns all entities when repository has data.
+     */
     @Test
     @DisplayName("Return all TaxTableSunat entities when findAllService is called")
     void returnAllTaxTableSunatEntitiesWhenFindAllServiceCalled() {
@@ -190,9 +232,12 @@ class TaxTableSunatServiceImplTest {
         assertEquals(2, result.size());
     }
 
+    /**
+     * Verifies that findByAccountigAccountService returns the entity for an existing account.
+     */
     @Test
     @DisplayName("Return TaxTableSunat when findByAccountingAccountService is called with existing account")
-    public void returnTaxTableSunatWhenFindByAccountingAccountServiceCalledWithExistingAccount() {
+    void returnTaxTableSunatWhenFindByAccountingAccountServiceCalledWithExistingAccount() {
         // Arrange
         String accountingAccount = "123456";
         TaxTableSunat taxTableSunat = new TaxTableSunat();
@@ -207,9 +252,12 @@ class TaxTableSunatServiceImplTest {
         verify(repository, times(1)).findByAccountingAccount(accountingAccount);
     }
 
+    /**
+     * Verifies that findByAccountigAccountService returns null when no entity matches the account.
+     */
     @Test
     @DisplayName("Return null when findByAccountingAccountService is called with non-existing account")
-    public void returnNullWhenFindByAccountingAccountServiceCalledWithNonExistingAccount() {
+    void returnNullWhenFindByAccountingAccountServiceCalledWithNonExistingAccount() {
         // Arrange
         String accountingAccount = "123456";
         when(repository.findByAccountingAccount(accountingAccount)).thenReturn(null);
@@ -222,6 +270,9 @@ class TaxTableSunatServiceImplTest {
         verify(repository, times(1)).findByAccountingAccount(accountingAccount);
     }
 
+    /**
+     * Verifies that all-args constructor sets fields correctly, and toString includes key values.
+     */
     @Test
     @DisplayName("AllArgsConstructor, getters and toString()")
     void allArgsConstructorAndGetters() {
@@ -231,6 +282,8 @@ class TaxTableSunatServiceImplTest {
         Integer rate      = 5;
         Integer lifeYears = 20;
         String status     = "S";
+        String addedBy = "TEST";
+        LocalDateTime additionDate = LocalDateTime.now();
 
         TaxTableSunat t = new TaxTableSunat(
             id,
@@ -238,7 +291,11 @@ class TaxTableSunatServiceImplTest {
             desc,
             rate,
             lifeYears,
-            status
+            status,
+            addedBy,
+            additionDate,
+            null,
+            null
         );
 
         // getters
@@ -256,6 +313,9 @@ class TaxTableSunatServiceImplTest {
         assertTrue(s.contains("annualRate=" + rate));
     }
 
+    /**
+     * Verifies that no-args constructor and setters correctly populate fields.
+     */
     @Test
     @DisplayName("No-args constructor and setters")
     void noArgsConstructorAndSetters() {
@@ -276,12 +336,18 @@ class TaxTableSunatServiceImplTest {
         assertEquals("N",       t.getStatus());
     }
 
+    /**
+     * Verifies equals() and hashCode() implementations for logical equality.
+     */
     @Test
     @DisplayName("equals & hashCode")
     void equalsAndHashCode() {
-        TaxTableSunat a = new TaxTableSunat(1L, "X", "D", 1, 1, "Y");
-        TaxTableSunat b = new TaxTableSunat(1L, "X", "D", 1, 1, "Y");
-        TaxTableSunat c = new TaxTableSunat(2L, "Z", "D2", 2, 2, "N");
+        TaxTableSunat a = new TaxTableSunat(1L, "X", "D", 1, 1,
+            "Y", null, null, null, null);
+        TaxTableSunat b = new TaxTableSunat(1L, "X", "D", 1, 1,
+            "Y", null, null, null, null);
+        TaxTableSunat c = new TaxTableSunat(2L, "Z", "D2", 2, 2,
+            "N", null, null, null, null);
 
         assertTrue(a.equals(b));
         assertEquals(a.hashCode(), b.hashCode());

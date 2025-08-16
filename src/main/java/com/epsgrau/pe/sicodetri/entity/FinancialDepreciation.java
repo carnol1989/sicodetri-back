@@ -29,9 +29,11 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 /**
- * This class entity for financial depreciation. <br/>
+ * Entity representing the financial depreciation record for a fixed asset.
+ * Maps to the {@code financial_depreciation} table and stores the depreciation
+ * value calculated per period, the applied annual rate, and audit information.
  * <b>Class</b>: {@link FinancialDepreciation}<br/>
- * <b>Copyright</b>: &Copy; 2024 EPS Grau. <br/>
+ * <b>Copyright</b>: &copy; 2024 EPS Grau. <br/>
  * <b>Company</b>: EPS Grau. <br/>
  *
  * @author EPS Grau <br/>
@@ -42,7 +44,7 @@ import lombok.Setter;
  *     </ul>
  *     <u>Changes</u>:<br/>
  *     <ul>
- *     <li>Ago 25, 2024 (JAR) Creation class.</li>
+ *     <li>Jun 06, 2025 (JAR) Creation class.</li>
  *     </ul>
  * @version 1.0
  */
@@ -79,7 +81,7 @@ public class FinancialDepreciation {
     private FinancialFixedAsset financialFixedAsset;
 
     @Schema(description = "Usuario que realizó el registro", example = "CANO")
-    @Column
+    @Column(length = 50)
     private String addedBy;
 
     @Schema(description = "Fecha y hora del registro", example = "2018-02-27T12:26:30.107")
@@ -87,7 +89,7 @@ public class FinancialDepreciation {
     private LocalDateTime additionDate;
 
     @Schema(description = "Usuario que realizó una modificación", example = "WIJI")
-    @Column
+    @Column(length = 50)
     private String modifiedBy;
 
     @Schema(description = "Fecha y hora de la modificación", example = "2018-02-28T12:26:30.107")
@@ -95,9 +97,22 @@ public class FinancialDepreciation {
     private LocalDateTime modificationDate;
 
     /**
-     * Method that allows the calculation of financial depreciation.
+     * Calculates the periodic depreciation value based on the asset's initial balance,
+     * useful life, and projection type.
+     * - Computes the annual rate as 1 / usefulLifeYears.<br>
+     * - Converts to a monthly rate by dividing by 12.<br>
+     * - Depending on the projection type:
+     *   <ul>
+     *     <li>For regular or full-life projections (S_VAL_01, S_VAL_03), multiplies balance by
+     *     monthly rate.</li>
+     *     <li>For year-limited projections (S_VAL_02), only applies if numberYears ≤
+     *     usefulLifeYears.</li>
+     *   </ul>
+     * - Rounds the result down to 2 decimal places.
      *
-     * @param fixedAsset Fixed Asset
+     * @param fixedAsset     the {@link FinancialFixedAsset} containing balance and useful life
+     * @param typeProjection the projection type constant (e.g. S_VAL_01, S_VAL_02, S_VAL_03)
+     * @param numberYears    the number of years elapsed for limited projections
      */
     public void calculateDepreciation(FinancialFixedAsset fixedAsset, String typeProjection,
         int numberYears) {

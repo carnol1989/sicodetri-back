@@ -17,10 +17,41 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Primary;
 import org.springframework.context.annotation.Profile;
 
+/**
+ * Spring Test configuration for integration tests.
+ *
+ * <p>
+ * Provides primary beans that override the real JDBC repository and Jasper report service
+ * in the "integration" profile, returning fixed stub data for FinancialFixedAsset reports
+ * and minimal Excel/PDF responses.
+ * </p>
+ *
+ * <b>Class</b>: {@link IntegrationTestConfig}<br/>
+ * <b>Copyright</b>: &Copy; 2024 EPS Grau. <br/>
+ * <b>Company</b>: EPS Grau. <br/>
+ *
+ * @author EPS Grau <br/>
+ *     <u>Service Provider</u>: Consultor TI <br/>
+ *     <u>Developed by</u>: <br/>
+ *     <ul>
+ *     <li>Carlos Augusto Nole Machaca</li>
+ *     </ul>
+ *     <u>Changes</u>:<br/>
+ *     <ul>
+ *     <li>Jul 08, 2025 (JAR) Creation class.</li>
+ *     </ul>
+ * @version 1.0
+ */
 @TestConfiguration
 @Profile("integration")
 public class IntegrationTestConfig {
 
+  /**
+   * Provides a stubbed implementation of {@link FinancialFixedAssetJdbcRepository}
+   * that returns predefined report data when the year equals 2022, otherwise returns an empty list.
+   *
+   * @return a primary {@code FinancialFixedAssetJdbcRepository} bean for integration tests
+   */
   @Bean
   @Primary
   public FinancialFixedAssetJdbcRepository financialFixedAssetJdbcRepository() {
@@ -60,6 +91,7 @@ public class IntegrationTestConfig {
         }
         return Collections.emptyList();
       }
+
       @Override
       public List<FinancialFixedAssetDto> callGetReportDetailFinancialAndTaxDepreciationJdbc(ParamReportDto params) {
         if (params.getYear() == 2022) {
@@ -97,6 +129,15 @@ public class IntegrationTestConfig {
     };
   }
 
+  /**
+   * Provides a stubbed {@link ReportJasperService} that:
+   * <ul>
+   *   <li>Generates a minimal XLSX byte array when {@code fileType} equals "xlsx".</li>
+   *   <li>Returns a simple PDF header byte array for other formats.</li>
+   * </ul>
+   *
+   * @return a primary {@code ReportJasperService} bean for integration tests
+   */
   @Bean
   @Primary
   public ReportJasperService reportJasperService() {

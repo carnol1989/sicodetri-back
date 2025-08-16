@@ -26,7 +26,14 @@ import net.sf.jasperreports.engine.base.JRBasePrintText;
 import net.sf.jasperreports.engine.type.ModeEnum;
 
 /**
- * Util class for test data. <br/>
+ * Utility class providing sample data objects for unit tests.
+ *
+ * <p>
+ * Contains factory methods to create pre-configured instances of data transfer
+ * and entity classes, covering various scenarios for testing service logic,
+ * report generation, and Excel file processing.
+ * </p>
+ *
  * <b>Class</b>: {@link DataTest}<br/>
  * <b>Copyright</b>: &Copy; 2024 EPS Grau. <br/>
  * <b>Company</b>: EPS Grau. <br/>
@@ -39,12 +46,17 @@ import net.sf.jasperreports.engine.type.ModeEnum;
  *     </ul>
  *     <u>Changes</u>:<br/>
  *     <ul>
- *     <li>Ago 27, 2024 (JAR) Creation class.</li>
+ *     <li>Jun 06, 2025 (JAR) Creation class.</li>
  *     </ul>
  * @version 1.0
  */
 public class DataTest {
 
+    /**
+     * Creates a list of {@link InputData} populated with default test values.
+     *
+     * @return non-null List of sample InputData objects
+     */
     public static List<InputData> getListInputData() {
         List<InputData> listInputData = new ArrayList<>();
         InputData itemInputData = new InputData();
@@ -87,6 +99,11 @@ public class DataTest {
         return listInputData;
     }
 
+    /**
+     * Returns a list of two sample FinancialFixedAsset instances (codes 012 and 332).
+     *
+     * @return non-null List of FinancialFixedAsset
+     */
     public static List<FinancialFixedAsset> getListFinancialFixedAsset() {
         List<FinancialFixedAsset> financialFixedAssets = new ArrayList<>();
         financialFixedAssets.add(getFinancialFixedAsset012());
@@ -94,12 +111,22 @@ public class DataTest {
         return financialFixedAssets;
     }
 
+    /**
+     * Returns a list containing the sample FinancialFixedAsset with code 012.
+     *
+     * @return non-null List containing one FinancialFixedAsset
+     */
     public static List<FinancialFixedAsset> getListFinancialFixedAsset012() {
         List<FinancialFixedAsset> listFinancialFixedAsset = new ArrayList<>();
         listFinancialFixedAsset.add(getFinancialFixedAsset012());
         return listFinancialFixedAsset;
     }
 
+    /**
+     * Creates a sample FinancialFixedAsset for code 012 with zero balances and default dates.
+     *
+     * @return pre-configured FinancialFixedAsset instance
+     */
     public static FinancialFixedAsset getFinancialFixedAsset012() {
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern(FORMATTER_DD_MM_YYYY);
         FinancialFixedAsset itemInputFinacialFixedAsset = new FinancialFixedAsset();
@@ -138,12 +165,22 @@ public class DataTest {
         return itemInputFinacialFixedAsset;
     }
 
+    /**
+     * Returns a list containing the sample FinancialFixedAsset with code 332.
+     *
+     * @return non-null List containing one FinancialFixedAsset
+     */
     public static List<FinancialFixedAsset> getListFinancialFixedAsset332() {
         List<FinancialFixedAsset> financialFixedAssets = new ArrayList<>();
         financialFixedAssets.add(getFinancialFixedAsset332());
         return financialFixedAssets;
     }
 
+    /**
+     * Creates a sample FinancialFixedAsset for code 332 used in general tests.
+     *
+     * @return pre-configured FinancialFixedAsset instance
+     */
     public static FinancialFixedAsset getFinancialFixedAsset332() {
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern(FORMATTER_YYYY_MM_DD);
         FinancialFixedAsset itemInputFinacialFixedAsset = new FinancialFixedAsset();
@@ -184,6 +221,11 @@ public class DataTest {
         return itemInputFinacialFixedAsset;
     }
 
+    /**
+     * Creates a sample FinancialFixedAsset with code 332 for temporary addition projections.
+     *
+     * @return pre-configured FinancialFixedAsset instance
+     */
     public static FinancialFixedAsset getFinancialFixedAsset332ForTemporaryAddition() {
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern(FORMATTER_YYYY_MM_DD);
         FinancialFixedAsset itemInputFinacialFixedAsset = new FinancialFixedAsset();
@@ -225,6 +267,11 @@ public class DataTest {
         return itemInputFinacialFixedAsset;
     }
 
+    /**
+     * Creates a sample FinancialFixedAsset with code 332 for permanent addition projections.
+     *
+     * @return pre-configured FinancialFixedAsset instance
+     */
     public static FinancialFixedAsset getFinancialFixedAsset332ForPermanentAddition() {
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern(FORMATTER_YYYY_MM_DD);
         FinancialFixedAsset itemInputFinacialFixedAsset = new FinancialFixedAsset();
@@ -266,6 +313,11 @@ public class DataTest {
         return itemInputFinacialFixedAsset;
     }
 
+    /**
+     * Returns a list of two sample TaxTableSunat entries (accounts 331 and 332).
+     *
+     * @return non-null List of TaxTableSunat
+     */
     public static List<TaxTableSunat> getListTableSunats() {
         List<TaxTableSunat> taxTableSunats = new ArrayList<>();
         taxTableSunats.add(getTaxTable331());
@@ -273,6 +325,11 @@ public class DataTest {
         return taxTableSunats;
     }
 
+    /**
+     * Creates a sample TaxTableSunat for account 332 with sample rates and life years.
+     *
+     * @return pre-configured TaxTableSunat instance
+     */
     public static TaxTableSunat getTaxTable332() {
         TaxTableSunat taxTable = new TaxTableSunat();
         taxTable.setId(1L);
@@ -284,6 +341,11 @@ public class DataTest {
         return taxTable;
     }
 
+    /**
+     * Creates a sample TaxTableSunat for account 331 with sample rates.
+     *
+     * @return pre-configured TaxTableSunat instance
+     */
     public static TaxTableSunat getTaxTable331() {
         TaxTableSunat taxTable = new TaxTableSunat();
         taxTable.setId(2L);
@@ -294,16 +356,31 @@ public class DataTest {
         return taxTable;
     }
 
+    /**
+     * Returns an empty list of FinancialDepreciation for tests.
+     *
+     * @return empty List of FinancialDepreciation
+     */
     public static List<FinancialDepreciation> getListFinancialDepreciations() {
         List<FinancialDepreciation> financialDepreciations = new ArrayList<>();
         return financialDepreciations;
     }
 
+    /**
+     * Returns an empty list of TaxDepreciation for tests.
+     *
+     * @return empty List of TaxDepreciation
+     */
     public static List<TaxDepreciation> getListTaxDepreciations() {
         List<TaxDepreciation> taxDepreciations = new ArrayList<>();
         return taxDepreciations;
     }
 
+    /**
+     * Creates a sample TaxDepreciation populated with default financial values.
+     *
+     * @return pre-configured TaxDepreciation instance
+     */
     public static TaxDepreciation getTaxDepreciation() {
         TaxDepreciation taxDepreciation = new TaxDepreciation();
         taxDepreciation.setId(1L);
@@ -315,6 +392,11 @@ public class DataTest {
         return taxDepreciation;
     }
 
+    /**
+     * Builds a JasperPrint with one page and a test text element, for report tests.
+     *
+     * @return JasperPrint containing a single text element
+     */
     public static JasperPrint createJasperPrintWithOneEmptyPage() {
         // 1) Creamos el JasperPrint
         JasperPrint jasperPrint = new JasperPrint();
@@ -341,6 +423,11 @@ public class DataTest {
         return jasperPrint;
     }
 
+    /**
+     * Creates a sample FinancialDepreciation for report and projection tests.
+     *
+     * @return pre-configured FinancialDepreciation instance
+     */
     public static FinancialDepreciation getFinancialDepreciation() {
         FinancialDepreciation financialDepreciation = new FinancialDepreciation();
         financialDepreciation.setId(1L);
@@ -355,6 +442,11 @@ public class DataTest {
         return financialDepreciation;
     }
 
+    /**
+     * Creates a sample Addition entity for tests of addition services.
+     *
+     * @return pre-configured Addition instance
+     */
     public static Addition getAddition() {
         Addition addition = new Addition();
         addition.setId(1L);
@@ -368,6 +460,11 @@ public class DataTest {
         return addition;
     }
 
+    /**
+     * Creates a sample Deduction entity for tests of deduction services.
+     *
+     * @return pre-configured Deduction instance
+     */
     public static Deduction getDeduction() {
         Deduction deduction = new Deduction();
         deduction.setId(1L);
@@ -381,6 +478,11 @@ public class DataTest {
         return deduction;
     }
 
+    /**
+     * Creates a sample FinancialFixedAssetDto for report strategy tests.
+     *
+     * @return pre-configured FinancialFixedAssetDto instance
+     */
     public static FinancialFixedAssetDto getFinancialFixedAssetDto() {
         FinancialFixedAssetDto dto = new FinancialFixedAssetDto();
         dto.setId(77);

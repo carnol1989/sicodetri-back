@@ -18,7 +18,18 @@ import org.springframework.web.multipart.MaxUploadSizeExceededException;
 import org.springframework.web.context.request.WebRequest;
 
 /**
- * This class test for GlobalExceptionHandler. <br/>
+ * Unit tests for {@link GlobalExceptionHandler}.
+ *
+ * <p>
+ * Verifies that the global exception handler methods produce the correct
+ * HTTP status codes and {@link ExceptionResponse} bodies for various exceptions:
+ * <ul>
+ *   <li>{@link ResourceNotFoundException}</li>
+ *   <li>{@link MethodArgumentNotValidException}</li>
+ *   <li>{@link MaxUploadSizeExceededException}</li>
+ * </ul>
+ * </p>
+ *
  * <b>Class</b>: {@link GlobalExceptionHandlerTest}<br/>
  * <b>Copyright</b>: &Copy; 2024 EPS Grau. <br/>
  * <b>Company</b>: EPS Grau. <br/>
@@ -31,7 +42,7 @@ import org.springframework.web.context.request.WebRequest;
  *     </ul>
  *     <u>Changes</u>:<br/>
  *     <ul>
- *     <li>Ago 28, 2024 (JAR) Creation class.</li>
+ *     <li>Jun 06, 2025 (JAR) Creation class.</li>
  *     </ul>
  * @version 1.0
  */
@@ -39,11 +50,20 @@ class GlobalExceptionHandlerTest {
 
     private GlobalExceptionHandler globalExceptionHandler;
 
+    /**
+     * Initializes a fresh instance of the {@link GlobalExceptionHandler}
+     * before each test.
+     */
     @BeforeEach
     void setUp() {
         globalExceptionHandler = new GlobalExceptionHandler();
     }
 
+    /**
+     * Tests that handling a {@link ResourceNotFoundException} returns
+     * HTTP 404 Not Found and a body containing the exception message
+     * and request details.
+     */
     @Test
     @DisplayName("Handle ResourceNotFoundException when resource is missing")
     void handleResourceNotFoundWhenResourceIsMissing() {
@@ -63,6 +83,11 @@ class GlobalExceptionHandlerTest {
         assertEquals("Resource details", body.getDetails());
     }
 
+    /**
+     * Tests that handling a {@link MethodArgumentNotValidException} returns
+     * HTTP 400 Bad Request and a body containing all validation error messages
+     * concatenated, along with request details.
+     */
     @Test
     @DisplayName("Handle MethodArgumentNotValidException when validation fails")
     void handleValidationExceptionsWhenInputIsInvalid() {
@@ -90,6 +115,11 @@ class GlobalExceptionHandlerTest {
         assertEquals("Validation details", body.getDetails());
     }
 
+    /**
+     * Tests that handling a {@link MaxUploadSizeExceededException} returns
+     * HTTP 417 Expectation Failed and a body containing the maximum upload
+     * size message and request details.
+     */
     @Test
     @DisplayName("Handle MaxUploadSizeExceededException when file size limit is exceeded")
     void handleMaxSizeExceptionWhenFileSizeLimitExceeded() {

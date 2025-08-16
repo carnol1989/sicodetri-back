@@ -9,9 +9,11 @@ import java.util.List;
 import org.springframework.stereotype.Component;
 
 /**
- * This class is to obtain the data from the Financial Tax Depreciation Detail Book report. <br/>
+ * Strategy implementation for generating the "Detail Financial and Tax Depreciation Book" report.
+ * This class delegates to {@link FinancialFixedAssetService} to fetch the detailed
+ * financial and tax depreciation data, suitable for use in a JasperReports template.
  * <b>Class</b>: {@link DetailFinancialTaxDepreciationStrategy}<br/>
- * <b>Copyright</b>: &Copy; 2024 EPS Grau. <br/>
+ * <b>Copyright</b>: &copy; 2024 EPS Grau. <br/>
  * <b>Company</b>: EPS Grau. <br/>
  *
  * @author EPS Grau <br/>
@@ -36,25 +38,51 @@ public class DetailFinancialTaxDepreciationStrategy implements ReportStrategy {
 
     private final FinancialFixedAssetService service;
 
+    /**
+     * Constructs the strategy with the required service dependency.
+     *
+     * @param service the FinancialFixedAssetService used to fetch report data
+     */
     public DetailFinancialTaxDepreciationStrategy(FinancialFixedAssetService service) {
         this.service = service;
     }
 
+    /**
+     * Returns the report code used to select this strategy.
+     *
+     * @return the code "2"
+     */
     @Override
     public String getCode() {
         return "2";
     }
 
+    /**
+     * Returns the name of the JasperReports template file.
+     *
+     * @return the JRXML template filename
+     */
     @Override
     public String getTemplate() {
         return "rpt_detail_financial_tax_depreciation.jrxml";
     }
 
+    /**
+     * Returns the base filename to use when exporting the report.
+     *
+     * @return the base file name prefix
+     */
     @Override
     public String getBaseFileName() {
         return "Libro_Detalle_Financiero_Tributario_Depreciacion_";
     }
 
+    /**
+     * Generates the report data by calling the financial fixed asset service.
+     *
+     * @param params the parameters defining the report (year, codes, dates, etc.)
+     * @return a list of {@link FinancialFixedAssetDto} containing the detailed depreciation data
+     */
     @Override
     public List<FinancialFixedAssetDto> generateReport(ParamReportDto params) {
         return service.callGetReportDetailFinancialAndTaxDepreciationService(params);

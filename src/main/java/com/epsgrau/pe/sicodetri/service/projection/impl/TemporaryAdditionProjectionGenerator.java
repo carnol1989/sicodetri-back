@@ -29,9 +29,15 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 /**
- * This class implements the generation of temporary additions. <br/>
+ * {@link ProjectionGenerator} implementation for generating temporary additions projections.
+ * For each fixed asset, this generator selects the appropriate SUNAT tax table based on
+ * the asset's accounting account prefix (332–337), checks eligibility criteria, and then
+ * processes the asset over its full useful life to calculate monthly financial and tax
+ * depreciation, determining additions or deductions accordingly.
+ * After projection generation, existing depreciation, tax, addition, and deduction records
+ * are removed and replaced with the newly computed entries.
  * <b>Class</b>: {@link TemporaryAdditionProjectionGenerator}<br/>
- * <b>Copyright</b>: &Copy; 2024 EPS Grau. <br/>
+ * <b>Copyright</b>: &copy; 2024 EPS Grau. <br/>
  * <b>Company</b>: EPS Grau. <br/>
  *
  * @author EPS Grau <br/>
@@ -53,11 +59,26 @@ public class TemporaryAdditionProjectionGenerator extends AbstractProjectionGene
     @Autowired
     private TaxTableSunatService taxTableService;
 
+    /**
+     * Returns the projection type handled by this generator.
+     *
+     * @return {@link ProjectionType#TEMPORARY_ADDITIONS}
+     */
     @Override
     public ProjectionType getType() {
         return ProjectionType.TEMPORARY_ADDITIONS;
     }
 
+    /**
+     * Generates temporary additions projections for each eligible fixed asset.
+     * Iterates through the provided asset list; for each asset, determines the
+     * SUNAT tax table based on its accounting account prefix and, if the asset
+     * meets the eligibility criteria, processes the asset to compute and persist
+     * its depreciation, additions, and deductions over the asset’s useful life.
+     *
+     * @param accountingPeriod the starting accounting period for the projection
+     * @param fixedAssets      the list of fixed assets to project
+     */
     @Override
     public void generate(LocalDate accountingPeriod, List<FinancialFixedAsset> fixedAssets) {
         for (FinancialFixedAsset f : fixedAssets) {
@@ -72,6 +93,19 @@ public class TemporaryAdditionProjectionGenerator extends AbstractProjectionGene
         }
     }
 
+    /**
+     * Determines if a fixed asset is eligible for temporary additions projection.
+     * Criteria:
+     * <ul>
+     *   <li>Acquisition date is not the default placeholder</li>
+     *   <li>Accounting account prefix is one of 332–337</li>
+     *   <li>Description does <em>not</em> contain "tasacion", "valor tasado", or "valortasado"</li>
+     *   <li>Initial balance is greater than zero</li>
+     * </ul>
+     *
+     * @param f the fixed asset to check
+     * @return {@code true} if the asset qualifies, {@code false} otherwise
+     */
     private boolean isEligible(FinancialFixedAsset f) {
         String desc = f.getWellAppraisedPreInvestmentStudyDry();
         String lower = desc == null ? "" : desc.toLowerCase(Locale.ROOT).trim();
@@ -88,6 +122,20 @@ public class TemporaryAdditionProjectionGenerator extends AbstractProjectionGene
             && f.getInitialBalance().compareTo(BigDecimal.ZERO) > N_VAL_0;
     }
 
+    /**
+     * Processes a single fixed asset by.:
+     * <ol>
+     *   <li>Initializing the first-period tax depreciation record</li>
+     *   <li>Building a {@link Projection} model for the given period</li>
+     *   <li>Iteratively generating monthly depreciation, additions, and deductions</li>
+     *   <li>Deleting existing database records for this asset</li>
+     *   <li>Persisting the newly generated records</li>
+     * </ol>
+     *
+     * @param fixedAsset the fixed asset to project
+     * @param period     the accounting period to start projection
+     * @param table      the SUNAT tax table entry for this asset’s account prefix
+     */
     private void processAsset(FinancialFixedAsset fixedAsset,
                               LocalDate period,
                               TaxTableSunat table) {

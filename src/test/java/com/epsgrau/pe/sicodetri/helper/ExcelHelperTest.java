@@ -25,7 +25,17 @@ import org.mockito.Mockito;
 import org.springframework.web.multipart.MultipartFile;
 
 /**
- * This class test for ExcelHelper. <br/>
+ * Unit tests for {@link ExcelHelper}.
+ *
+ * <p>
+ * Verifies:
+ * <ul>
+ *   <li>Detection of valid XLSX content types</li>
+ *   <li>Rejection of non-XLSX content types</li>
+ *   <li>Extraction of string, numeric, date, formula, and boolean values from cells</li>
+ * </ul>
+ * </p>
+ *
  * <b>Class</b>: {@link ExcelHelperTest}<br/>
  * <b>Copyright</b>: &Copy; 2024 EPS Grau. <br/>
  * <b>Company</b>: EPS Grau. <br/>
@@ -38,7 +48,7 @@ import org.springframework.web.multipart.MultipartFile;
  *     </ul>
  *     <u>Changes</u>:<br/>
  *     <ul>
- *     <li>Ago 18, 2024 (JAR) Creation class.</li>
+ *     <li>Jun 06, 2025 (JAR) Creation class.</li>
  *     </ul>
  * @version 1.0
  */
@@ -47,6 +57,12 @@ class ExcelHelperTest {
     @Mock
     private MultipartFile file;
 
+    /**
+     * Verifies that {@link ExcelHelper#hasExcelFormat(MultipartFile)} returns true
+     * when the file content type is XLSX.
+     *
+     * @throws IOException if creating the mock input stream fails
+     */
     @Test
     @DisplayName("Return true when file content type is XLSX")
     void returnTrueWhenFileContentTypeIsXlsx() throws IOException {
@@ -63,6 +79,12 @@ class ExcelHelperTest {
         assertTrue(result);
     }
 
+    /**
+     * Verifies that {@link ExcelHelper#hasExcelFormat(MultipartFile)} returns false
+     * when the file content type is not XLSX.
+     *
+     * @throws IOException if mock creation fails
+     */
     @Test
     @DisplayName("Return false when file content type is not XLSX")
     void returnFalseWhenFileContentTypeIsNotXlsx() throws IOException {
@@ -77,6 +99,10 @@ class ExcelHelperTest {
         assertFalse(result);
     }
 
+    /**
+     * Verifies that {@link ExcelHelper#getValueCell(Cell)} returns the string cell value
+     * when the cell type is STRING.
+     */
     @Test
     @DisplayName("Return string value when cell type is STRING")
     void returnStringValueWhenCellTypeIsString() {
@@ -92,6 +118,10 @@ class ExcelHelperTest {
         assertEquals("Test String", result);
     }
 
+    /**
+     * Verifies that {@link ExcelHelper#getValueCell(Cell)} returns the numeric value
+     * as a string when the cell type is NUMERIC and not date formatted.
+     */
     @Test
     @DisplayName("Return numeric value when cell type is NUMERIC and not date formatted")
     void returnNumericValueWhenCellTypeIsNumericAndNotDate() {
@@ -107,6 +137,12 @@ class ExcelHelperTest {
         assertEquals(String.valueOf(12345.67), result);
     }
 
+    /**
+     * Verifies that {@link ExcelHelper#getValueCell(Cell)} returns a formatted date string
+     * when the cell type is NUMERIC and the cell is date formatted.
+     *
+     * @throws ParseException if the test date string cannot be parsed
+     */
     @Test
     @DisplayName("Return formatted date string when cell is date formatted")
     void returnFormattedDateStringWhenCellIsDateFormatted() throws ParseException {
@@ -132,6 +168,10 @@ class ExcelHelperTest {
         }
     }
 
+    /**
+     * Verifies that {@link ExcelHelper#getValueCell(Cell)} returns the cell formula
+     * string when the cell type is FORMULA.
+     */
     @Test
     @DisplayName("Return formula string when cell type is FORMULA")
     void returnFormulaStringWhenCellTypeIsFormula() {
@@ -147,6 +187,10 @@ class ExcelHelperTest {
         assertEquals("A1+B1", result);
     }
 
+    /**
+     * Verifies that {@link ExcelHelper#getValueCell(Cell)} returns the boolean value
+     * when the cell type is BOOLEAN.
+     */
     @Test
     @DisplayName("Return boolean value when cell type is BOOLEAN")
     void returnBooleanValueWhenCellTypeIsBoolean() {

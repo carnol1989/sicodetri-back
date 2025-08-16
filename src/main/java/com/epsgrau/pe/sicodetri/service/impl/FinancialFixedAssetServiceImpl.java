@@ -48,9 +48,19 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 /**
- * This class is the implementation of the service for Financial Fixed Asset. <br/>
+ * Implementation of {@link FinancialFixedAssetService} that handles the import,
+ * persistence, and querying of financial fixed assets and their related depreciation,
+ * additions, deductions, and reporting.
+ * Key responsibilities include:
+ * <ul>
+ *   <li>Loading and parsing Excel files into {@link InputData} models</li>
+ *   <li>Converting {@link InputData} into {@link FinancialFixedAsset} entities and saving them</li>
+ *   <li>Deleting assets by period or by ID</li>
+ *   <li>Generating depreciation projections via {@link ProjectionGenerator}</li>
+ *   <li>Delegating to JDBC repository for stored‐procedure reports</li>
+ * </ul>
  * <b>Class</b>: {@link FinancialFixedAssetServiceImpl}<br/>
- * <b>Copyright</b>: &Copy; 2024 EPS Grau. <br/>
+ * <b>Copyright</b>: &copy; 2024 EPS Grau. <br/>
  * <b>Company</b>: EPS Grau. <br/>
  *
  * @author EPS Grau <br/>
@@ -61,7 +71,7 @@ import org.springframework.web.multipart.MultipartFile;
  *     </ul>
  *     <u>Changes</u>:<br/>
  *     <ul>
- *     <li>Ago 15, 2024 (JAR) Creation class.</li>
+ *     <li>Jun 06, 2025 (JAR) Creation class.</li>
  *     </ul>
  * @version 1.0
  */
@@ -71,6 +81,13 @@ public class FinancialFixedAssetServiceImpl implements FinancialFixedAssetServic
 
     private final Map<ProjectionType, ProjectionGenerator> projectionGenerators;
 
+    /**
+     * Constructs the service implementation, building a map of projection generators
+     * keyed by their {@link ProjectionType}.
+     *
+     * @param generators the list of ProjectionGenerator implementations to support various
+     *                   projection types
+     */
     @Autowired
     public FinancialFixedAssetServiceImpl(List<ProjectionGenerator> generators) {
         this.projectionGenerators = generators.stream()
@@ -98,6 +115,16 @@ public class FinancialFixedAssetServiceImpl implements FinancialFixedAssetServic
     @Autowired
     private TaxTableSunatService taxTableService;
 
+    /**
+     * Reads the first sheet of the provided Excel {@code file} and maps each data row
+     * (skipping headers) into an {@link InputData} object, preserving row numbers
+     * and total row count.
+     *
+     * @param file   the uploaded Excel file (XLSX)
+     * @param period the accounting period string (format YYYY-MM-DD)
+     * @return a list of {@link InputData} instances representing each valid row
+     * @throws RuntimeException if file cannot be read or a row mapping fails
+     */
     @Override
     public List<InputData> loadExcelFileToObjectService(MultipartFile file, String period) {
         List<InputData> listInputData = new ArrayList<>();
@@ -144,6 +171,16 @@ public class FinancialFixedAssetServiceImpl implements FinancialFixedAssetServic
         return listInputData;
     }
 
+    /**
+     * Processes a single Excel {@link Cell}, extracting its value and assigning it
+     * to the corresponding field in the given models.
+     *
+     * @param cell        the Excel cell to process
+     * @param inputData   the InputData instance to populate with raw cell values
+     * @param assetDetail the FixedAssetDetail instance to populate with descriptive fields
+     * @param depreciation the Depreciation instance to populate with method and document
+     *                     information
+     */
     private void processCell(Cell cell, InputData inputData, FixedAssetDetail assetDetail,
                              Depreciation depreciation) {
         int columnIndex = cell.getColumnIndex();
@@ -188,11 +225,25 @@ public class FinancialFixedAssetServiceImpl implements FinancialFixedAssetServic
         }
     }
 
+    /**
+     * Returns the string representation of the given Excel {@link Cell}'s value,
+     * or an empty string if the cell is null or has no content.
+     *
+     * @param cell the Excel cell from which to extract the value
+     * @return the cell's value as a trimmed string, or an empty string if the cell is null/empty
+     */
     private String getCellValue(Cell cell) {
         Object value = getValueCell(cell);
         return value != null ? String.valueOf(value) : _BLANK;
     }
 
+    /**
+     * Normalizes a date string into ISO format (YYYY-MM-DD). Accepts input in either
+     * "DD/MM/YYYY" or "YYYY-MM-DD" form; if the string cannot be parsed, returns a default date.
+     *
+     * @param date the input date string
+     * @return the formatted date in "YYYY-MM-DD" format, or {@code S_DATE_DEFAULT} if parsing fails
+     */
     private String formatDate(String date) {
         if (date.contains("/")) {
             String[] dateParts = date.split("/");
@@ -203,6 +254,13 @@ public class FinancialFixedAssetServiceImpl implements FinancialFixedAssetServic
         return S_DATE_DEFAULT;
     }
 
+    /**
+     * Persists all {@link FinancialFixedAsset} entities converted from the given list
+     * of {@link InputData} for the specified accountingPeriod.
+     *
+     * @param accountingPeriod the accounting period for which to save assets
+     * @param listInputData    the list of input data to transform and save
+     */
     @Override
     @Transactional
     public void saveAllService(String accountingPeriod, List<InputData> listInputData) {
@@ -361,24 +419,49 @@ public class FinancialFixedAssetServiceImpl implements FinancialFixedAssetServic
         return list;
     }
 
+    /**
+     * Updates an existing {@link FinancialFixedAsset} in the database.
+     *
+     * @param obj the FinancialFixedAsset to update
+     */
     @Override
     @Transactional
     public void updateService(FinancialFixedAsset obj) {
         repository.save(obj);
     }
 
+    /**
+     * Deletes the {@link FinancialFixedAsset} identified by the given ID.
+     *
+     * @param id the ID of the FinancialFixedAsset to delete
+     */
     @Override
     @Transactional
     public void deleteByIdService(Long id) {
         repository.deleteById(id);
     }
 
+    /**
+     * Deletes all {@link FinancialFixedAsset} records for the given accounting period.
+     *
+     * @param period the accounting period whose assets should be deleted
+     */
     @Override
     @Transactional
     public void deleteByAccountingPeriod(LocalDate period) {
         repository.deleteByAccountingPeriod(period);
     }
 
+    /**
+     * Generates a depreciation projection of type {@code type} for the given list
+     * of fixed assets and accounting period, delegating to the appropriate generator.
+     *
+     * @param type              the projection type (e.g., TEMPORARY_DEDUCTION)
+     * @param accountingPeriod  the period for which to generate projections
+     * @param fixedAssets       the list of assets to project
+     * @param accountingAccount the accounting account filter for projection
+     * @throws IllegalArgumentException if no generator exists for the specified type
+     */
     @Transactional
     @Modifying
     @Override
@@ -393,6 +476,12 @@ public class FinancialFixedAssetServiceImpl implements FinancialFixedAssetServic
         gen.generate(accountingPeriod, fixedAssets);
     }
 
+    /**
+     * Retrieves a single {@link FinancialFixedAsset} by its ID.
+     *
+     * @param id the identifier of the FinancialFixedAsset
+     * @return the found entity, or a new empty instance if not present
+     */
     @Override
     @Transactional(readOnly = true)
     public FinancialFixedAsset findByIdService(Long id) {
@@ -400,12 +489,25 @@ public class FinancialFixedAssetServiceImpl implements FinancialFixedAssetServic
         return optionalFinancialFixedAsset.orElseGet(FinancialFixedAsset::new);
     }
 
+    /**
+     * Finds all {@link FinancialFixedAsset} entities matching the given main fixed asset code.
+     *
+     * @param mainFixedAssetCode the main code to filter by
+     * @return list of matching FinancialFixedAsset instances
+     */
     @Override
     @Transactional(readOnly = true)
     public List<FinancialFixedAsset> findByMainFixedAssetCodeService(String mainFixedAssetCode) {
         return new ArrayList<>(repository.findByMainFixedAssetCode(mainFixedAssetCode));
     }
 
+    /**
+     * Finds all {@link FinancialFixedAsset} entities whose accounting account starts
+     * with the given prefix.
+     *
+     * @param accountingAccount the account code prefix
+     * @return list of matching FinancialFixedAsset instances
+     */
     @Override
     @Transactional(readOnly = true)
     public List<FinancialFixedAsset> findByFixedAssetAccountingAccountService(
@@ -413,18 +515,37 @@ public class FinancialFixedAssetServiceImpl implements FinancialFixedAssetServic
         return new ArrayList<>(repository.findByFixedAssetAccountingAccount(accountingAccount));
     }
 
+    /**
+     * Retrieves all {@link FinancialFixedAsset} entities.
+     *
+     * @return list of all FinancialFixedAsset instances
+     */
     @Override
     @Transactional(readOnly = true)
     public List<FinancialFixedAsset> findAllService() {
         return new ArrayList<>(repository.findAll());
     }
 
+    /**
+     * Finds {@link FinancialFixedAsset} entities for the specified accounting period.
+     *
+     * @param period the accounting period filter
+     * @return list of matching FinancialFixedAsset instances
+     */
     @Override
     @Transactional(readOnly = true)
     public List<FinancialFixedAsset> findByPeriodService(LocalDate period) {
         return new ArrayList<>(repository.findByAccountingPeriod(period));
     }
 
+    /**
+     * Finds {@link FinancialFixedAsset} entities for the specified period whose
+     * accounting account starts with the given prefix.
+     *
+     * @param period the accounting period filter
+     * @param account the accounting account prefix
+     * @return list of matching FinancialFixedAsset instances
+     */
     @Override
     @Transactional(readOnly = true)
     public List<FinancialFixedAsset> findByPeriodAndAccountStartingWithService(LocalDate period,
@@ -433,12 +554,26 @@ public class FinancialFixedAssetServiceImpl implements FinancialFixedAssetServic
             .findByAccountingPeriodAndFixedAssetAccountingAccountStartingWith(period, account));
     }
 
+    /**
+     * Finds {@link FinancialFixedAsset} entities whose accounting account code prefix
+     * is in the given list.
+     *
+     * @param prefixes list of 3-character prefixes
+     * @return list of matching FinancialFixedAsset instances
+     */
     @Override
     @Transactional(readOnly = true)
     public List<FinancialFixedAsset> findByAccountingAccountPrefixesService(List<String> prefixes) {
         return new ArrayList<>(repository.findByAccountingAccountPrefixes(prefixes));
     }
 
+    /**
+     * Calls the JDBC stored procedure to generate the tax book report.
+     *
+     * @param params the report parameters
+     * @return a list of {@link FinancialFixedAssetDto} rows
+     * @throws SQLException if the procedure call fails
+     */
     @Override
     @Transactional(readOnly = true)
     public List<FinancialFixedAssetDto> callGetReportTaxBookService(ParamReportDto params)
@@ -446,6 +581,13 @@ public class FinancialFixedAssetServiceImpl implements FinancialFixedAssetServic
         return repositoryJdbc.callGetReportTaxBookJdbc(params);
     }
 
+    /**
+     * Calls the JDBC stored procedure to generate the detailed financial and
+     * tax depreciation report.
+     *
+     * @param params the report parameters
+     * @return a list of {@link FinancialFixedAssetDto} rows
+     */
     @Override
     @Transactional(readOnly = true)
     public List<FinancialFixedAssetDto> callGetReportDetailFinancialAndTaxDepreciationService(
