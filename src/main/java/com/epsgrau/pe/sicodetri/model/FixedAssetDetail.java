@@ -6,9 +6,11 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 /**
- * This class is a model for mapping fixed asset details. <br/>
+ * Model representing the detailed information of a fixed asset.
+ * Contains descriptive attributes such as description, brand, model, and
+ * serial number or plate, used for transfer between layers or API responses.
  * <b>Class</b>: {@link FixedAssetDetail}<br/>
- * <b>Copyright</b>: &Copy; 2024 EPS Grau. <br/>
+ * <b>Copyright</b>: &copy; 2024 EPS Grau. <br/>
  * <b>Company</b>: EPS Grau. <br/>
  *
  * @author EPS Grau <br/>
@@ -19,7 +21,7 @@ import lombok.NoArgsConstructor;
  *     </ul>
  *     <u>Changes</u>:<br/>
  *     <ul>
- *     <li>Ago 15, 2024 (JAR) Creation class.</li>
+ *     <li>Jun 06, 2025 (JAR) Creation class.</li>
  *     </ul>
  * @version 1.0
  */

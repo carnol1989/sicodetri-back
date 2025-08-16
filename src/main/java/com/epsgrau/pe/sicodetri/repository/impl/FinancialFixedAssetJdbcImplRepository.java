@@ -23,9 +23,12 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
 
 /**
- * This class repository implement for Jdbc. <br/>
+ * JDBC-based implementation of {@link FinancialFixedAssetJdbcRepository}.
+ * Provides methods to invoke stored procedures for generating tax book and
+ * detailed financial &amp; tax depreciation reports, mapping result set rows
+ * to {@link FinancialFixedAssetDto} instances.
  * <b>Class</b>: {@link FinancialFixedAssetJdbcImplRepository}<br/>
- * <b>Copyright</b>: &Copy; 2024 EPS Grau. <br/>
+ * <b>Copyright</b>: &copy; 2024 EPS Grau. <br/>
  * <b>Company</b>: EPS Grau. <br/>
  *
  * @author EPS Grau <br/>
@@ -36,7 +39,7 @@ import org.springframework.stereotype.Repository;
  *     </ul>
  *     <u>Changes</u>:<br/>
  *     <ul>
- *     <li>Sep 08, 2024 (JAR) Creation class.</li>
+ *     <li>Jun 06, 2025 (JAR) Creation class.</li>
  *     </ul>
  * @version 1.0
  */
@@ -64,11 +67,24 @@ public class FinancialFixedAssetJdbcImplRepository implements FinancialFixedAsse
     @Autowired
     private JdbcTemplate jdbcTemplate;
 
+    /**
+     * Calls the {@code get_report_tax_book} stored procedure to generate the tax book report.
+     *
+     * @param params the report parameters encapsulated in a {@link ParamReportDto}
+     * @return a list of {@link FinancialFixedAssetDto} representing each row of the tax book report
+     */
     @Override
     public List<FinancialFixedAssetDto> callGetReportTaxBookJdbc(ParamReportDto params) {
         return executeProcedure(SP_TAX_BOOK, params, this::mapTaxBookRow);
     }
 
+    /**
+     * Calls the {@code get_report_detail_financial_and_tax_depreciation} stored procedure
+     * to generate detailed financial and tax depreciation data.
+     *
+     * @param params the report parameters encapsulated in a {@link ParamReportDto}
+     * @return a list of {@link FinancialFixedAssetDto} representing each row of the detail report
+     */
     @Override
     public List<FinancialFixedAssetDto> callGetReportDetailFinancialAndTaxDepreciationJdbc(
         ParamReportDto params) {
@@ -76,8 +92,14 @@ public class FinancialFixedAssetJdbcImplRepository implements FinancialFixedAsse
     }
 
     /**
-     * Ejecuta un CALL a cualquier SP con firma (IN×7, OUT code, OUT msg, OUT cursor),
-     * y mapea cada fila con el mapper proporcionado.
+     * Executes a stored procedure with signature (IN×7, OUT code, OUT msg, OUT cursor)
+     * and maps each row of the returned cursor using the provided rowMapper.
+     *
+     * @param callSql   the SQL call string for the stored procedure
+     * @param params    the input parameters for the report
+     * @param rowMapper a function that maps a {@link ResultSet} row and output array
+     *                  to a {@link FinancialFixedAssetDto}
+     * @return a list of mapped {@link FinancialFixedAssetDto} objects
      */
     private List<FinancialFixedAssetDto> executeProcedure(
         String callSql,
@@ -125,7 +147,13 @@ public class FinancialFixedAssetJdbcImplRepository implements FinancialFixedAsse
         return list;
     }
 
-    /** Mapea los campos comunes a ambos reportes. */
+    /**
+     * Maps fields common to both tax book and detail depreciation reports.
+     *
+     * @param rs the {@link ResultSet} positioned at the current row
+     * @return a partially populated {@link FinancialFixedAssetDto}
+     * @throws SQLException if a database access error occurs
+     */
     private FinancialFixedAssetDto mapCommonFields(ResultSet rs) throws SQLException {
         FinancialFixedAssetDto dto = new FinancialFixedAssetDto();
         dto.setMainFixedAssetCode(getStringOrDefault(rs, "CODIGO_ACTIVO_FIJO_PRINCIPAL"));
@@ -147,7 +175,13 @@ public class FinancialFixedAssetJdbcImplRepository implements FinancialFixedAsse
         return dto;
     }
 
-    /** Mapper específico para el primer SP (tax book). */
+    /**
+     * Maps a single row from the tax book stored procedure to a DTO.
+     *
+     * @param rs  the {@link ResultSet} for the tax book row
+     * @param out the output parameters array [code, message]
+     * @return a fully populated {@link FinancialFixedAssetDto} for the tax book report
+     */
     private FinancialFixedAssetDto mapTaxBookRow(ResultSet rs, String[] out) {
         try {
             FinancialFixedAssetDto dto = mapCommonFields(rs);
@@ -173,7 +207,14 @@ public class FinancialFixedAssetJdbcImplRepository implements FinancialFixedAsse
         }
     }
 
-    /** Mapper específico para el segundo SP (detail financial & tax). */
+    /**
+     * Maps a single row from the detailed financial &amp; tax depreciation stored
+     * procedure to a DTO.
+     *
+     * @param rs  the {@link ResultSet} for the detail depreciation row
+     * @param out the output parameters array [code, message]
+     * @return a fully populated {@link FinancialFixedAssetDto} for the detail depreciation report
+     */
     private FinancialFixedAssetDto mapDetailDepRow(ResultSet rs, String[] out) {
         try {
             FinancialFixedAssetDto dto = mapCommonFields(rs);

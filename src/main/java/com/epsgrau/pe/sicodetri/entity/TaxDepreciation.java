@@ -5,6 +5,9 @@ import static com.epsgrau.pe.sicodetri.util.Constants.BD_VAL_12;
 import static com.epsgrau.pe.sicodetri.util.Constants.N_VAL_0;
 import static com.epsgrau.pe.sicodetri.util.Constants.N_VAL_15;
 import static com.epsgrau.pe.sicodetri.util.Constants.N_VAL_2;
+import static com.epsgrau.pe.sicodetri.util.Constants.S_VAL_01;
+import static com.epsgrau.pe.sicodetri.util.Constants.S_VAL_02;
+import static com.epsgrau.pe.sicodetri.util.Constants.S_VAL_03;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -31,11 +34,16 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import lombok.extern.slf4j.Slf4j;
 
 /**
- * This class entity for generate the tax depreciation. <br/>
+ * Entity representing tax depreciation records for fixed assets.
+ * Maps to the {@code tax_depreciation} table and stores values such as annual
+ * accumulated depreciation, net tax value, current period depreciation, and
+ * associations to additions and deductions. Provides methods to calculate
+ * tax depreciation based on various projection types.
  * <b>Class</b>: {@link TaxDepreciation}<br/>
- * <b>Copyright</b>: &Copy; 2024 EPS Grau. <br/>
+ * <b>Copyright</b>: &copy; 2024 EPS Grau. <br/>
  * <b>Company</b>: EPS Grau. <br/>
  *
  * @author EPS Grau <br/>
@@ -46,10 +54,11 @@ import lombok.Setter;
  *     </ul>
  *     <u>Changes</u>:<br/>
  *     <ul>
- *     <li>Ago 25, 2024 (JAR) Creation class.</li>
+ *     <li>Jun 06, 2025 (JAR) Creation class.</li>
  *     </ul>
  * @version 1.0
  */
+@Slf4j
 @SuppressFBWarnings({"EI_EXPOSE_REP", "EI_EXPOSE_REP2"})
 @Schema(description = "Información de la Depreciación Tributaria.")
 @Getter
@@ -99,7 +108,7 @@ public class TaxDepreciation {
     private List<Deduction> deductionsList;
 
     @Schema(description = "Usuario que realizó el registro", example = "CANO")
-    @Column
+    @Column(length = 50)
     private String addedBy;
 
     @Schema(description = "Fecha y hora del registro", example = "2018-02-27T12:26:30.107")
@@ -107,7 +116,7 @@ public class TaxDepreciation {
     private LocalDateTime additionDate;
 
     @Schema(description = "Usuario que realizó una modificación", example = "WIJI")
-    @Column
+    @Column(length = 50)
     private String modifiedBy;
 
     @Schema(description = "Fecha y hora de la modificación", example = "2018-02-28T12:26:30.107")
@@ -121,45 +130,89 @@ public class TaxDepreciation {
     private boolean isLast;
 
     /**
-     * Calculate tax depreciation.
+     * Calculates tax depreciation values based on the given fixed asset, tax rate,
+     * and projection type.
+     * - Computes historical cost or initial balance adjustments.<br>
+     * - Calculates annual and monthly tax rates.<br>
+     * - Applies logic for temporary deductions, temporary additions, or permanent additions.<br>
+     * - Updates accumulated depreciation, net tax value, and current depreciation fields,
+     *   rounding to two decimal places.
      *
-     * @param fixedAsset FinacialFixedAsset
-     * @param taxTable TaxTableSunat
-     * @param accountingPeriod Accountig period
-     * @param taxDepreciationOld Tax depreciation old
+     * @param fixedAsset          the {@link FinancialFixedAsset} to depreciate
+     * @param taxTable            the {@link TaxTableSunat} containing annual rate
+     * @param accountingPeriod    the current accounting period
+     * @param taxDepreciationOld  the previous period's depreciation record
+     * @param typeProjection      the projection type constant (e.g., S_VAL_01, S_VAL_02, S_VAL_03)
      */
     public void calculateDepreciation(FinancialFixedAsset fixedAsset, TaxTableSunat taxTable,
-                                      LocalDate accountingPeriod,
-                                      TaxDepreciation taxDepreciationOld) {
+        LocalDate accountingPeriod, TaxDepreciation taxDepreciationOld, String typeProjection) {
         MathContext mathContext = new MathContext(N_VAL_15, RoundingMode.HALF_UP);
 
-        // Obtener el saldo inicial
         BigDecimal initialBalance = fixedAsset.getInitialBalance()
             .setScale(N_VAL_2, RoundingMode.HALF_UP);
+        log.info("initialBalance: {}", initialBalance);
+
+        BigDecimal historicalCost = fixedAsset.getHistoricalCost()
+            .setScale(N_VAL_2, RoundingMode.HALF_UP);
+        log.info("historicalCost: {}", historicalCost);
 
         Period period = Period.between(fixedAsset.getAcquisitionDate(), accountingPeriod);
         int numberYears = period.getYears();
+        log.info("numberYears: {}", numberYears);
 
         BigDecimal rateDecimal = new BigDecimal(taxTable.getAnnualRate())
             .divide(BD_VAL_100, mathContext);
 
-        // Calcular la tasa mensual
         BigDecimal monthlyTaxRate = rateDecimal.divide(BD_VAL_12, mathContext);
 
-        this.annualAccumulatedDepreciationPriorPeriod = initialBalance
-            .multiply(rateDecimal, mathContext)
+        if (typeProjection.equals(S_VAL_01)) { //TEMPORARY_DEDUCTION
+            this.annualAccumulatedDepreciationPriorPeriod = initialBalance
+                .multiply(rateDecimal, mathContext)
                 .multiply(new BigDecimal(numberYears), mathContext);
-
-        this.annualNetTaxValuePriorPeriod = initialBalance
-            .subtract(this.annualAccumulatedDepreciationPriorPeriod, mathContext);
-
-        this.valueDepreciation = initialBalance.multiply(monthlyTaxRate, mathContext);
+            this.annualNetTaxValuePriorPeriod = initialBalance
+                .subtract(this.annualAccumulatedDepreciationPriorPeriod, mathContext);
+            this.valueDepreciation = initialBalance.multiply(monthlyTaxRate, mathContext);
+        } else if (typeProjection.equals(S_VAL_02)) { //TEMPORARY_ADDITION
+            this.annualAccumulatedDepreciationPriorPeriod = BigDecimal.ZERO;
+            this.annualNetTaxValuePriorPeriod = initialBalance;
+            this.valueDepreciation = initialBalance.multiply(monthlyTaxRate, mathContext);
+        } else if (typeProjection.equals(S_VAL_03)) { //PERMANENT_ADDITIONS
+            this.annualAccumulatedDepreciationPriorPeriod = historicalCost
+                .multiply(rateDecimal, mathContext)
+                .multiply(new BigDecimal(numberYears), mathContext);
+            this.annualNetTaxValuePriorPeriod = historicalCost
+                .subtract(this.annualAccumulatedDepreciationPriorPeriod, mathContext);
+            if (taxDepreciationOld.getNetTaxValue().compareTo(BigDecimal.ZERO) == N_VAL_0
+                && !taxDepreciationOld.isFirst) {
+                this.valueDepreciation = BigDecimal.ZERO;
+            } else {
+                this.valueDepreciation = historicalCost.multiply(monthlyTaxRate, mathContext);
+            }
+        }
+        log.info("annualAccumulatedDepreciationPriorPeriod: {}",
+            this.annualAccumulatedDepreciationPriorPeriod);
+        log.info("annualNetTaxValuePriorPeriod: {}", this.annualNetTaxValuePriorPeriod);
+        log.info("valueDepreciation: {}", this.valueDepreciation);
 
         if (taxDepreciationOld.getNetTaxValue().compareTo(BigDecimal.ZERO) > N_VAL_0) {
             this.netTaxValue = taxDepreciationOld.getNetTaxValue().subtract(this.valueDepreciation);
         } else if (taxDepreciationOld.isFirst) {
-            this.netTaxValue = this.annualNetTaxValuePriorPeriod
-                .subtract(this.valueDepreciation, mathContext);
+            if (typeProjection.equals(S_VAL_02)) {
+                this.netTaxValue = initialBalance
+                    .subtract(this.valueDepreciation, mathContext);
+            } else {
+                if (typeProjection.equals(S_VAL_01)
+                    || typeProjection.equals(S_VAL_03)) {
+                    this.netTaxValue = this.annualNetTaxValuePriorPeriod
+                        .subtract(this.valueDepreciation, mathContext);
+                } else if (taxDepreciationOld.getNetTaxValue().compareTo(BigDecimal.ZERO)
+                    == N_VAL_0) {
+                    this.netTaxValue = BigDecimal.ZERO;
+                } else {
+                    this.netTaxValue = this.annualNetTaxValuePriorPeriod
+                        .subtract(this.valueDepreciation, mathContext);
+                }
+            }
         } else {
             this.netTaxValue = BigDecimal.ZERO;
         }
@@ -168,8 +221,8 @@ public class TaxDepreciation {
             .compareTo(BigDecimal.ZERO) == N_VAL_0) {
             this.netTaxValue = BigDecimal.ZERO;
         }
+        log.info("netTaxValue: {}", this.netTaxValue);
 
-        // Redondear resultados finales
         this.annualAccumulatedDepreciationPriorPeriod =
             this.annualAccumulatedDepreciationPriorPeriod.setScale(N_VAL_2, RoundingMode.HALF_UP);
         this.netTaxValue = this.netTaxValue.setScale(N_VAL_2, RoundingMode.HALF_UP);

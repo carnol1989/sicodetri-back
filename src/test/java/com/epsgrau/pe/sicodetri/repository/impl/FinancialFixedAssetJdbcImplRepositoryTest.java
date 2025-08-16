@@ -1,35 +1,80 @@
 package com.epsgrau.pe.sicodetri.repository.impl;
 
+import static com.epsgrau.pe.sicodetri.util.Constants.CALL_SQL;
 import static com.epsgrau.pe.sicodetri.util.Constants.LOCAL_DATE_DEFAULT;
 import static com.epsgrau.pe.sicodetri.util.Constants._BLANK;
-import static com.epsgrau.pe.sicodetri.util.Constants.CALL_SQL;
-import static com.epsgrau.pe.sicodetri.util.ConstantsTest.SP_TAX_BOOK;
-import static com.epsgrau.pe.sicodetri.util.ConstantsTest.P_YEAR;
-import static com.epsgrau.pe.sicodetri.util.ConstantsTest.P_MAIN_CODE;
 import static com.epsgrau.pe.sicodetri.util.ConstantsTest.P_ACCOUNT;
-import static com.epsgrau.pe.sicodetri.util.ConstantsTest.P_START_ACQ;
 import static com.epsgrau.pe.sicodetri.util.ConstantsTest.P_END_ACQ;
-import static com.epsgrau.pe.sicodetri.util.ConstantsTest.P_START_USE;
 import static com.epsgrau.pe.sicodetri.util.ConstantsTest.P_END_USE;
+import static com.epsgrau.pe.sicodetri.util.ConstantsTest.P_MAIN_CODE;
 import static com.epsgrau.pe.sicodetri.util.ConstantsTest.P_OUT_CODE;
-import static com.epsgrau.pe.sicodetri.util.ConstantsTest.P_OUT_MSG;
 import static com.epsgrau.pe.sicodetri.util.ConstantsTest.P_OUT_CUR;
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
+import static com.epsgrau.pe.sicodetri.util.ConstantsTest.P_OUT_MSG;
+import static com.epsgrau.pe.sicodetri.util.ConstantsTest.P_START_ACQ;
+import static com.epsgrau.pe.sicodetri.util.ConstantsTest.P_START_USE;
+import static com.epsgrau.pe.sicodetri.util.ConstantsTest.P_YEAR;
+import static com.epsgrau.pe.sicodetri.util.ConstantsTest.SP_TAX_BOOK;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.anyInt;
+import static org.mockito.Mockito.anyString;
+import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.eq;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.when;
 
 import com.epsgrau.pe.sicodetri.dto.FinancialFixedAssetDto;
 import com.epsgrau.pe.sicodetri.dto.ParamReportDto;
+import javax.sql.DataSource;
+import java.math.BigDecimal;
+import java.sql.CallableStatement;
+import java.sql.Connection;
+import java.sql.Date;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.time.LocalDate;
+import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.mockito.*;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
 import org.springframework.jdbc.core.JdbcTemplate;
-import javax.sql.DataSource;
-import java.math.BigDecimal;
-import java.sql.*;
-import java.time.LocalDate;
-import java.util.List;
 
+/**
+ * Unit tests for {@link FinancialFixedAssetJdbcImplRepository}.
+ *
+ * <p>
+ * Verifies behavior of stored procedure calls for tax book and detail depreciation reports:
+ * <ul>
+ *   <li>Handling of null or misconfigured DataSource</li>
+ *   <li>Wrapping SQLExceptions during connection acquisition</li>
+ *   <li>Mapping of ResultSet rows (including null and non-null columns) into DTOs</li>
+ *   <li>Error handling when row mapping fails</li>
+ * </ul>
+ * </p>
+ *
+ * <b>Class</b>: {@link FinancialFixedAssetJdbcImplRepositoryTest}<br/>
+ * <b>Copyright</b>: &Copy; 2024 EPS Grau. <br/>
+ * <b>Company</b>: EPS Grau. <br/>
+ *
+ * @author EPS Grau <br/>
+ *     <u>Service Provider</u>: Consultor TI <br/>
+ *     <u>Developed by</u>: <br/>
+ *     <ul>
+ *     <li>Carlos Augusto Nole Machaca</li>
+ *     </ul>
+ *     <u>Changes</u>:<br/>
+ *     <ul>
+ *     <li>Jun 06, 2025 (JAR) Creation class.</li>
+ *     </ul>
+ * @version 1.0
+ */
 @DisplayName("FinancialFixedAssetJdbcImplRepository Tests")
 class FinancialFixedAssetJdbcImplRepositoryTest {
 
@@ -51,11 +96,19 @@ class FinancialFixedAssetJdbcImplRepositoryTest {
     @Mock
     private ResultSet resultSet;
 
+    /**
+     * Initializes Mockito mocks before each test.
+     */
     @BeforeEach
     void setUp() {
         MockitoAnnotations.openMocks(this);
     }
 
+    /**
+     * Tests that when the JdbcTemplate returns a null DataSource,
+     * {@link FinancialFixedAssetJdbcImplRepository#callGetReportTaxBookJdbc(ParamReportDto)}
+     * throws an {@link IllegalStateException} with the expected message.
+     */
     @Test
     @DisplayName("Return IllegalStateException when DataSource is null")
     void returnIllegalStateExceptionWhenDataSourceIsNull() {
@@ -89,6 +142,10 @@ class FinancialFixedAssetJdbcImplRepositoryTest {
         verifyNoInteractions(dataSource, connection, callableStatement, resultSet);
     }
 
+    /**
+     * Tests that if obtaining a Connection from the DataSource throws a {@link SQLException},
+     * the method wraps it in a {@link RuntimeException} with the expected message.
+     */
     @Test
     @DisplayName("Wrap SQLException as RuntimeException when getConnection fails")
     void wrapSQLExceptionAsRuntimeExceptionWhenGetConnectionFails() throws Exception {
@@ -124,6 +181,15 @@ class FinancialFixedAssetJdbcImplRepositoryTest {
         verifyNoInteractions(callableStatement, resultSet);
     }
 
+    /**
+     * Tests successful execution of the tax book stored procedure:
+     * <ul>
+     *   <li>Sets up OUT parameters and a mock cursor ResultSet</li>
+     *   <li>Verifies that a {@link FinancialFixedAssetDto} is correctly populated
+     *       from both non-null and null database columns</li>
+     *   <li>Ensures resources are closed properly</li>
+     * </ul>
+     */
     @Test
     @DisplayName("Call StoredProcedure Successfully maps non‐null and null columns into DTO list")
     void callStoredProcedureSuccessfullyMapsRowsIntoDto() throws Exception {
@@ -228,6 +294,13 @@ class FinancialFixedAssetJdbcImplRepositoryTest {
         verify(connection).close();
     }
 
+    /**
+     * Tests successful execution of the detail depreciation stored procedure:
+     * <ul>
+     *   <li>Configures OUT parameters and detail-specific fields</li>
+     *   <li>Verifies that {@link FinancialFixedAssetDto} contains both common and detail-specific data</li>
+     * </ul>
+     */
     @Test
     @DisplayName("Call StoredProcedure DetailDepreciation successfully maps non-null and null columns into DTO list")
     void callStoredProcedureDetailDepreciationSuccessfullyMapsRowsIntoDto() throws Exception {
@@ -326,6 +399,10 @@ class FinancialFixedAssetJdbcImplRepositoryTest {
         assertEquals("OK", dto.getErrorMessage());
     }
 
+    /**
+     * Tests that a {@link SQLException} during mapping of a tax book row
+     * results in a {@link RuntimeException} containing the expected mapper identifier.
+     */
     @Test
     @DisplayName("Throw RuntimeException when mapping TaxBook row fails")
     void throwRuntimeExceptionWhenMappingTaxBookRowFails() throws Exception {
@@ -356,6 +433,10 @@ class FinancialFixedAssetJdbcImplRepositoryTest {
             "Debe indicar el mapper TaxBook");
     }
 
+    /**
+     * Tests that a {@link SQLException} during mapping of a detail depreciation row
+     * results in a {@link RuntimeException} containing the expected mapper identifier.
+     */
     @Test
     @DisplayName("Throw RuntimeException when mapping DetailDepreciation row fails")
     void throwRuntimeExceptionWhenMappingDetailDepreciationRowFails() throws Exception {

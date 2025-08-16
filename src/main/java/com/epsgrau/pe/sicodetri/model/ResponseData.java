@@ -9,9 +9,12 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 /**
- * This class is a model for mapping response data. <br/>
+ * Wrapper for API response payloads, containing metadata and the actual response data or
+ * error details.
+ * Used by controllers to return a consistent JSON structure including timestamp, status code,
+ * message, response object, and exception information when applicable.
  * <b>Class</b>: {@link ResponseData}<br/>
- * <b>Copyright</b>: &Copy; 2024 EPS Grau. <br/>
+ * <b>Copyright</b>: &copy; 2024 EPS Grau. <br/>
  * <b>Company</b>: EPS Grau. <br/>
  *
  * @author EPS Grau <br/>
@@ -22,7 +25,7 @@ import lombok.NoArgsConstructor;
  *     </ul>
  *     <u>Changes</u>:<br/>
  *     <ul>
- *     <li>Ago 17, 2024 (JAR) Creation class.</li>
+ *     <li>Jun 06, 2025 (JAR) Creation class.</li>
  *     </ul>
  * @version 1.0
  */

@@ -1,16 +1,26 @@
 package com.epsgrau.pe.sicodetri.helper;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-
 /**
- * Utility class to handle Excel data and methods. <br/>
+ * Utility methods for creating mock Excel workbooks as input streams
+ * for use in unit and integration tests.
+ *
+ * <p>
+ * Provides methods to generate various predefined Excel structures:
+ * <ul>
+ *   <li>Sheets with mixed data types: strings, numbers, dates, formulas, booleans</li>
+ *   <li>Domain-specific report format with header rows and asset detail rows</li>
+ *   <li>Empty workbooks or malformed streams to simulate failure</li>
+ * </ul>
+ * </p>
+ *
  * <b>Class</b>: {@link FileExcelHelperTest}<br/>
  * <b>Copyright</b>: &Copy; 2024 EPS Grau. <br/>
  * <b>Company</b>: EPS Grau. <br/>
@@ -23,12 +33,19 @@ import java.io.IOException;
  *     </ul>
  *     <u>Changes</u>:<br/>
  *     <ul>
- *     <li>Ago 18, 2024 (JAR) Creation class.</li>
+ *     <li>Jun 06, 2025 (JAR) Creation class.</li>
  *     </ul>
  * @version 1.0
  */
 public class FileExcelHelperTest {
 
+    /**
+     * Creates an in-memory XLSX workbook with one sheet containing a single row
+     * populated with a string, numeric, date, formula, and boolean cell.
+     *
+     * @return a {@link ByteArrayInputStream} of the workbook bytes
+     * @throws IOException if an I/O error occurs during workbook creation
+     */
     public static ByteArrayInputStream createMockExcelInputStreamData() throws IOException {
         Workbook workbook = new XSSFWorkbook();
         ByteArrayOutputStream out = new ByteArrayOutputStream();
@@ -52,6 +69,16 @@ public class FileExcelHelperTest {
         return bais;
     }
 
+    /**
+     * Creates an in-memory XLSX workbook formatted like the "Libro Tributario" report.
+     * <p>
+     * Includes header rows, blank rows, metadata (period, RUC, entity name),
+     * column titles, and one data row with multiple columns for asset details.
+     * </p>
+     *
+     * @return a {@link ByteArrayInputStream} of the workbook bytes
+     * @throws IOException if an I/O error occurs during workbook creation
+     */
     public static ByteArrayInputStream createMockExcelInputStream() throws IOException {
         Workbook workbook = new XSSFWorkbook();
         ByteArrayOutputStream out = new ByteArrayOutputStream();
@@ -139,6 +166,12 @@ public class FileExcelHelperTest {
         return bais;
     }
 
+    /**
+     * Creates an empty XLSX workbook with a single empty sheet named "CTA33".
+     *
+     * @return a {@link ByteArrayInputStream} of the empty workbook bytes
+     * @throws IOException if an I/O error occurs during workbook creation
+     */
     public static ByteArrayInputStream createMockExcelEmpty() throws IOException {
         Workbook workbook = new XSSFWorkbook();
         ByteArrayOutputStream out = new ByteArrayOutputStream();
@@ -150,6 +183,13 @@ public class FileExcelHelperTest {
         return bais;
     }
 
+    /**
+     * Creates a malformed Excel input stream by writing an empty workbook
+     * without any sheets or rows configured.
+     *
+     * @return a {@link ByteArrayInputStream} representing an invalid Excel stream
+     * @throws IOException if an I/O error occurs during workbook creation
+     */
     public static ByteArrayInputStream createMockExcelInputStreamFailed() throws IOException {
         Workbook workbook = new XSSFWorkbook();
         ByteArrayOutputStream out = new ByteArrayOutputStream();
@@ -167,6 +207,13 @@ public class FileExcelHelperTest {
         return bais;
     }
 
+    /**
+     * Adds the specified number of empty rows at the top of the given sheet
+     * to simulate a header region.
+     *
+     * @param sheet       the {@link Sheet} in which to create rows
+     * @param repetitions the number of empty rows to create
+     */
     public static void createRowHeaderFile(Sheet sheet, int repetitions) {
         for (int i = 0; i < repetitions; i++) {
             Row row = sheet.createRow(i);

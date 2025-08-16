@@ -8,9 +8,11 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 /**
- * This class is a model for mapping data of excel file. <br/>
+ * Data model representing a row of input data imported from an Excel file.
+ * Each field corresponds to a column in the spreadsheet, including asset codes,
+ * valuation figures, depreciation parameters, and metadata about the import position.
  * <b>Class</b>: {@link InputData}<br/>
- * <b>Copyright</b>: &Copy; 2024 EPS Grau. <br/>
+ * <b>Copyright</b>: &copy; 2024 EPS Grau. <br/>
  * <b>Company</b>: EPS Grau. <br/>
  *
  * @author EPS Grau <br/>
@@ -21,7 +23,7 @@ import lombok.Setter;
  *     </ul>
  *     <u>Changes</u>:<br/>
  *     <ul>
- *     <li>Ago 15, 2024 (JAR) Creation class.</li>
+ *     <li>Jun 06, 2025 (JAR) Creation class.</li>
  *     </ul>
  * @version 1.0
  */
@@ -63,6 +65,7 @@ public class InputData implements Serializable {
     private String netFixedAssets; //30
     private String historicalCost; //31
     private String revaluedAmount; //32
+    private String wellAppraisedPreInvestmentStudyDry; //33
     private int rowNum;
     private int physicalNumberOfRows;
 

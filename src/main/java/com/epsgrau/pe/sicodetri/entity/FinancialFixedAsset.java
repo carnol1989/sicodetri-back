@@ -22,9 +22,14 @@ import lombok.Setter;
 import lombok.ToString;
 
 /**
- * This class entity for Financial Fixed Asset. <br/>
+ * Entity representing a financial fixed asset, storing all relevant details
+ * such as identification, valuation, acquisition and usage dates, depreciation
+ * data, and audit information.
+ * Maps to the {@code financial_fixed_asset} table. Associated depreciation
+ * entries (both financial and tax) are maintained via one-to-many relationships.
+ * Transient fields support runtime metadata (e.g., row numbers for import).
  * <b>Class</b>: {@link FinancialFixedAsset}<br/>
- * <b>Copyright</b>: &Copy; 2024 EPS Grau. <br/>
+ * <b>Copyright</b>: &copy; 2024 EPS Grau. <br/>
  * <b>Company</b>: EPS Grau. <br/>
  *
  * @author EPS Grau <br/>
@@ -35,7 +40,7 @@ import lombok.ToString;
  *     </ul>
  *     <u>Changes</u>:<br/>
  *     <ul>
- *     <li>Ago 15, 2024 (JAR) Creation class.</li>
+ *     <li>Jun 06, 2025 (JAR) Creation class.</li>
  *     </ul>
  * @version 1.0
  */
@@ -193,6 +198,11 @@ public class FinancialFixedAsset {
     @Column(precision = 20, scale = 4)
     private BigDecimal revaluedAmount; //32
 
+
+    @Schema(description = "Bien tasado estudio de preinversion seco", example = "tasacion 2013")
+    @Column
+    private String wellAppraisedPreInvestmentStudyDry; //33
+
     @Transient
     private int rowNum;
 
@@ -208,7 +218,7 @@ public class FinancialFixedAsset {
     private List<TaxDepreciation> depreciacionTributariaList;
 
     @Schema(description = "Usuario que realizó el registro", example = "CANO")
-    @Column
+    @Column(length = 50)
     private String addedBy;
 
     @Schema(description = "Fecha y hora del registro", example = "2018-02-27T12:26:30.107")
@@ -216,7 +226,7 @@ public class FinancialFixedAsset {
     private LocalDateTime additionDate;
 
     @Schema(description = "Usuario que realizó una modificación", example = "WIJI")
-    @Column
+    @Column(length = 50)
     private String modifiedBy;
 
     @Schema(description = "Fecha y hora de la modificación", example = "2018-02-28T12:26:30.107")
@@ -264,6 +274,7 @@ public class FinancialFixedAsset {
             + ", netFixedAssets=" + netFixedAssets
             + ", historicalCost=" + historicalCost
             + ", revaluedAmount=" + revaluedAmount
+            + ", wellAppraisedPreInvestmentStudyDry=" + wellAppraisedPreInvestmentStudyDry
             + ", rowNum=" + rowNum
             + ", physicalNumberOfRows=" + physicalNumberOfRows + '}';
     }

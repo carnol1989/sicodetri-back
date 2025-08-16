@@ -1,26 +1,20 @@
 package com.epsgrau.pe.sicodetri.service.impl;
 
 import static com.epsgrau.pe.sicodetri.helper.ExcelHelper.getValueCell;
-import static com.epsgrau.pe.sicodetri.util.Constants.D_VAL_ZERO;
 import static com.epsgrau.pe.sicodetri.util.Constants.FORMATTER_YYYY_MM_DD;
-import static com.epsgrau.pe.sicodetri.util.Constants.LOCAL_DATE_DEFAULT;
-import static com.epsgrau.pe.sicodetri.util.Constants.N_VAL_0;
 import static com.epsgrau.pe.sicodetri.util.Constants.S_DATE_DEFAULT;
-import static com.epsgrau.pe.sicodetri.util.Constants.S_VAL_332;
 import static com.epsgrau.pe.sicodetri.util.Constants._BLANK;
+import static com.epsgrau.pe.sicodetri.util.Functions.defaultString;
+import static com.epsgrau.pe.sicodetri.util.Functions.parseBigDecimal;
+import static com.epsgrau.pe.sicodetri.util.Functions.parseDate;
+import static com.epsgrau.pe.sicodetri.util.Functions.parseDouble;
 
 import com.epsgrau.pe.sicodetri.dto.FinancialFixedAssetDto;
 import com.epsgrau.pe.sicodetri.dto.ParamReportDto;
-import com.epsgrau.pe.sicodetri.entity.Addition;
-import com.epsgrau.pe.sicodetri.entity.Deduction;
-import com.epsgrau.pe.sicodetri.entity.FinancialDepreciation;
 import com.epsgrau.pe.sicodetri.entity.FinancialFixedAsset;
-import com.epsgrau.pe.sicodetri.entity.TaxDepreciation;
-import com.epsgrau.pe.sicodetri.entity.TaxTableSunat;
 import com.epsgrau.pe.sicodetri.model.Depreciation;
 import com.epsgrau.pe.sicodetri.model.FixedAssetDetail;
 import com.epsgrau.pe.sicodetri.model.InputData;
-import com.epsgrau.pe.sicodetri.model.Projection;
 import com.epsgrau.pe.sicodetri.repository.FinancialFixedAssetJdbcRepository;
 import com.epsgrau.pe.sicodetri.repository.FinancialFixedAssetRepository;
 import com.epsgrau.pe.sicodetri.service.AdditionService;
@@ -29,17 +23,18 @@ import com.epsgrau.pe.sicodetri.service.FinancialDepreciationService;
 import com.epsgrau.pe.sicodetri.service.FinancialFixedAssetService;
 import com.epsgrau.pe.sicodetri.service.TaxDepreciationService;
 import com.epsgrau.pe.sicodetri.service.TaxTableSunatService;
+import com.epsgrau.pe.sicodetri.service.projection.ProjectionGenerator;
+import com.epsgrau.pe.sicodetri.service.projection.ProjectionType;
 import java.io.IOException;
-import java.math.BigDecimal;
 import java.sql.SQLException;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.time.Period;
 import java.time.format.DateTimeFormatter;
-import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.Row;
@@ -53,9 +48,19 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 /**
- * This class is the implementation of the service for Financial Fixed Asset. <br/>
+ * Implementation of {@link FinancialFixedAssetService} that handles the import,
+ * persistence, and querying of financial fixed assets and their related depreciation,
+ * additions, deductions, and reporting.
+ * Key responsibilities include:
+ * <ul>
+ *   <li>Loading and parsing Excel files into {@link InputData} models</li>
+ *   <li>Converting {@link InputData} into {@link FinancialFixedAsset} entities and saving them</li>
+ *   <li>Deleting assets by period or by ID</li>
+ *   <li>Generating depreciation projections via {@link ProjectionGenerator}</li>
+ *   <li>Delegating to JDBC repository for stored‐procedure reports</li>
+ * </ul>
  * <b>Class</b>: {@link FinancialFixedAssetServiceImpl}<br/>
- * <b>Copyright</b>: &Copy; 2024 EPS Grau. <br/>
+ * <b>Copyright</b>: &copy; 2024 EPS Grau. <br/>
  * <b>Company</b>: EPS Grau. <br/>
  *
  * @author EPS Grau <br/>
@@ -66,13 +71,28 @@ import org.springframework.web.multipart.MultipartFile;
  *     </ul>
  *     <u>Changes</u>:<br/>
  *     <ul>
- *     <li>Ago 15, 2024 (JAR) Creation class.</li>
+ *     <li>Jun 06, 2025 (JAR) Creation class.</li>
  *     </ul>
  * @version 1.0
  */
 @Slf4j
 @Service
 public class FinancialFixedAssetServiceImpl implements FinancialFixedAssetService {
+
+    private final Map<ProjectionType, ProjectionGenerator> projectionGenerators;
+
+    /**
+     * Constructs the service implementation, building a map of projection generators
+     * keyed by their {@link ProjectionType}.
+     *
+     * @param generators the list of ProjectionGenerator implementations to support various
+     *                   projection types
+     */
+    @Autowired
+    public FinancialFixedAssetServiceImpl(List<ProjectionGenerator> generators) {
+        this.projectionGenerators = generators.stream()
+            .collect(Collectors.toMap(ProjectionGenerator::getType, g -> g));
+    }
 
     @Autowired
     private FinancialFixedAssetRepository repository;
@@ -95,6 +115,16 @@ public class FinancialFixedAssetServiceImpl implements FinancialFixedAssetServic
     @Autowired
     private TaxTableSunatService taxTableService;
 
+    /**
+     * Reads the first sheet of the provided Excel {@code file} and maps each data row
+     * (skipping headers) into an {@link InputData} object, preserving row numbers
+     * and total row count.
+     *
+     * @param file   the uploaded Excel file (XLSX)
+     * @param period the accounting period string (format YYYY-MM-DD)
+     * @return a list of {@link InputData} instances representing each valid row
+     * @throws RuntimeException if file cannot be read or a row mapping fails
+     */
     @Override
     public List<InputData> loadExcelFileToObjectService(MultipartFile file, String period) {
         List<InputData> listInputData = new ArrayList<>();
@@ -141,6 +171,16 @@ public class FinancialFixedAssetServiceImpl implements FinancialFixedAssetServic
         return listInputData;
     }
 
+    /**
+     * Processes a single Excel {@link Cell}, extracting its value and assigning it
+     * to the corresponding field in the given models.
+     *
+     * @param cell        the Excel cell to process
+     * @param inputData   the InputData instance to populate with raw cell values
+     * @param assetDetail the FixedAssetDetail instance to populate with descriptive fields
+     * @param depreciation the Depreciation instance to populate with method and document
+     *                     information
+     */
     private void processCell(Cell cell, InputData inputData, FixedAssetDetail assetDetail,
                              Depreciation depreciation) {
         int columnIndex = cell.getColumnIndex();
@@ -179,16 +219,31 @@ public class FinancialFixedAssetServiceImpl implements FinancialFixedAssetServic
           case 30 -> inputData.setNetFixedAssets(cellValue);
           case 31 -> inputData.setHistoricalCost(cellValue);
           case 32 -> inputData.setRevaluedAmount(cellValue);
+          case 33 -> inputData.setWellAppraisedPreInvestmentStudyDry(cellValue);
           default -> {
           }
         }
     }
 
+    /**
+     * Returns the string representation of the given Excel {@link Cell}'s value,
+     * or an empty string if the cell is null or has no content.
+     *
+     * @param cell the Excel cell from which to extract the value
+     * @return the cell's value as a trimmed string, or an empty string if the cell is null/empty
+     */
     private String getCellValue(Cell cell) {
         Object value = getValueCell(cell);
         return value != null ? String.valueOf(value) : _BLANK;
     }
 
+    /**
+     * Normalizes a date string into ISO format (YYYY-MM-DD). Accepts input in either
+     * "DD/MM/YYYY" or "YYYY-MM-DD" form; if the string cannot be parsed, returns a default date.
+     *
+     * @param date the input date string
+     * @return the formatted date in "YYYY-MM-DD" format, or {@code S_DATE_DEFAULT} if parsing fails
+     */
     private String formatDate(String date) {
         if (date.contains("/")) {
             String[] dateParts = date.split("/");
@@ -199,6 +254,13 @@ public class FinancialFixedAssetServiceImpl implements FinancialFixedAssetServic
         return S_DATE_DEFAULT;
     }
 
+    /**
+     * Persists all {@link FinancialFixedAsset} entities converted from the given list
+     * of {@link InputData} for the specified accountingPeriod.
+     *
+     * @param accountingPeriod the accounting period for which to save assets
+     * @param listInputData    the list of input data to transform and save
+     */
     @Override
     @Transactional
     public void saveAllService(String accountingPeriod, List<InputData> listInputData) {
@@ -318,6 +380,8 @@ public class FinancialFixedAssetServiceImpl implements FinancialFixedAssetServic
                         itemInputData.getFixedAssetCodeComponent())); //1
                     itemFinancialFixedAsset.setFixedAssetAccountingAccount(defaultString(
                         itemInputData.getFixedAssetAccountingAccount())); //2
+                    itemFinancialFixedAsset.setWellAppraisedPreInvestmentStudyDry(defaultString(
+                        itemInputData.getWellAppraisedPreInvestmentStudyDry())); //33
 
                     // Anidado: Detalle
                     if (itemInputData.getFixedAssetDetail() != null) {
@@ -356,294 +420,176 @@ public class FinancialFixedAssetServiceImpl implements FinancialFixedAssetServic
     }
 
     /**
-     * Validate and analyze dates.
+     * Updates an existing {@link FinancialFixedAsset} in the database.
      *
-     * @param dateStr Date string
-     * @param formatter Formatter
-     * @param rowNum Row num
-     * @param fieldName Field name
-     * @return LocalDate
+     * @param obj the FinancialFixedAsset to update
      */
-    private static LocalDate parseDate(String dateStr, DateTimeFormatter formatter,
-                                       int rowNum, String fieldName) {
-        if (dateStr == null || dateStr.isBlank()) {
-            return LOCAL_DATE_DEFAULT;
-        }
-        try {
-            return LocalDate.parse(dateStr, formatter);
-        } catch (DateTimeParseException e) {
-            throw new IllegalArgumentException("Formato de fecha inválido en '" + fieldName
-                + "' (fila " + rowNum + "): '" + dateStr + "'");
-        }
-    }
-
-    /**
-     * Numerical (BigDecimal) parsing with validation.
-     *
-     * @param value String for parse
-     * @param rowNum Row num
-     * @param fieldName Field name
-     * @return BigDecimal
-     */
-    private static BigDecimal parseBigDecimal(String value, int rowNum, String fieldName) {
-        if (value == null || value.isBlank()) {
-            return BigDecimal.ZERO;
-        }
-        try {
-            // 1. Elimina separadores de miles (comas)
-            String normalizedValue = value.replace(",", "");
-
-            // 2. Reemplaza "- 0" o cualquier "- <espacio><dígitos>" por "-<dígitos>"
-            normalizedValue = normalizedValue.replaceAll("-\\s+(\\d+)", "-$1");
-
-            return new BigDecimal(normalizedValue);
-        } catch (NumberFormatException e) {
-            throw new IllegalArgumentException("Número inválido en '" + fieldName + "' (fila "
-                + rowNum + "): '" + value + "'");
-        }
-    }
-
-    /**
-     * Numerical (Double) parsing with validation.
-     *
-     * @param value String
-     * @param rowNum Row num
-     * @param fieldName Field name
-     * @return Double
-     */
-    private static Double parseDouble(String value, int rowNum, String fieldName) {
-        if (value == null || value.isBlank()) {
-            return D_VAL_ZERO;
-        }
-        try {
-            String normalizedValue = value.replace(",", "");
-
-            normalizedValue = normalizedValue.replaceAll("-\\s+(\\d+(\\.\\d+)?)", "-$1");
-
-            return Double.parseDouble(normalizedValue);
-        } catch (NumberFormatException e) {
-            throw new IllegalArgumentException("Número double inválido en '" + fieldName
-                + "' (fila " + rowNum + "): '" + value + "'");
-        }
-    }
-
-    /**
-     * Validate string and return default value.
-     *
-     * @param value String
-     * @return String
-     */
-    private static String defaultString(String value) {
-        return (value != null) ? value : _BLANK;
-    }
-
     @Override
+    @Transactional
     public void updateService(FinancialFixedAsset obj) {
         repository.save(obj);
     }
 
+    /**
+     * Deletes the {@link FinancialFixedAsset} identified by the given ID.
+     *
+     * @param id the ID of the FinancialFixedAsset to delete
+     */
     @Override
+    @Transactional
     public void deleteByIdService(Long id) {
         repository.deleteById(id);
     }
 
+    /**
+     * Deletes all {@link FinancialFixedAsset} records for the given accounting period.
+     *
+     * @param period the accounting period whose assets should be deleted
+     */
     @Override
+    @Transactional
     public void deleteByAccountingPeriod(LocalDate period) {
         repository.deleteByAccountingPeriod(period);
     }
 
+    /**
+     * Generates a depreciation projection of type {@code type} for the given list
+     * of fixed assets and accounting period, delegating to the appropriate generator.
+     *
+     * @param type              the projection type (e.g., TEMPORARY_DEDUCTION)
+     * @param accountingPeriod  the period for which to generate projections
+     * @param fixedAssets       the list of assets to project
+     * @param accountingAccount the accounting account filter for projection
+     * @throws IllegalArgumentException if no generator exists for the specified type
+     */
     @Transactional
     @Modifying
     @Override
-    public void generateTemporayDeductionsService(LocalDate accountingPeriod,
-                                                  List<FinancialFixedAsset> fixedAssets) {
-        TaxTableSunat taxTable = taxTableService.findByAccountigAccountService(S_VAL_332);
-        if (taxTable == null) {
-            return; // Si no hay tabla de impuestos, no se puede proceder
+    public void generateProjectionService(ProjectionType type,
+                                          LocalDate accountingPeriod,
+                                          List<FinancialFixedAsset> fixedAssets,
+                                          String accountingAccount) {
+        ProjectionGenerator gen = projectionGenerators.get(type);
+        if (gen == null) {
+            throw new IllegalArgumentException("Tipo de proyección no soportado: " + type);
         }
-
-        for (FinancialFixedAsset fixedAsset : fixedAssets) {
-            if (isEligibleForDepreciation(fixedAsset)) {
-                processAssetDepreciation(fixedAsset, accountingPeriod, taxTable);
-            }
-        }
+        gen.generate(accountingPeriod, fixedAssets);
     }
 
-    private boolean isEligibleForDepreciation(FinancialFixedAsset fixedAsset) {
-        return !fixedAsset.getAcquisitionDate().equals(LOCAL_DATE_DEFAULT)
-            && fixedAsset.getInitialBalance().compareTo(BigDecimal.ZERO) > N_VAL_0
-            && fixedAsset.getRevaluedAmount().compareTo(BigDecimal.ZERO) == N_VAL_0;
-    }
-
-    private void processAssetDepreciation(FinancialFixedAsset fixedAsset,
-        LocalDate accountingPeriod, TaxTableSunat taxTable) {
-        TaxDepreciation taxDepreciationMonth = new TaxDepreciation();
-        taxDepreciationMonth.setNetTaxValue(BigDecimal.ZERO);
-        taxDepreciationMonth.setFirst(true);
-        taxDepreciationMonth.setLast(false);
-
-        Projection projection = new Projection();
-        projection.setAccountigPeriod(accountingPeriod);
-        projection.setAccountigPeriodNext(accountingPeriod);
-        List<FinancialDepreciation> financialDepreciationList = new ArrayList<>();
-        projection.setFinancialDepreciationList(financialDepreciationList);
-        projection.setTaxDepreciation(taxDepreciationMonth);
-        List<TaxDepreciation> taxDepreciationList = new ArrayList<>();
-        projection.setTaxDepreciationList(taxDepreciationList);
-        List<Addition> additionList = new ArrayList<>();
-        projection.setAdditionList(additionList);
-        List<Deduction> deductionList = new ArrayList<>();
-        projection.setDeductionList(deductionList);
-
-        LocalDate acquisitionDate = fixedAsset.getAcquisitionDate();
-        int numberYearsPassed = Period.between(acquisitionDate, accountingPeriod).getYears();
-        int remainingYears = fixedAsset.getUsefulLifeYears().intValue() - numberYearsPassed;
-        for (int year = 0; year < remainingYears; year++) {
-            projection = processYearDepreciation(fixedAsset, projection, taxTable);
-        }
-
-        financialDepreciationService.saveAllService(projection.getFinancialDepreciationList());
-        taxDepreciationService.saveAllService(projection.getTaxDepreciationList());
-        deductionService.saveAllService(projection.getDeductionList());
-        additionService.saveAllService(projection.getAdditionList());
-    }
-
-    private Projection processYearDepreciation(FinancialFixedAsset fixedAsset,
-                                               Projection projection,
-                                              TaxTableSunat taxTable) {
-        for (int month = 0; month < 12; month++) {
-            FinancialDepreciation financialDepreciation = createFinancialDepreciation(fixedAsset,
-                projection.getAccountigPeriodNext());
-            projection.getFinancialDepreciationList().add(financialDepreciation);
-
-            TaxDepreciation taxDepreciation = createTaxDepreciation(fixedAsset,
-                projection.getAccountigPeriodNext(),
-                    projection.getAccountigPeriod(), projection.getTaxDepreciation(), taxTable);
-            projection.getTaxDepreciationList().add(taxDepreciation);
-
-            BigDecimal valueAdditionOrDeduction = BigDecimal.ZERO;
-
-            if (taxDepreciation.getValueDepreciation()
-                .compareTo(financialDepreciation.getValueDepreciation()) > 0
-                && taxDepreciation.getNetTaxValue().compareTo(BigDecimal.ZERO) > 0) {
-                valueAdditionOrDeduction = taxDepreciation.getValueDepreciation()
-                    .subtract(financialDepreciation.getValueDepreciation());
-                Deduction deduction = createDeduction(projection.getAccountigPeriodNext(),
-                    taxDepreciation, valueAdditionOrDeduction);
-                projection.getDeductionList().add(deduction);
-            } else if (projection.getTaxDepreciation().getNetTaxValue()
-                .compareTo(BigDecimal.ZERO) > 0
-                && taxDepreciation.getNetTaxValue().compareTo(BigDecimal.ZERO) == 0) {
-                valueAdditionOrDeduction = taxDepreciation.getValueDepreciation()
-                    .subtract(financialDepreciation.getValueDepreciation());
-                Deduction deduction = createDeduction(projection.getAccountigPeriodNext(),
-                    taxDepreciation, valueAdditionOrDeduction);
-                projection.getDeductionList().add(deduction);
-            } else {
-                valueAdditionOrDeduction = financialDepreciation.getValueDepreciation();
-                Addition addition = createAddition(projection.getAccountigPeriodNext(),
-                    taxDepreciation, valueAdditionOrDeduction);
-                projection.getAdditionList().add(addition);
-            }
-
-            projection.setAccountigPeriodNext(projection.getAccountigPeriodNext().plusMonths(1));
-            projection.setTaxDepreciation(taxDepreciation);
-        }
-        projection.setAccountigPeriodNext(projection.getAccountigPeriodNext()
-            .plusYears(1).minusMonths(12)); // Ajusta el periodo al siguiente año
-        return projection;
-    }
-
-    private FinancialDepreciation createFinancialDepreciation(FinancialFixedAsset fixedAsset,
-                                                              LocalDate accountingPeriod) {
-        FinancialDepreciation financialDepreciation = new FinancialDepreciation();
-        financialDepreciation.setFinancialFixedAsset(fixedAsset);
-        financialDepreciation.setAccountingPeriod(accountingPeriod);
-        financialDepreciation.calculateDepreciation(fixedAsset);
-        financialDepreciation.setAddedBy("CARNOL");
-        financialDepreciation.setAdditionDate(LocalDateTime.now());
-        return financialDepreciation;
-    }
-
-    private TaxDepreciation createTaxDepreciation(FinancialFixedAsset fixedAsset,
-                                                  LocalDate accountingPeriodNext,
-                                                  LocalDate accountingPeriod,
-                                                  TaxDepreciation taxDepreciationOld,
-                                                  TaxTableSunat taxTable) {
-        TaxDepreciation taxDepreciation = new TaxDepreciation();
-        taxDepreciation.setFinancialFixedAsset(fixedAsset);
-        taxDepreciation.setAccountingPeriod(accountingPeriodNext);
-        taxDepreciation.calculateDepreciation(fixedAsset, taxTable,
-            accountingPeriod, taxDepreciationOld);
-        taxDepreciation.setAddedBy("CARNOL");
-        taxDepreciation.setAdditionDate(LocalDateTime.now());
-        taxDepreciation.setFirst(false);
-        return taxDepreciation;
-    }
-
-    private Addition createAddition(LocalDate accountingPeriod, TaxDepreciation taxDepreciation,
-                                    BigDecimal valueAddition) {
-        Addition addition = new Addition();
-        addition.setAccountingPeriod(accountingPeriod);
-        addition.setTaxDepreciation(taxDepreciation);
-        addition.setValueAddition(valueAddition);
-        addition.setAddedBy("CARNOL");
-        addition.setAdditionDate(LocalDateTime.now());
-        return addition;
-    }
-
-    private Deduction createDeduction(LocalDate accountingPeriod, TaxDepreciation taxDepreciation,
-                                      BigDecimal valueDeduction) {
-        Deduction deduction = new Deduction();
-        deduction.setAccountingPeriod(accountingPeriod);
-        deduction.setTaxDepreciation(taxDepreciation);
-        deduction.setValueDeduction(valueDeduction);
-        deduction.setAddedBy("CARNOL");
-        deduction.setAdditionDate(LocalDateTime.now());
-        return deduction;
-    }
-
+    /**
+     * Retrieves a single {@link FinancialFixedAsset} by its ID.
+     *
+     * @param id the identifier of the FinancialFixedAsset
+     * @return the found entity, or a new empty instance if not present
+     */
     @Override
+    @Transactional(readOnly = true)
     public FinancialFixedAsset findByIdService(Long id) {
         Optional<FinancialFixedAsset> optionalFinancialFixedAsset = repository.findById(id);
         return optionalFinancialFixedAsset.orElseGet(FinancialFixedAsset::new);
     }
 
+    /**
+     * Finds all {@link FinancialFixedAsset} entities matching the given main fixed asset code.
+     *
+     * @param mainFixedAssetCode the main code to filter by
+     * @return list of matching FinancialFixedAsset instances
+     */
     @Override
+    @Transactional(readOnly = true)
     public List<FinancialFixedAsset> findByMainFixedAssetCodeService(String mainFixedAssetCode) {
         return new ArrayList<>(repository.findByMainFixedAssetCode(mainFixedAssetCode));
     }
 
+    /**
+     * Finds all {@link FinancialFixedAsset} entities whose accounting account starts
+     * with the given prefix.
+     *
+     * @param accountingAccount the account code prefix
+     * @return list of matching FinancialFixedAsset instances
+     */
     @Override
+    @Transactional(readOnly = true)
     public List<FinancialFixedAsset> findByFixedAssetAccountingAccountService(
         String accountingAccount) {
         return new ArrayList<>(repository.findByFixedAssetAccountingAccount(accountingAccount));
     }
 
+    /**
+     * Retrieves all {@link FinancialFixedAsset} entities.
+     *
+     * @return list of all FinancialFixedAsset instances
+     */
     @Override
+    @Transactional(readOnly = true)
     public List<FinancialFixedAsset> findAllService() {
         return new ArrayList<>(repository.findAll());
     }
 
+    /**
+     * Finds {@link FinancialFixedAsset} entities for the specified accounting period.
+     *
+     * @param period the accounting period filter
+     * @return list of matching FinancialFixedAsset instances
+     */
     @Override
+    @Transactional(readOnly = true)
     public List<FinancialFixedAsset> findByPeriodService(LocalDate period) {
         return new ArrayList<>(repository.findByAccountingPeriod(period));
     }
 
+    /**
+     * Finds {@link FinancialFixedAsset} entities for the specified period whose
+     * accounting account starts with the given prefix.
+     *
+     * @param period the accounting period filter
+     * @param account the accounting account prefix
+     * @return list of matching FinancialFixedAsset instances
+     */
     @Override
+    @Transactional(readOnly = true)
     public List<FinancialFixedAsset> findByPeriodAndAccountStartingWithService(LocalDate period,
                                                                                String account) {
         return new ArrayList<>(repository
             .findByAccountingPeriodAndFixedAssetAccountingAccountStartingWith(period, account));
     }
 
+    /**
+     * Finds {@link FinancialFixedAsset} entities whose accounting account code prefix
+     * is in the given list.
+     *
+     * @param prefixes list of 3-character prefixes
+     * @return list of matching FinancialFixedAsset instances
+     */
     @Override
+    @Transactional(readOnly = true)
+    public List<FinancialFixedAsset> findByAccountingAccountPrefixesService(List<String> prefixes) {
+        return new ArrayList<>(repository.findByAccountingAccountPrefixes(prefixes));
+    }
+
+    /**
+     * Calls the JDBC stored procedure to generate the tax book report.
+     *
+     * @param params the report parameters
+     * @return a list of {@link FinancialFixedAssetDto} rows
+     * @throws SQLException if the procedure call fails
+     */
+    @Override
+    @Transactional(readOnly = true)
     public List<FinancialFixedAssetDto> callGetReportTaxBookService(ParamReportDto params)
         throws SQLException {
         return repositoryJdbc.callGetReportTaxBookJdbc(params);
     }
 
+    /**
+     * Calls the JDBC stored procedure to generate the detailed financial and
+     * tax depreciation report.
+     *
+     * @param params the report parameters
+     * @return a list of {@link FinancialFixedAssetDto} rows
+     */
     @Override
+    @Transactional(readOnly = true)
     public List<FinancialFixedAssetDto> callGetReportDetailFinancialAndTaxDepreciationService(
         ParamReportDto params) {
         return repositoryJdbc.callGetReportDetailFinancialAndTaxDepreciationJdbc(params);

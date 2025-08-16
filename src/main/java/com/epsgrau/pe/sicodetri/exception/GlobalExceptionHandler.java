@@ -11,9 +11,19 @@ import org.springframework.web.context.request.WebRequest;
 import org.springframework.web.multipart.MaxUploadSizeExceededException;
 
 /**
- * This class is handler exceptions centrally. <br/>
+ * Centralized exception handler for the application.
+ * Uses {@link ControllerAdvice} to intercept exceptions thrown by controllers
+ * and map them to {@link ExceptionResponse} payloads with appropriate HTTP status codes.
+ * Handles:
+ * <ul>
+ *   <li>{@link ResourceNotFoundException} → 404 NOT_FOUND</li>
+ *   <li>{@link MethodArgumentNotValidException} → 400 BAD_REQUEST</li>
+ *   <li>{@link MaxUploadSizeExceededException} → 417 EXPECTATION_FAILED</li>
+ * </ul>
+ * Each handler method constructs an {@link ExceptionResponse} containing
+ * a timestamp, a human-readable message, and request details.
  * <b>Class</b>: {@link GlobalExceptionHandler}<br/>
- * <b>Copyright</b>: &Copy; 2024 EPS Grau. <br/>
+ * <b>Copyright</b>: &copy; 2024 EPS Grau. <br/>
  * <b>Company</b>: EPS Grau. <br/>
  *
  * @author EPS Grau <br/>
@@ -24,7 +34,7 @@ import org.springframework.web.multipart.MaxUploadSizeExceededException;
  *     </ul>
  *     <u>Changes</u>:<br/>
  *     <ul>
- *     <li>Ago 15, 2024 (JAR) Creation class.</li>
+ *     <li>Jun 06, 2025 (JAR) Creation class.</li>
  *     </ul>
  * @version 1.0
  */

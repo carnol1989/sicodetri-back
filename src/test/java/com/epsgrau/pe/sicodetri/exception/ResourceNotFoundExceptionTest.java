@@ -1,13 +1,22 @@
 package com.epsgrau.pe.sicodetri.exception;
 
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
-
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+
 /**
- * This class test for ResourceNotFoundException. <br/>
+ * Unit tests for {@link ResourceNotFoundException}.
+ *
+ * <p>
+ * Verifies correct instantiation of the exception with:
+ * <ul>
+ *   <li>Message only</li>
+ *   <li>Message and cause</li>
+ * </ul>
+ * </p>
+ *
  * <b>Class</b>: {@link ResourceNotFoundExceptionTest}<br/>
  * <b>Copyright</b>: &Copy; 2024 EPS Grau. <br/>
  * <b>Company</b>: EPS Grau. <br/>
@@ -20,12 +29,16 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
  *     </ul>
  *     <u>Changes</u>:<br/>
  *     <ul>
- *     <li>Ago 28, 2024 (JAR) Creation class.</li>
+ *     <li>Jun 06, 2025 (JAR) Creation class.</li>
  *     </ul>
  * @version 1.0
  */
 class ResourceNotFoundExceptionTest {
 
+    /**
+     * Tests that creating a {@link ResourceNotFoundException} with only a message
+     * sets the exception message correctly.
+     */
     @Test
     @DisplayName("Create ResourceNotFoundException with message only")
     void createResourceNotFoundExceptionWithMessage() {
@@ -41,6 +54,10 @@ class ResourceNotFoundExceptionTest {
         assertEquals(message, exception.getMessage(), "Exception message should match");
     }
 
+    /**
+     * Tests that creating a {@link ResourceNotFoundException} with both a message
+     * and a cause sets the exception message and cause correctly.
+     */
     @Test
     @DisplayName("Create ResourceNotFoundException with message and cause")
     void createResourceNotFoundExceptionWithMessageAndCause() {

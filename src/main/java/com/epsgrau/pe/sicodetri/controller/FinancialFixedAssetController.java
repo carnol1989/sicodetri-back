@@ -1,6 +1,7 @@
 package com.epsgrau.pe.sicodetri.controller;
 
 import static com.epsgrau.pe.sicodetri.helper.ExcelHelper.hasExcelFormat;
+import static com.epsgrau.pe.sicodetri.util.Constants.ALL;
 import static com.epsgrau.pe.sicodetri.util.Constants.COMPANY_NAME;
 import static com.epsgrau.pe.sicodetri.util.Constants.COMPANY_NAME_VALUE;
 import static com.epsgrau.pe.sicodetri.util.Constants.N_VAL_1;
@@ -19,8 +20,9 @@ import com.epsgrau.pe.sicodetri.model.InputData;
 import com.epsgrau.pe.sicodetri.model.ResponseData;
 import com.epsgrau.pe.sicodetri.service.FinancialFixedAssetService;
 import com.epsgrau.pe.sicodetri.service.ReportJasperService;
-import com.epsgrau.pe.sicodetri.strategy.ReportStrategy;
-import com.epsgrau.pe.sicodetri.strategy.ReportStrategyFactory;
+import com.epsgrau.pe.sicodetri.service.projection.ProjectionType;
+import com.epsgrau.pe.sicodetri.service.report.ReportStrategy;
+import com.epsgrau.pe.sicodetri.service.report.ReportStrategyFactory;
 import com.epsgrau.pe.sicodetri.util.Constants;
 import com.epsgrau.pe.sicodetri.util.enums.ReportTypeEnum;
 import io.swagger.v3.oas.annotations.Operation;
@@ -38,6 +40,7 @@ import java.sql.SQLException;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -58,9 +61,11 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
 /**
- * This class provide the endpoints for Fixed Asset. <br/>
+ * REST controller for managing financial fixed assets and their projections.
+ * Exposes endpoints to upload Excel data, save fixed assets, generate projections,
+ * retrieve asset information, and produce various reports.
  * <b>Class</b>: {@link FinancialFixedAssetController}<br/>
- * <b>Copyright</b>: &Copy; 2024 EPS Grau. <br/>
+ * <b>Copyright</b>: &copy; 2024 EPS Grau. <br/>
  * <b>Company</b>: EPS Grau. <br/>
  *
  * @author EPS Grau <br/>
@@ -71,7 +76,7 @@ import org.springframework.web.multipart.MultipartFile;
  *     </ul>
  *     <u>Changes</u>:<br/>
  *     <ul>
- *     <li>Ago 17, 2024 (JAR) Creation class.</li>
+ *     <li>Jun 06, 2024 (JAR) Creation class.</li>
  *     </ul>
  * @version 1.0
  */
@@ -92,12 +97,12 @@ public class FinancialFixedAssetController {
     private ReportStrategyFactory reportStrategyFactory;
 
     /**
-     * Handles internal exceptions to build a ResponseEntity with error code.
+     * Handles internal exceptions and builds a standardized JSON error response.
      *
-     * @param messageError Message of error
-     * @param e            Object Exception
-     * @param statusCode   HttpStatus Code
-     * @return ResponseEntity of ResponseData
+     * @param messageError the error message to return
+     * @param e            the exception that was thrown
+     * @param statusCode   the HTTP status to use for the response
+     * @return a ResponseEntity containing a ResponseData with error details
      */
     private ResponseEntity<ResponseData> handleException(String messageError, Exception e,
                                                          HttpStatus statusCode) {
@@ -116,12 +121,12 @@ public class FinancialFixedAssetController {
     }
 
     /**
-     * Upload excel file with data assets.
+     * Uploads an Excel file containing fixed asset data (Format 7) and stores it in the session.
      *
-     * @param file Excel file input
-     * @param period Accounting period
-     * @param request Object request
-     * @return ResponseEntity of ResponseData
+     * @param file    the uploaded Excel file
+     * @param period  the accounting period in 'YYYY-MM-DD' format
+     * @param request the HTTP servlet request, used to access the session
+     * @return a ResponseEntity with a ResponseData indicating success or failure
      */
     @Operation(summary = "Cargar archivo Excel con datos de activos fijos (Formato 7)")
     @ApiResponses(
@@ -163,11 +168,11 @@ public class FinancialFixedAssetController {
     }
 
     /**
-     * Save asset from Excel file.
+     * Saves fixed asset data previously uploaded and stored in the session.
      *
-     * @param period Accounting period
-     * @param session Object session
-     * @return ResponseEntity of ResponseData
+     * @param period the accounting period in 'YYYY-MM-DD' format
+     * @param session the HTTP session containing uploaded data
+     * @return a ResponseEntity with a ResponseData indicating success or failure
      */
     @Operation(summary = "Guardar activos fijos desde la sesión")
     @ApiResponses(
@@ -200,6 +205,7 @@ public class FinancialFixedAssetController {
         try {
             LocalDate periodDate = LocalDate.parse(period, DateTimeFormatter
                 .ofPattern(Constants.FORMATTER_YYYY_MM_DD));
+
             service.deleteByAccountingPeriod(periodDate);
             service.saveAllService(period, listInputData);
             return buildResponse("Información guardada correctamente para el periodo: " + period,
@@ -210,13 +216,14 @@ public class FinancialFixedAssetController {
     }
 
     /**
-     * Generate projection of temporary deductions.
+     * Generates a projection for fixed assets (additions or deductions) based on type.
      *
-     * @param period Accounting period
-     * @param account Accounting account
-     * @return ResponseEntity of ResponseData
+     * @param type    the projection type (e.g., TEMPORARY_DEDUCTION, TEMPORARY_ADDITION)
+     * @param period  the accounting period in 'YYYY-MM-DD' format
+     * @param account the accounting account prefix or 'ALL' to process all
+     * @return a ResponseEntity with a ResponseData indicating success or failure
      */
-    @Operation(summary = "Generar proyección de deducciones temporales")
+    @Operation(summary = "Generar proyección de Activos Fijos")
     @ApiResponses(value = {
         @ApiResponse(
             responseCode = "200",
@@ -231,6 +238,9 @@ public class FinancialFixedAssetController {
     })
     @PostMapping("/projection")
     public ResponseEntity<ResponseData> generateProjectionController(
+        @Parameter(description = "Tipo de proyección (e.g. TEMPORARY_DEDUCTION, "
+            + "TEMPORARY_ADDITION)")
+        @RequestParam(name = "type") ProjectionType type,
         @Parameter(description = "Periodo contable", example = "2022-01-01")
         @RequestParam(name = "period") String period,
         @Parameter(description = "Cuenta contable que inicia con", example = "332")
@@ -240,30 +250,51 @@ public class FinancialFixedAssetController {
             LocalDate periodDate = LocalDate.parse(period,
                 DateTimeFormatter.ofPattern(Constants.FORMATTER_YYYY_MM_DD));
 
-            List<FinancialFixedAsset> listFinancialFixedAsset =
-                service.findByPeriodAndAccountStartingWithService(periodDate, account);
-            log.info("listFinancialFixedAsset: {}", listFinancialFixedAsset.size());
+            List<FinancialFixedAsset> listFinancialFixedAsset;
+            if (account.equalsIgnoreCase(ALL)) {
+                List<String> prefixes = List.of("332", "333", "334", "335", "336", "337");
+                listFinancialFixedAsset = service.findByAccountingAccountPrefixesService(prefixes);
+            } else {
+                listFinancialFixedAsset = service.findByPeriodAndAccountStartingWithService(
+                    periodDate, account);
+            }
+            log.info("Activos a procesar ({}): {}", type, listFinancialFixedAsset.size());
 
             if (listFinancialFixedAsset.isEmpty()) {
-                return buildResponseWithError(messageError, HttpStatus.EXPECTATION_FAILED, period);
+                return buildResponseWithError(
+                    messageError + " No se encontraron registros.",
+                    HttpStatus.EXPECTATION_FAILED,
+                    period);
             }
 
-            service.generateTemporayDeductionsService(periodDate, listFinancialFixedAsset);
+            service.generateProjectionService(type, periodDate, listFinancialFixedAsset, account);
             return buildResponse("Proyección generada correctamente.",
                 listFinancialFixedAsset.size(), HttpStatus.OK);
+        } catch (DateTimeParseException dtpe) {
+            return buildResponseWithError(
+                "Formato de fecha inválido. Use 'YYYY-MM-DD'.",
+                HttpStatus.BAD_REQUEST,
+                period
+            );
+        } catch (IllegalArgumentException iae) {
+            return buildResponseWithError(
+                "Tipo de proyección no soportado: " + iae.getMessage(),
+                HttpStatus.BAD_REQUEST,
+                period
+            );
         } catch (Exception e) {
             return handleException(messageError, e, HttpStatus.EXPECTATION_FAILED);
         }
     }
 
     /**
-     * Get information of assets.
+     * Retrieves financial fixed asset information based on the given option.
      *
-     * @param option Option search
-     * @param period Accounting period
-     * @param mainFixedAssetCode Main fixed asset code
-     * @param accountingAccount Accounting account
-     * @return ResponseEntity of ResponseData
+     * @param option               the search option (1=period, 2=asset code, 3=account)
+     * @param period               the accounting period in 'YYYY-MM-DD' format
+     * @param mainFixedAssetCode   the main asset code (if option=2)
+     * @param accountingAccount    the accounting account (if option=3)
+     * @return a ResponseEntity with a ResponseData containing the assets or an error
      */
     @Operation(summary = "Obtener información de activos fijos.")
     @ApiResponses(value = {
@@ -308,18 +339,21 @@ public class FinancialFixedAssetController {
     }
 
     /**
-     * Get report Tax Book Fixed.
+     * Produces a report (e.g., tax book) as a file download.
      *
-     * @param option Option report
-     * @param fileType File type
-     * @param year Accounting year
-     * @param mainCode Main code
-     * @param accountingAccount Accounting account
-     * @param startAcquisitionDate Start acquisition date
-     * @param endAcquisitionDate End acquisition date
-     * @param startDateUse Start date use
-     * @param endDateUse End date use
-     * @return ResponseEntity of report
+     * @param option                the report option
+     * @param fileType              the file type/extension (e.g., "xlsx")
+     * @param year                  the accounting year
+     * @param mainCode              the main asset code
+     * @param accountingAccount     the accounting account code
+     * @param startAcquisitionDate  the acquisition start date (YYYY-MM-DD)
+     * @param endAcquisitionDate    the acquisition end date (YYYY-MM-DD)
+     * @param startDateUse          the usage start date (YYYY-MM-DD)
+     * @param endDateUse            the usage end date (YYYY-MM-DD)
+     * @return a ResponseEntity containing the report file stream or an error
+     * @throws JRException             if Jasper report processing fails
+     * @throws FileNotFoundException   if the report template is not found
+     * @throws SQLException            if a database access error occurs
      */
     @Operation(summary = "Obtener reporte del Libro Tributario.")
     @ApiResponses(value = {
@@ -359,12 +393,25 @@ public class FinancialFixedAssetController {
                 accountingAccount, startAcquisitionDate, endAcquisitionDate, startDateUse,
                 endDateUse);
 
-            ReportStrategy strategy = reportStrategyFactory.getStrategy(option);
+            ReportStrategy strategy;
+            try {
+                strategy = reportStrategyFactory.getStrategy(option);
+            } catch (ResourceNotFoundException rnfe) {
+                return buildResponseWithError(
+                    "Tipo de reporte no soportado para opción: " + option,
+                    HttpStatus.NOT_FOUND,
+                    rnfe.getMessage()
+                );
+            }
+
             List<FinancialFixedAssetDto> reportList = strategy.generateReport(params);
             log.debug("reportList: {}", reportList.size());
 
             if (reportList.isEmpty()) {
-                throw new ResourceNotFoundException("No hay información para el periodo.");
+                return buildResponseWithError(
+                    "No hay información para el periodo.",
+                    HttpStatus.NOT_FOUND,
+                    "Periodo: " + year + ", Opción: " + option);
             }
 
             Map<String, Object> parameters = new HashMap<>();
@@ -377,7 +424,12 @@ public class FinancialFixedAssetController {
             );
 
             if (data == null) {
-                throw new ResourceNotFoundException("Error al obtener reporte");
+                return buildResponseWithError(
+                    "Error al generar el reporte.",
+                    HttpStatus.NOT_FOUND,
+                    "Periodo: " + year + ", Opción: " + option
+                        + ", Tipo de archivo: " + fileType
+                );
             }
 
             ReportTypeEnum reportType = ReportTypeEnum.getReportTypeByCode(fileType);
@@ -396,15 +448,18 @@ public class FinancialFixedAssetController {
                 .contentType(MediaType.APPLICATION_OCTET_STREAM)
                 .body(resource);
         } catch (ResourceNotFoundException rnfe) {
-            throw rnfe;
+            return buildResponseWithError(
+                "No se encontró información para el periodo: " + year,
+                HttpStatus.NOT_FOUND, rnfe.getMessage()
+            );
         }
     }
 
     /**
-     * Handle find by period.
+     * Helper: find assets by period.
      *
-     * @param period Accounting period
-     * @return ResponseEntity of ResponseData
+     * @param period the accounting period
+     * @return a ResponseEntity with assets or error
      */
     private ResponseEntity<ResponseData> handleFindByPeriod(String period) {
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern(Constants.FORMATTER_YYYY_MM_DD);
@@ -421,10 +476,10 @@ public class FinancialFixedAssetController {
     }
 
     /**
-     * Handle find by main fixed asset code.
+     * Helper: find assets by main fixed asset code.
      *
-     * @param mainFixedAssetCode Main fixed asset code
-     * @return ResponseEntity of ResponseData
+     * @param mainFixedAssetCode the main asset code
+     * @return a ResponseEntity with assets or error
      */
     private ResponseEntity<ResponseData> handleFindByMainFixedAssetCode(String mainFixedAssetCode) {
         List<FinancialFixedAsset> listFinancialFixedAsset =
@@ -440,10 +495,10 @@ public class FinancialFixedAssetController {
     }
 
     /**
-     * Handle find by accountign account.
+     * Helper: find assets by accounting account.
      *
-     * @param accountingAccount Accounting account
-     * @return ResponseEntity of ResponseData
+     * @param accountingAccount the accounting account code
+     * @return a ResponseEntity with assets or error
      */
     private ResponseEntity<ResponseData> handleFindByAccountingAccount(String accountingAccount) {
         List<FinancialFixedAsset> listFinancialFixedAsset =
@@ -459,12 +514,12 @@ public class FinancialFixedAssetController {
     }
 
     /**
-     * Build response.
+     * Builds a successful ResponseEntity with JSON body.
      *
-     * @param message Message
-     * @param obj Object response
-     * @param statusCode HttpStatusCode
-     * @return ResponseEntity of ResponseData
+     * @param message    the success message
+     * @param obj        the response object or data
+     * @param statusCode the HTTP status to return
+     * @return a ResponseEntity containing the ResponseData
      */
     private ResponseEntity<ResponseData> buildResponse(String message,
                                                        Object obj,
@@ -480,12 +535,12 @@ public class FinancialFixedAssetController {
     }
 
     /**
-     * Build response with error.
+     * Builds an error ResponseEntity with JSON body.
      *
-     * @param message Message
-     * @param status HttpStatusCode
-     * @param details Details error
-     * @return ResponseEntity of ResponseData
+     * @param message the error message
+     * @param status  the HTTP status to return
+     * @param details additional error details
+     * @return a ResponseEntity containing the ResponseData with exception info
      */
     private ResponseEntity<ResponseData> buildResponseWithError(String message,
                                                                 HttpStatus status,

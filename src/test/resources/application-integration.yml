@@ -1,0 +1,57 @@
+spring:
+  config:
+    activate:
+      on-profile: integration
+  main:
+    allow-bean-definition-overriding: true
+
+  datasource:
+    url: jdbc:h2:mem:testdb;MODE=PostgreSQL;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+    driver-class-name: org.h2.Driver
+    username: sa
+    password: sa
+
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+
+  sql:
+    init:
+      mode: always
+      schema-locations:
+        - classpath:db/schema-oauth2.sql
+        - classpath:db/schema-security.sql
+      data-locations:
+        - classpath:db/data-tax-table-sunat.sql
+        - classpath:db/data-security.sql
+
+  logging:
+    level:
+      org.springframework.jdbc.datasource.init: ERROR
+
+server:
+  tomcat:
+    max-swallow-size: -1
+
+authorization-server:
+  provider:
+    issuer: "http://localhost:8082"
+  jwk:
+    key-size: 2048
+  client:
+    id: sicodetriapp
+    secret: eps2025
+    redirect-uris:
+      - "http://localhost:{port}/v1/callback"
+      - "https://oauth.pstmn.io/v1/callback"
+    scopes:
+      - openid
+      - roles
+    require-authorization-consent: false
+  token:
+    access-token-time-to-live: 15m
+    refresh-token-time-to-live: 30d
+    reuse-refresh-tokens: false

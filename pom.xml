@@ -39,19 +39,19 @@
 		<java.version>17</java.version>
 		<apache.poi.version>5.3.0</apache.poi.version>
 		<mockito.core.version>5.3.1</mockito.core.version>
+		<mockito.inline.version>5.2.0</mockito.inline.version>
 		<jacoco.version>0.8.8</jacoco.version>
 		<springdoc.openapi.version>2.3.0</springdoc.openapi.version>
-		<itext.core>8.0.2</itext.core>
-		<powermock.api.mockito2>2.0.9</powermock.api.mockito2>
-		<mockito.inline>5.2.0</mockito.inline>
+		<itext.core.version>8.0.2</itext.core.version>
 		<postgresql.version>42.7.2</postgresql.version>
 		<jasperreports.version>6.21.3</jasperreports.version>
 		<google.guava.version>30.1-jre</google.guava.version>
 		<spotbugs.annotations.version>4.0.0</spotbugs.annotations.version>
+		<karate.version>1.4.0</karate.version>
+		<spring-authorization-server.version>1.1.0</spring-authorization-server.version>
 		<plugin.maven.checkstyle.version>3.3.1</plugin.maven.checkstyle.version>
-		<plugin.maven.site.version>3.12.0</plugin.maven.site.version>
-		<plugin.maven.antrun.version>3.0.0</plugin.maven.antrun.version>
 		<plugin.maven.spotbugs.version>4.8.6.6</plugin.maven.spotbugs.version>
+		<plugin.maven.javadoc.version>3.4.1</plugin.maven.javadoc.version>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 	</properties>
 	<dependencies>
@@ -71,18 +71,6 @@
 			<groupId>org.projectlombok</groupId>
 			<artifactId>lombok</artifactId>
 			<optional>true</optional>
-		</dependency>
-
-		<dependency>
-			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-starter-test</artifactId>
-			<scope>test</scope>
-		</dependency>
-		<dependency>
-			<groupId>org.mockito</groupId>
-			<artifactId>mockito-core</artifactId>
-			<version>${mockito.core.version}</version>
-			<scope>test</scope>
 		</dependency>
 
 		<dependency>
@@ -119,7 +107,7 @@
 		<dependency>
 			<groupId>com.itextpdf</groupId>
 			<artifactId>itext-core</artifactId>
-			<version>${itext.core}</version>
+			<version>${itext.core.version}</version>
 			<type>pom</type>
 		</dependency>
 
@@ -147,19 +135,110 @@
 			<version>${spotbugs.annotations.version}</version>
 			<scope>compile</scope>
 		</dependency>
+
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-test</artifactId>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.mockito</groupId>
+			<artifactId>mockito-core</artifactId>
+			<version>${mockito.core.version}</version>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.mockito</groupId>
+			<artifactId>mockito-inline</artifactId>
+			<version>${mockito.inline.version}</version>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>com.h2database</groupId>
+			<artifactId>h2</artifactId>
+			<scope>test</scope>
+		</dependency>
+
+		<dependency>
+			<groupId>com.intuit.karate</groupId>
+			<artifactId>karate-junit5</artifactId>
+			<version>${karate.version}</version>
+			<scope>test</scope>
+		</dependency>
+
+		<!-- Spring Security Core -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-security</artifactId>
+		</dependency>
+
+		<!-- Resource Server (para validar JWT en tus APIs) -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-oauth2-resource-server</artifactId>
+		</dependency>
+
+		<!-- Authorization Server -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-oauth2-authorization-server</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.security</groupId>
+			<artifactId>spring-security-oauth2-authorization-server</artifactId>
+			<version>${spring-authorization-server.version}</version>
+		</dependency>
 	</dependencies>
 	<build>
 		<plugins>
 			<plugin>
 				<groupId>org.springframework.boot</groupId>
 				<artifactId>spring-boot-maven-plugin</artifactId>
+				<executions>
+					<execution>
+						<id>repackage</id>
+						<goals>
+							<goal>repackage</goal>
+						</goals>
+						<configuration>
+							<excludes>
+								<exclude>
+									<groupId>org.projectlombok</groupId>
+									<artifactId>lombok</artifactId>
+								</exclude>
+							</excludes>
+						</configuration>
+					</execution>
+				</executions>
+			</plugin>
+			<!-- Plugin de Javadoc -->
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-javadoc-plugin</artifactId>
+				<version>${plugin.maven.javadoc.version}</version>
+				<executions>
+					<execution>
+						<id>generate-javadoc</id>
+						<goals>
+							<goal>javadoc</goal>
+						</goals>
+						<!-- Opcional: lo ata al ciclo de vida en verify -->
+						<phase>verify</phase>
+					</execution>
+					<execution>
+						<id>attach-javadoc-jar</id>
+						<goals>
+							<goal>jar</goal>
+						</goals>
+					</execution>
+				</executions>
 				<configuration>
-					<excludes>
-						<exclude>
-							<groupId>org.projectlombok</groupId>
-							<artifactId>lombok</artifactId>
-						</exclude>
-					</excludes>
+					<!-- Codificación para que reconozca acentos y símbolos -->
+					<encoding>${project.build.sourceEncoding}</encoding>
+					<docencoding>${project.build.sourceEncoding}</docencoding>
+					<charSet>UTF-8</charSet>
+					<!-- Genera todos los niveles de visibilidad si lo deseas -->
+					<show>private</show>
 				</configuration>
 			</plugin>
 			<!-- Plugin de JaCoCo para la cobertura del código -->
@@ -219,6 +298,28 @@
 						</goals>
 					</execution>
 				</executions>
+			</plugin>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-failsafe-plugin</artifactId>
+				<executions>
+					<execution>
+						<goals>
+							<goal>integration-test</goal>
+							<goal>verify</goal>
+						</goals>
+					</execution>
+				</executions>
+				<configuration>
+					<!-- Activa el perfil 'integration' durante los ITs -->
+					<systemPropertyVariables>
+						<spring.profiles.active>integration</spring.profiles.active>
+					</systemPropertyVariables>
+					<!-- Detecta tests con sufijo *IT.java -->
+					<includes>
+						<include>**/AllKarateFeaturesIT.java</include>
+					</includes>
+				</configuration>
 			</plugin>
 		</plugins>
 	</build>

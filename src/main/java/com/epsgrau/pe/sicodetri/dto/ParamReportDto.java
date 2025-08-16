@@ -7,9 +7,20 @@ import lombok.Setter;
 import lombok.ToString;
 
 /**
- * This class dto for params report. <br/>
+ * Data Transfer Object encapsulating parameters for report generation.
+ * Carries all necessary filters and date ranges used by reporting strategies
+ * to produce the desired report output.
+ * <ul>
+ *   <li><strong>year</strong>: the accounting year for the report</li>
+ *   <li><strong>mainCode</strong>: the main fixed asset or tax book code</li>
+ *   <li><strong>accountingAccount</strong>: the accounting account filter</li>
+ *   <li><strong>startAcquisitionDate</strong>: start date of asset acquisition (YYYY-MM-DD)</li>
+ *   <li><strong>endAcquisitionDate</strong>: end date of asset acquisition (YYYY-MM-DD)</li>
+ *   <li><strong>startDateUse</strong>: start date of asset usage (YYYY-MM-DD)</li>
+ *   <li><strong>endDateUse</strong>: end date of asset usage (YYYY-MM-DD)</li>
+ * </ul>
  * <b>Class</b>: {@link ParamReportDto}<br/>
- * <b>Copyright</b>: &Copy; 2024 EPS Grau. <br/>
+ * <b>Copyright</b>: &copy; 2024 EPS Grau. <br/>
  * <b>Company</b>: EPS Grau. <br/>
  *
  * @author EPS Grau <br/>
@@ -20,7 +31,7 @@ import lombok.ToString;
  *     </ul>
  *     <u>Changes</u>:<br/>
  *     <ul>
- *     <li>Sep 09, 2024 (JAR) Creation class.</li>
+ *     <li>Jun 06, 2024 (JAR) Creation class.</li>
  *     </ul>
  * @version 1.0
  */
