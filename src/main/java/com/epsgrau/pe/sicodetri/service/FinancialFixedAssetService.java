@@ -46,7 +46,8 @@ public interface FinancialFixedAssetService {
      * @param period the accounting period to associate with the data
      * @return a list of InputData representing each valid row
      */
-    List<InputData> loadExcelFileToObjectService(MultipartFile file, String period);
+    List<InputData> loadExcelFileToObjectService(MultipartFile file, String period,
+                                                 String username);
 
     /**
      * Saves all parsed input data as {@link FinancialFixedAsset} entities for the given period.
@@ -54,7 +55,7 @@ public interface FinancialFixedAssetService {
      * @param accountingPeriod the accounting period (YYYY-MM-DD)
      * @param listInputData    the list of parsed InputData to persist
      */
-    void saveAllService(String accountingPeriod, List<InputData> listInputData);
+    void saveAllService(String accountingPeriod, List<InputData> listInputData, String username);
 
     /**
      * Updates an existing {@link FinancialFixedAsset} record.
@@ -75,7 +76,7 @@ public interface FinancialFixedAssetService {
      *
      * @param period the accounting period whose assets should be removed
      */
-    void deleteByAccountingPeriod(LocalDate period);
+    void deleteByAccountingPeriodAndAddedByService(LocalDate period, String username);
 
     /**
      * Generates a projection of depreciation or additions/deductions for a list of assets.
@@ -88,7 +89,8 @@ public interface FinancialFixedAssetService {
     void generateProjectionService(ProjectionType type,
                                    LocalDate accountingPeriod,
                                    List<FinancialFixedAsset> fixedAssets,
-                                   String accountingAccount);
+                                   String accountingAccount,
+                                   String username);
 
     /**
      * Finds a FinancialFixedAsset by its identifier.
@@ -104,7 +106,8 @@ public interface FinancialFixedAssetService {
      * @param mainFixedAssetCode the primary asset code to search for
      * @return a list of matching FinancialFixedAsset entities
      */
-    List<FinancialFixedAsset> findByMainFixedAssetCodeService(String mainFixedAssetCode);
+    List<FinancialFixedAsset> findByMainFixedAssetCodeAndAddedByService(String mainFixedAssetCode,
+                                                                        String username);
 
     /**
      * Retrieves all assets whose accounting account starts with the given prefix.
@@ -112,7 +115,8 @@ public interface FinancialFixedAssetService {
      * @param accountingAccount the account code prefix
      * @return a list of matching FinancialFixedAsset entities
      */
-    List<FinancialFixedAsset> findByFixedAssetAccountingAccountService(String accountingAccount);
+    List<FinancialFixedAsset> findByFixedAssetAccountingAccountAndAddedByService(String accountingAccount,
+                                                                                 String username);
 
     /**
      * Retrieves assets whose accounting account begins with any of the provided prefixes.
@@ -120,7 +124,8 @@ public interface FinancialFixedAssetService {
      * @param prefixes the list of account code prefixes
      * @return a list of matching FinancialFixedAsset entities
      */
-    List<FinancialFixedAsset> findByAccountingAccountPrefixesService(List<String> prefixes);
+    List<FinancialFixedAsset> findByAddedByAndAccountingAccountPrefixesService(String username,
+                                                                               List<String> prefixes);
 
     /**
      * Retrieves all FinancialFixedAsset records.
@@ -135,7 +140,7 @@ public interface FinancialFixedAssetService {
      * @param period the accounting period to filter by
      * @return a list of FinancialFixedAsset entities
      */
-    List<FinancialFixedAsset> findByPeriodService(LocalDate period);
+    List<FinancialFixedAsset> findByPeriodAndAddedByService(LocalDate period, String username);
 
     /**
      * Retrieves assets for the specified period whose account starts with the given value.
@@ -144,8 +149,9 @@ public interface FinancialFixedAssetService {
      * @param account the account code prefix
      * @return a list of matching FinancialFixedAsset entities
      */
-    List<FinancialFixedAsset> findByPeriodAndAccountStartingWithService(LocalDate period,
-                                                                        String account);
+    List<FinancialFixedAsset> findByPeriodAndAddedByAndAccountStartingWithService(LocalDate period,
+                                                                                  String account,
+                                                                                  String username);
 
     /**
      * Calls the stored procedure to generate the Fixed Asset Tax Book report data.

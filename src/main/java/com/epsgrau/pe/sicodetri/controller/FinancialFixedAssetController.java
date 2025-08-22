@@ -52,6 +52,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -150,14 +151,19 @@ public class FinancialFixedAssetController {
         @RequestParam("file") MultipartFile file,
         @Parameter(description = "Periodo contable", example = "2022-01-01")
         @RequestParam(name = "period") String period,
-        HttpServletRequest request) {
+        HttpServletRequest request,
+        Authentication authentication) {
+        String username = (authentication != null) ? authentication.getName() : "ANONYMOUS";
+        log.info("Usuario '{}' solicitó guardar activos para el periodo {}", username, period);
+
         if (!hasExcelFormat(file)) {
             return buildResponseWithError("Formato no permitido. Debe ser .xlsx",
                 HttpStatus.EXPECTATION_FAILED, file.getOriginalFilename());
         }
 
         try {
-            List<InputData> listInputData = service.loadExcelFileToObjectService(file, period);
+            List<InputData> listInputData = service.loadExcelFileToObjectService(file, period,
+                username);
             log.info("Cantidad registros leidos: {}", listInputData.size());
             request.getSession().setAttribute(Constants.LIST_INPUT_DATA, listInputData);
             return buildResponse("Archivo subido correctamente: " + file.getOriginalFilename(),
@@ -193,7 +199,9 @@ public class FinancialFixedAssetController {
     public ResponseEntity<ResponseData> saveFinancialFixedAssetController(
         @Parameter(description = "Periodo contable", example = "2022-01-01")
         @RequestParam(name = "period") String period,
-        HttpSession session) {
+        HttpSession session,
+        Authentication authentication) {
+        String username = (authentication != null) ? authentication.getName() : "ANONYMOUS";
         String messageError = "Error al obtener información de entrada "
             + "para el periodo " + period;
         List<InputData> listInputData = (List<InputData>) session
@@ -206,8 +214,8 @@ public class FinancialFixedAssetController {
             LocalDate periodDate = LocalDate.parse(period, DateTimeFormatter
                 .ofPattern(Constants.FORMATTER_YYYY_MM_DD));
 
-            service.deleteByAccountingPeriod(periodDate);
-            service.saveAllService(period, listInputData);
+            service.deleteByAccountingPeriodAndAddedByService(periodDate, username);
+            service.saveAllService(period, listInputData, username);
             return buildResponse("Información guardada correctamente para el periodo: " + period,
                 listInputData.size(), HttpStatus.CREATED);
         } catch (Exception e) {
@@ -244,7 +252,9 @@ public class FinancialFixedAssetController {
         @Parameter(description = "Periodo contable", example = "2022-01-01")
         @RequestParam(name = "period") String period,
         @Parameter(description = "Cuenta contable que inicia con", example = "332")
-        @RequestParam(name = "account") String account) {
+        @RequestParam(name = "account") String account,
+        Authentication authentication) {
+        String username = (authentication != null) ? authentication.getName() : "ANONYMOUS";
         String messageError = "Error al generar proyección.";
         try {
             LocalDate periodDate = LocalDate.parse(period,
@@ -253,10 +263,10 @@ public class FinancialFixedAssetController {
             List<FinancialFixedAsset> listFinancialFixedAsset;
             if (account.equalsIgnoreCase(ALL)) {
                 List<String> prefixes = List.of("332", "333", "334", "335", "336", "337");
-                listFinancialFixedAsset = service.findByAccountingAccountPrefixesService(prefixes);
+                listFinancialFixedAsset = service.findByAddedByAndAccountingAccountPrefixesService(username, prefixes);
             } else {
-                listFinancialFixedAsset = service.findByPeriodAndAccountStartingWithService(
-                    periodDate, account);
+                listFinancialFixedAsset = service.findByPeriodAndAddedByAndAccountStartingWithService(
+                    periodDate, account, username);
             }
             log.info("Activos a procesar ({}): {}", type, listFinancialFixedAsset.size());
 
@@ -267,7 +277,8 @@ public class FinancialFixedAssetController {
                     period);
             }
 
-            service.generateProjectionService(type, periodDate, listFinancialFixedAsset, account);
+            service.generateProjectionService(type, periodDate, listFinancialFixedAsset, account,
+                username);
             return buildResponse("Proyección generada correctamente.",
                 listFinancialFixedAsset.size(), HttpStatus.OK);
         } catch (DateTimeParseException dtpe) {
@@ -318,15 +329,17 @@ public class FinancialFixedAssetController {
         @Parameter(description = "Código activo fijo principal", example = "22.01.010862")
         @RequestParam String mainFixedAssetCode,
         @Parameter(description = "Cuenta contable", example = "3321161001")
-        @RequestParam String accountingAccount) {
+        @RequestParam String accountingAccount,
+        Authentication authentication) {
+        String username = (authentication != null) ? authentication.getName() : "ANONYMOUS";
         try {
             switch (option) {
               case N_VAL_1:
-                  return handleFindByPeriod(period);
+                  return handleFindByPeriod(period, username);
               case N_VAL_2:
-                  return handleFindByMainFixedAssetCode(mainFixedAssetCode);
+                  return handleFindByMainFixedAssetCode(mainFixedAssetCode, username);
               case N_VAL_3:
-                  return handleFindByAccountingAccount(accountingAccount);
+                  return handleFindByAccountingAccount(accountingAccount, username);
               default:
                   return buildResponseWithError("Error al obtener informacion "
                       + "del activo fijo.", HttpStatus.EXPECTATION_FAILED, "");
@@ -461,10 +474,10 @@ public class FinancialFixedAssetController {
      * @param period the accounting period
      * @return a ResponseEntity with assets or error
      */
-    private ResponseEntity<ResponseData> handleFindByPeriod(String period) {
+    private ResponseEntity<ResponseData> handleFindByPeriod(String period, String username) {
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern(Constants.FORMATTER_YYYY_MM_DD);
         LocalDate periodDate = LocalDate.parse(period, formatter);
-        List<FinancialFixedAsset> listFinancialFixedAsset = service.findByPeriodService(periodDate);
+        List<FinancialFixedAsset> listFinancialFixedAsset = service.findByPeriodAndAddedByService(periodDate, username);
 
         if (listFinancialFixedAsset != null && !listFinancialFixedAsset.isEmpty()) {
             return buildResponse("Se obtuvo informacion para el periodo: "
@@ -481,9 +494,9 @@ public class FinancialFixedAssetController {
      * @param mainFixedAssetCode the main asset code
      * @return a ResponseEntity with assets or error
      */
-    private ResponseEntity<ResponseData> handleFindByMainFixedAssetCode(String mainFixedAssetCode) {
+    private ResponseEntity<ResponseData> handleFindByMainFixedAssetCode(String mainFixedAssetCode, String username) {
         List<FinancialFixedAsset> listFinancialFixedAsset =
-            service.findByMainFixedAssetCodeService(mainFixedAssetCode);
+            service.findByMainFixedAssetCodeAndAddedByService(mainFixedAssetCode, username);
 
         if (listFinancialFixedAsset != null && !listFinancialFixedAsset.isEmpty()) {
             return buildResponse("Se obtuvo informacion para el código de activo fijo principal: "
@@ -500,9 +513,9 @@ public class FinancialFixedAssetController {
      * @param accountingAccount the accounting account code
      * @return a ResponseEntity with assets or error
      */
-    private ResponseEntity<ResponseData> handleFindByAccountingAccount(String accountingAccount) {
+    private ResponseEntity<ResponseData> handleFindByAccountingAccount(String accountingAccount, String username) {
         List<FinancialFixedAsset> listFinancialFixedAsset =
-            service.findByFixedAssetAccountingAccountService(accountingAccount);
+            service.findByFixedAssetAccountingAccountAndAddedByService(accountingAccount, username);
 
         if (listFinancialFixedAsset != null && !listFinancialFixedAsset.isEmpty()) {
             return buildResponse("Se obtuvo informacion para la cuenta contable: "

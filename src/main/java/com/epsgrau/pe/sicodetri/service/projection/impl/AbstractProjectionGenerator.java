@@ -68,7 +68,7 @@ public abstract class AbstractProjectionGenerator {
      *                       limit projections
      * @return the updated {@link Projection} containing one year’s worth of entries
      */
-    protected Projection processYearDepreciation(FinancialFixedAsset fixedAsset,
+    protected Projection processYearDepreciation(FinancialFixedAsset fixedAsset, String username,
         Projection projection, TaxTableSunat taxTable, String typeProjection,
         int numberYears) {
         for (int month = 0; month < 12; month++) {
@@ -77,7 +77,7 @@ public abstract class AbstractProjectionGenerator {
             fin.setFinancialFixedAsset(fixedAsset);
             fin.setAccountingPeriod(projection.getAccountigPeriodNext());
             fin.calculateDepreciation(fixedAsset, typeProjection, numberYears);
-            fin.setAddedBy("CARNOL");
+            fin.setAddedBy(username);
             fin.setAdditionDate(LocalDateTime.now());
             projection.getFinancialDepreciationList().add(fin);
 
@@ -92,7 +92,7 @@ public abstract class AbstractProjectionGenerator {
                 projection.getTaxDepreciation(),
                 typeProjection
             );
-            tax.setAddedBy("CARNOL");
+            tax.setAddedBy(username);
             tax.setAdditionDate(LocalDateTime.now());
             tax.setFirst(false);
             projection.getTaxDepreciationList().add(tax);
@@ -108,7 +108,7 @@ public abstract class AbstractProjectionGenerator {
                 ded.setAccountingPeriod(projection.getAccountigPeriodNext());
                 ded.setTaxDepreciation(tax);
                 ded.setValueDeduction(diff);
-                ded.setAddedBy("CARNOL");
+                ded.setAddedBy(username);
                 ded.setAdditionDate(LocalDateTime.now());
                 projection.getDeductionList().add(ded);
             } else {
@@ -122,7 +122,7 @@ public abstract class AbstractProjectionGenerator {
                 add.setAccountingPeriod(projection.getAccountigPeriodNext());
                 add.setTaxDepreciation(tax);
                 add.setValueAddition(valueToAdd);
-                add.setAddedBy("CARNOL");
+                add.setAddedBy(username);
                 add.setAdditionDate(LocalDateTime.now());
                 projection.getAdditionList().add(add);
             }

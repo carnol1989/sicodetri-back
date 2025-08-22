@@ -154,12 +154,13 @@ class FinancialFixedAssetServiceImplTest {
     void returnNonEmptyListWhenExcelFileHasContent() throws IOException {
         // Arrange
         String period = "2022-01-01";
+        String username = "TEST";
         ByteArrayInputStream bais = createMockExcelInputStream();
         MockMultipartFile file = new MockMultipartFile("file", "test.xlsx",
                 TYPE_XLSX, bais);
 
         // Act
-        List<InputData> result = service.loadExcelFileToObjectService(file, period);
+        List<InputData> result = service.loadExcelFileToObjectService(file, period, username);
 
         // Assert
         assertFalse(result.isEmpty(), "The result should not be empty when the file has content.");
@@ -178,12 +179,13 @@ class FinancialFixedAssetServiceImplTest {
     void returnEmptyListWhenExcelFileIsEmpty() throws IOException {
         // Arrange
         String period = "2022-01-01";
+        String username = "TEST";
         ByteArrayInputStream bais = createMockExcelEmpty();
         MockMultipartFile file = new MockMultipartFile("file", "test.xlsx",
                 TYPE_XLSX, bais);
 
         // Act
-        List<InputData> result = service.loadExcelFileToObjectService(file, period);
+        List<InputData> result = service.loadExcelFileToObjectService(file, period, username);
 
         // Assert
         assertTrue(result.isEmpty());
@@ -198,13 +200,14 @@ class FinancialFixedAssetServiceImplTest {
     @DisplayName("Throw RuntimeException when IOException occurs during Excel parsing")
     void throwRuntimeExceptionWhenIOExceptionOccursDuringExcelParsing() throws IOException {
         // Arrange
+        String username = "TEST";
         MultipartFile file = mock(MultipartFile.class);
         when(file.getInputStream()).thenThrow(new IOException("Test exception"));
         String period = "2024-01";
 
         // Act
         RuntimeException thrown = assertThrows(RuntimeException.class, () -> {
-            service.loadExcelFileToObjectService(file, period);
+            service.loadExcelFileToObjectService(file, period, username);
         });
 
         // Assert
@@ -219,17 +222,18 @@ class FinancialFixedAssetServiceImplTest {
     void saveAllAssetsWhenInputDataListIsNonEmpty() {
         // Arrange
         String accountingPeriod = "2024-01";
+        String username = "TEST";
         List<InputData> listInputData = getListInputData();
 
         // Act
-        service.saveAllService(accountingPeriod, listInputData);
+        service.saveAllService(accountingPeriod, listInputData, username);
 
         // Assert
         ArgumentCaptor<List<FinancialFixedAsset>> captor = ArgumentCaptor.forClass(List.class);
         verify(repository, times(1)).saveAll(captor.capture());
 
         List<FinancialFixedAsset> capturedList = captor.getValue();
-        List<FinancialFixedAsset> expectedList = getListFinancialFixedAsset(accountingPeriod, listInputData);
+        List<FinancialFixedAsset> expectedList = getListFinancialFixedAsset(accountingPeriod, listInputData, username);
 
         assertEquals(expectedList.size(), capturedList.size());
         for (int i = 0; i < expectedList.size(); i++) {
@@ -251,16 +255,17 @@ class FinancialFixedAssetServiceImplTest {
     void saveEmptyListWhenInputDataListIsEmpty() {
         // Arrange
         String accountingPeriod = "2022-01-01";
+        String username = "TEST";
         List<InputData> listInputData = new ArrayList<>();
 
         // Act
-        service.saveAllService(accountingPeriod, listInputData);
+        service.saveAllService(accountingPeriod, listInputData, username);
 
         // Assert
         ArgumentCaptor<List<FinancialFixedAsset>> captor = ArgumentCaptor.forClass(List.class);
         verify(repository, times(1)).saveAll(captor.capture());
         List<FinancialFixedAsset> capturedList = captor.getValue();
-        List<FinancialFixedAsset> expectedList = getListFinancialFixedAsset(accountingPeriod, listInputData);
+        List<FinancialFixedAsset> expectedList = getListFinancialFixedAsset(accountingPeriod, listInputData, username);
         assertEquals(expectedList.size(), capturedList.size());
     }
 
@@ -271,11 +276,13 @@ class FinancialFixedAssetServiceImplTest {
     @DisplayName("Return matching assets when getListFinancialFixedAsset is called with matching data")
     void returnMatchingAssetsWhenGetListFinancialFixedAssetIsCalledWithMatchingData() {
         String accountingPeriod = "2022-01-01";
+        String username = "katherine_gutierrez";
         List<InputData> inputDataList = getListInputData();
         FinancialFixedAsset expectedAsset = getFinancialFixedAsset012();
 
         // Act
-        List<FinancialFixedAsset> result = FinancialFixedAssetServiceImpl.getListFinancialFixedAsset(accountingPeriod, inputDataList);
+        List<FinancialFixedAsset> result = FinancialFixedAssetServiceImpl.getListFinancialFixedAsset(accountingPeriod,
+            inputDataList, username);
 
         // Assert
         assertNotNull(result);
@@ -285,7 +292,7 @@ class FinancialFixedAssetServiceImplTest {
         assertEquals(expectedAsset.getMainFixedAssetCode(), actualAsset.getMainFixedAssetCode());
         assertEquals(expectedAsset.getFixedAssetCodeComponent(), actualAsset.getFixedAssetCodeComponent());
         assertEquals(expectedAsset.getFixedAssetAccountingAccount(), actualAsset.getFixedAssetAccountingAccount());
-        assertEquals("CARNOL", actualAsset.getAddedBy());
+        assertEquals("katherine_gutierrez", actualAsset.getAddedBy());
         assertNotNull(actualAsset.getAdditionDate()); // Check if additionDate is set
     }
 
@@ -297,10 +304,12 @@ class FinancialFixedAssetServiceImplTest {
     void returnEmptyListWhenGetListFinancialFixedAssetIsCalledWithEmptyList() {
         // Arrange
         String accountingPeriod = "2022-01-01";
+        String username = "TEST";
         List<InputData> inputDataList = new ArrayList<>();
 
         // Act
-        List<FinancialFixedAsset> result = FinancialFixedAssetServiceImpl.getListFinancialFixedAsset(accountingPeriod, inputDataList);
+        List<FinancialFixedAsset> result = FinancialFixedAssetServiceImpl.getListFinancialFixedAsset(accountingPeriod,
+            inputDataList, username);
 
         // Assert
         assertNotNull(result);
@@ -315,11 +324,12 @@ class FinancialFixedAssetServiceImplTest {
     void throwIllegalArgumentExceptionWhenGetListFinancialFixedAssetReceivesNullInputData() {
         // Arrange
         String accountingPeriod = "2022-01-01";
+        String username = "TEST";
         List<InputData> inputDataList = null;
 
         // Act
         IllegalArgumentException thrown = assertThrows(IllegalArgumentException.class, () ->
-                getListFinancialFixedAsset(accountingPeriod, inputDataList)
+                getListFinancialFixedAsset(accountingPeriod, inputDataList, username)
         );
 
         // Assert
@@ -339,7 +349,7 @@ class FinancialFixedAssetServiceImplTest {
 
         // Act
         RuntimeException thrown = assertThrows(RuntimeException.class, () ->
-                getListFinancialFixedAsset(null, inputDataList)
+                getListFinancialFixedAsset(null, inputDataList, null)
         );
 
         // Assert
@@ -354,6 +364,7 @@ class FinancialFixedAssetServiceImplTest {
     @DisplayName("Throw RuntimeException when date parse fails in getListFinancialFixedAsset")
     void throwIllegalArgumentExceptionWhenDateParseFailsInGetListFinancialFixedAsset() {
         // Arrange
+        String username = "katherine_gutierrez";
         InputData badDate = getListInputData().get(0);
         badDate.setAcquisitionDate("invalid-date");
         badDate.setAccountingPeriod("2022-01-01");
@@ -361,7 +372,7 @@ class FinancialFixedAssetServiceImplTest {
 
         // Act
         RuntimeException thrown = assertThrows(RuntimeException.class, () ->
-                getListFinancialFixedAsset("2022-01-01", inputDataList)
+                getListFinancialFixedAsset("2022-01-01", inputDataList, username)
         );
 
         // Assert
@@ -376,6 +387,7 @@ class FinancialFixedAssetServiceImplTest {
     @DisplayName("Throw RuntimeException when BigDecimal parse fails in getListFinancialFixedAsset")
     void throwIllegalArgumentExceptionWhenBigDecimalParseFailsInGetListFinancialFixedAsset() {
         // Arrange
+        String username = "katherine_gutierrez";
         InputData badNumber = getListInputData().get(0);
         badNumber.setAccountingPeriod("2022-01-01");
         badNumber.setInitialBalance("notANumber");
@@ -383,7 +395,7 @@ class FinancialFixedAssetServiceImplTest {
 
         // Act
         RuntimeException thrown = assertThrows(RuntimeException.class, () ->
-                getListFinancialFixedAsset("2022-01-01", inputDataList)
+                getListFinancialFixedAsset("2022-01-01", inputDataList, username)
         );
 
         // Assert
@@ -398,6 +410,7 @@ class FinancialFixedAssetServiceImplTest {
     @DisplayName("Throw RuntimeException when Double parse fails in getListFinancialFixedAsset")
     void throwIllegalArgumentExceptionWhenDoubleParseFailsInGetListFinancialFixedAsset() {
         // Arrange
+        String username = "katherine_gutierrez";
         InputData badDouble = getListInputData().get(0);
         badDouble.setAccountingPeriod("2022-01-01");
         badDouble.setUsefulLifeYears("notADouble");
@@ -405,7 +418,7 @@ class FinancialFixedAssetServiceImplTest {
 
         // Act
         RuntimeException thrown = assertThrows(RuntimeException.class, () ->
-                getListFinancialFixedAsset("2022-01-01", inputDataList)
+                getListFinancialFixedAsset("2022-01-01", inputDataList, username)
         );
 
         // Assert
@@ -452,13 +465,14 @@ class FinancialFixedAssetServiceImplTest {
     @DisplayName("Delete assets by accounting period when deleteByAccountingPeriod is called")
     void deleteAssetsByAccountingPeriodWhenDeleteByAccountingPeriodIsCalled() {
         // Arrange
+        String username = "TEST";
         LocalDate period = LocalDate.of(2022, 1, 1);
 
         // Act
-        service.deleteByAccountingPeriod(period);
+        service.deleteByAccountingPeriodAndAddedByService(period, username);
 
         // Assert
-        verify(repository, times(1)).deleteByAccountingPeriod(period);
+        verify(repository, times(1)).deleteByAccountingPeriodAndAddedBy(period, username);
     }
 
     /**
@@ -507,20 +521,21 @@ class FinancialFixedAssetServiceImplTest {
     void returnListWhenFindByMainFixedAssetCodeServiceIsCalledWithNonEmptyResult() {
         // Arrange
         String mainFixedAssetCode = "21.02.010149";
+        String username = "TEST";
         FinancialFixedAsset fixedAsset1 = getFinancialFixedAsset012();
         FinancialFixedAsset fixedAsset2 = getFinancialFixedAsset332();
         List<FinancialFixedAsset> financialFixedAssets = DataTest.getListFinancialFixedAsset();
-        when(repository.findByMainFixedAssetCode(mainFixedAssetCode)).thenReturn(financialFixedAssets);
+        when(repository.findByMainFixedAssetCodeAndAddedBy(mainFixedAssetCode, username)).thenReturn(financialFixedAssets);
 
         // Act
-        List<FinancialFixedAsset> result = service.findByMainFixedAssetCodeService(mainFixedAssetCode);
+        List<FinancialFixedAsset> result = service.findByMainFixedAssetCodeAndAddedByService(mainFixedAssetCode, username);
 
         // Assert
         assertNotNull(result);
         assertEquals(2, result.size());
         assertEquals(result.get(0).getMainFixedAssetCode(), fixedAsset1.getMainFixedAssetCode());
         assertEquals(result.get(1).getFixedAssetAccountingAccount(), fixedAsset2.getFixedAssetAccountingAccount());
-        verify(repository).findByMainFixedAssetCode(mainFixedAssetCode);
+        verify(repository).findByMainFixedAssetCodeAndAddedBy(mainFixedAssetCode, username);
     }
 
     /**
@@ -531,15 +546,16 @@ class FinancialFixedAssetServiceImplTest {
     void returnEmptyWhenFindByMainFixedAssetCodeServiceIsCalledWithEmptyResult() {
         // Arrange
         String mainFixedAssetCode = "21.02.010149";
-        when(repository.findByMainFixedAssetCode(mainFixedAssetCode)).thenReturn(Collections.emptyList());
+        String username = "TEST";
+        when(repository.findByMainFixedAssetCodeAndAddedBy(mainFixedAssetCode, username)).thenReturn(Collections.emptyList());
 
         // Act
-        List<FinancialFixedAsset> result = service.findByMainFixedAssetCodeService(mainFixedAssetCode);
+        List<FinancialFixedAsset> result = service.findByMainFixedAssetCodeAndAddedByService(mainFixedAssetCode, username);
 
         // Assert
         assertNotNull(result);
         assertTrue(result.isEmpty());
-        verify(repository).findByMainFixedAssetCode(mainFixedAssetCode);
+        verify(repository).findByMainFixedAssetCodeAndAddedBy(mainFixedAssetCode, username);
     }
 
     /**
@@ -550,20 +566,21 @@ class FinancialFixedAssetServiceImplTest {
     void returnListWhenFindByFixedAssetAccountingAccountServiceIsCalledWithNonEmptyResult() {
         // Arrange
         String accountingAccount = "3321161001";
+        String username = "TEST";
         FinancialFixedAsset asset1 = getFinancialFixedAsset012();
         FinancialFixedAsset asset2 = getFinancialFixedAsset332();
         List<FinancialFixedAsset> assetList = List.of(asset1, asset2);
-        when(repository.findByFixedAssetAccountingAccount(accountingAccount)).thenReturn(assetList);
+        when(repository.findByFixedAssetAccountingAccountAndAddedBy(accountingAccount, username)).thenReturn(assetList);
 
         // Act
-        List<FinancialFixedAsset> result = service.findByFixedAssetAccountingAccountService(accountingAccount);
+        List<FinancialFixedAsset> result = service.findByFixedAssetAccountingAccountAndAddedByService(accountingAccount, username);
 
         // Assert
         assertNotNull(result);
         assertEquals(2, result.size());
         assertTrue(result.contains(asset1));
         assertTrue(result.contains(asset2));
-        verify(repository).findByFixedAssetAccountingAccount(accountingAccount);
+        verify(repository).findByFixedAssetAccountingAccountAndAddedBy(accountingAccount, username);
     }
 
     /**
@@ -574,15 +591,16 @@ class FinancialFixedAssetServiceImplTest {
     void returnEmptyWhenFindByFixedAssetAccountingAccountServiceIsCalledWithEmptyResult() {
         // Arrange
         String accountingAccount = "3321161001";
-        when(repository.findByFixedAssetAccountingAccount(accountingAccount)).thenReturn(Collections.emptyList());
+        String username = "TEST";
+        when(repository.findByFixedAssetAccountingAccountAndAddedBy(accountingAccount, username)).thenReturn(Collections.emptyList());
 
         // Act
-        List<FinancialFixedAsset> result = service.findByFixedAssetAccountingAccountService(accountingAccount);
+        List<FinancialFixedAsset> result = service.findByFixedAssetAccountingAccountAndAddedByService(accountingAccount, username);
 
         // Assert
         assertNotNull(result);
         assertTrue(result.isEmpty());
-        verify(repository).findByFixedAssetAccountingAccount(accountingAccount);
+        verify(repository).findByFixedAssetAccountingAccountAndAddedBy(accountingAccount, username);
     }
 
     /**
@@ -634,20 +652,21 @@ class FinancialFixedAssetServiceImplTest {
     void returnListWhenFindByPeriodServiceIsCalledWithNonEmptyResult() {
         // Arrange
         LocalDate period = LocalDate.parse("2022-01-01");
+        String username = "TEST";
         FinancialFixedAsset asset1 = getFinancialFixedAsset012();
         FinancialFixedAsset asset2 = getFinancialFixedAsset332();
         List<FinancialFixedAsset> assetList = List.of(asset1, asset2);
-        when(repository.findByAccountingPeriod(period)).thenReturn(assetList);
+        when(repository.findByAccountingPeriodAndAddedBy(period, username)).thenReturn(assetList);
 
         // Act
-        List<FinancialFixedAsset> result = service.findByPeriodService(period);
+        List<FinancialFixedAsset> result = service.findByPeriodAndAddedByService(period, username);
 
         // Assert
         assertNotNull(result);
         assertEquals(2, result.size());
         assertTrue(result.contains(asset1));
         assertTrue(result.contains(asset2));
-        verify(repository).findByAccountingPeriod(period);
+        verify(repository).findByAccountingPeriodAndAddedBy(period, username);
     }
 
     /**
@@ -658,15 +677,16 @@ class FinancialFixedAssetServiceImplTest {
     void returnEmptyWhenFindByPeriodServiceIsCalledWithEmptyResult() {
         // Arrange
         LocalDate period = LocalDate.now();
-        when(repository.findByAccountingPeriod(period)).thenReturn(Collections.emptyList());
+        String username = "TEST";
+        when(repository.findByAccountingPeriodAndAddedBy(period, username)).thenReturn(Collections.emptyList());
 
         // Act
-        List<FinancialFixedAsset> result = service.findByPeriodService(period);
+        List<FinancialFixedAsset> result = service.findByPeriodAndAddedByService(period, username);
 
         // Assert
         assertNotNull(result);
         assertTrue(result.isEmpty());
-        verify(repository).findByAccountingPeriod(period);
+        verify(repository).findByAccountingPeriodAndAddedBy(period, username);
     }
 
     /**
@@ -676,23 +696,24 @@ class FinancialFixedAssetServiceImplTest {
     @DisplayName("Return list when findByPeriodAndAccountStartingWithService is called with non-empty result")
     void returnListWhenFindByPeriodAndAccountStartingWithServiceIsCalledWithNonEmptyResult() {
         // Arrange
-        LocalDate period = LocalDate.now();
+        String username = "katherine_gutierrez";
+        LocalDate period = LocalDate.of(2022,1,1);
         String accountPrefix = S_VAL_332;
         FinancialFixedAsset asset1 = getFinancialFixedAsset012();
         FinancialFixedAsset asset2 = getFinancialFixedAsset332();
         List<FinancialFixedAsset> assetList = List.of(asset1, asset2);
-        when(repository.findByAccountingPeriodAndFixedAssetAccountingAccountStartingWith(period, accountPrefix))
+        when(repository.findByAccountingPeriodAndAddedByAndFixedAssetAccountingAccountStartingWith(period, username, accountPrefix))
                 .thenReturn(assetList);
 
         // Act
-        List<FinancialFixedAsset> result = service.findByPeriodAndAccountStartingWithService(period, accountPrefix);
+        List<FinancialFixedAsset> result = service.findByPeriodAndAddedByAndAccountStartingWithService(period, accountPrefix, username);
 
         // Assert
         assertNotNull(result);
         assertEquals(2, result.size());
         assertTrue(result.contains(asset1));
         assertTrue(result.contains(asset2));
-        verify(repository).findByAccountingPeriodAndFixedAssetAccountingAccountStartingWith(period, accountPrefix);
+        verify(repository).findByAccountingPeriodAndAddedByAndFixedAssetAccountingAccountStartingWith(period, username, accountPrefix);
     }
 
     /**
@@ -702,18 +723,21 @@ class FinancialFixedAssetServiceImplTest {
     @DisplayName("Return empty when findByPeriodAndAccountStartingWithService is called with empty result")
     void returnEmptyWhenFindByPeriodAndAccountStartingWithServiceIsCalledWithEmptyResult() {
         // Arrange
+        String username = "TEST";
         LocalDate period = LocalDate.now();
         String accountPrefix = "ACC";
-        when(repository.findByAccountingPeriodAndFixedAssetAccountingAccountStartingWith(period, accountPrefix))
-                .thenReturn(Collections.emptyList());
+        when(repository.findByAccountingPeriodAndAddedByAndFixedAssetAccountingAccountStartingWith(period, username,
+            accountPrefix)).thenReturn(Collections.emptyList());
 
         // Act
-        List<FinancialFixedAsset> result = service.findByPeriodAndAccountStartingWithService(period, accountPrefix);
+        List<FinancialFixedAsset> result = service.findByPeriodAndAddedByAndAccountStartingWithService(period, accountPrefix,
+            username);
 
         // Assert
         assertNotNull(result);
         assertTrue(result.isEmpty());
-        verify(repository).findByAccountingPeriodAndFixedAssetAccountingAccountStartingWith(period, accountPrefix);
+        verify(repository).findByAccountingPeriodAndAddedByAndFixedAssetAccountingAccountStartingWith(period, username,
+            accountPrefix);
     }
 
     /**
@@ -724,11 +748,13 @@ class FinancialFixedAssetServiceImplTest {
     void returnNewAssetWhenGetListFinancialFixedAssetIsCalledWithNullFields() {
         // Arrange
         String accountingPeriod = "2022-01-01";
+        String username = "katherine_gutierrez";
         List<InputData> inputDataList = getListInputData();
         FinancialFixedAsset expectedAsset = getFinancialFixedAsset012();
 
         // Act
-        List<FinancialFixedAsset> result = FinancialFixedAssetServiceImpl.getListFinancialFixedAsset(accountingPeriod, inputDataList);
+        List<FinancialFixedAsset> result = FinancialFixedAssetServiceImpl.getListFinancialFixedAsset(accountingPeriod,
+            inputDataList, username);
 
         // Assert
         assertNotNull(result);
@@ -738,7 +764,7 @@ class FinancialFixedAssetServiceImplTest {
         assertEquals(expectedAsset.getMainFixedAssetCode(), actualAsset.getMainFixedAssetCode());
         assertEquals(expectedAsset.getFixedAssetCodeComponent(), actualAsset.getFixedAssetCodeComponent());
         assertEquals(expectedAsset.getFixedAssetAccountingAccount(), actualAsset.getFixedAssetAccountingAccount());
-        assertEquals("CARNOL", actualAsset.getAddedBy());
+        assertEquals("katherine_gutierrez", actualAsset.getAddedBy());
         assertNotNull(actualAsset.getAdditionDate());
     }
 
@@ -755,7 +781,8 @@ class FinancialFixedAssetServiceImplTest {
                 null,
                 LocalDate.now(),
                 fixedAssets,
-                "ACC"
+                "ACC",
+                null
             ),
             "Cuando se pase un tipo de proyección no soportado (null), debe lanzarse IllegalArgumentException"
         );
@@ -768,12 +795,13 @@ class FinancialFixedAssetServiceImplTest {
     @Test
     @DisplayName("generate projection service delegates to correct generator")
     void generateProjectionServiceDelegatesToGenerator() {
+        String username = "katherine_gutierrez";
         LocalDate date = LocalDate.of(2022,1,1);
         List<FinancialFixedAsset> assets = List.of(new FinancialFixedAsset());
-        service.generateProjectionService(ProjectionType.TEMPORARY_DEDUCTIONS, date, assets, "ACC");
-        verify(generateTemporaryDeductions).generate(date, assets);
+        service.generateProjectionService(ProjectionType.TEMPORARY_DEDUCTIONS, date, assets, "ACC", username);
+        verify(generateTemporaryDeductions).generate(username, date, assets);
         // no invoca al otro
-        verify(generateTemporaryAdditions, never()).generate(any(), any());
+        verify(generateTemporaryAdditions, never()).generate(any(), any(), any());
     }
 
     /**
@@ -782,12 +810,13 @@ class FinancialFixedAssetServiceImplTest {
     @Test
     @DisplayName("findByAccountingAccountPrefixesService delegates to repository")
     void findByAccountingAccountPrefixesServiceDelegates() {
+        String username = "TEST";
         List<String> prefixes = List.of("332","333");
-        when(repository.findByAccountingAccountPrefixes(prefixes))
+        when(repository.findByAddedByAndAccountingAccountPrefixes(username, prefixes))
             .thenReturn(DataTest.getListFinancialFixedAsset());
-        var result = service.findByAccountingAccountPrefixesService(prefixes);
+        var result = service.findByAddedByAndAccountingAccountPrefixesService(username, prefixes);
         assertEquals(2, result.size());
-        verify(repository).findByAccountingAccountPrefixes(prefixes);
+        verify(repository).findByAddedByAndAccountingAccountPrefixes(username, prefixes);
     }
 
     /**
@@ -828,6 +857,7 @@ class FinancialFixedAssetServiceImplTest {
     void returnEmptyListWhenMultipartFileIsEmpty() throws IOException {
         // Arrange
         String period = "2022-01-01";
+        String username = "TEST";
         // Creamos un workbook válido en memoria
         XSSFWorkbook workbook = new XSSFWorkbook();
         Sheet sheet = workbook.createSheet("Hoja1");
@@ -842,7 +872,7 @@ class FinancialFixedAssetServiceImplTest {
         when(file.getInputStream()).thenReturn(new ByteArrayInputStream(workbookBytes));
 
         // Act
-        List<InputData> result = service.loadExcelFileToObjectService(file, period);
+        List<InputData> result = service.loadExcelFileToObjectService(file, period, username);
 
         // Assert
         assertNotNull(result, "No debe ser null aunque isEmpty sea true");
@@ -856,6 +886,7 @@ class FinancialFixedAssetServiceImplTest {
     @DisplayName("generate projection service delegates to additions generator")
     void generateProjectionServiceDelegatesToAdditionsGenerator() {
         // Arrange
+        String username = "katherine_gutierrez";
         LocalDate date = LocalDate.of(2023, 6, 1);
         List<FinancialFixedAsset> assets = List.of(new FinancialFixedAsset());
 
@@ -864,12 +895,13 @@ class FinancialFixedAssetServiceImplTest {
             ProjectionType.TEMPORARY_ADDITIONS,
             date,
             assets,
-            "ACC"
+            "ACC",
+            username
         );
 
         // Assert
-        verify(generateTemporaryAdditions).generate(date, assets);
-        verify(generateTemporaryDeductions, never()).generate(any(), any());
+        verify(generateTemporaryAdditions).generate(username, date, assets);
+        verify(generateTemporaryDeductions, never()).generate(any(), any(), any());
     }
 
     /**
@@ -879,17 +911,18 @@ class FinancialFixedAssetServiceImplTest {
     @DisplayName("Return empty list when findByAccountingAccountPrefixesService returns empty result")
     void returnEmptyListWhenFindByAccountingAccountPrefixesServiceReturnsEmptyResult() {
         // Arrange
+        String username = "TEST";
         List<String> prefixes = List.of("999", "888");
-        when(repository.findByAccountingAccountPrefixes(prefixes))
+        when(repository.findByAddedByAndAccountingAccountPrefixes(username, prefixes))
             .thenReturn(Collections.emptyList());
 
         // Act
-        List<FinancialFixedAsset> result = service.findByAccountingAccountPrefixesService(prefixes);
+        List<FinancialFixedAsset> result = service.findByAddedByAndAccountingAccountPrefixesService(username, prefixes);
 
         // Assert
         assertNotNull(result, "No debe ser null aunque no haya coincidencias");
         assertTrue(result.isEmpty(), "Debe devolver lista vacía cuando el repositorio no encuentra nada");
-        verify(repository).findByAccountingAccountPrefixes(prefixes);
+        verify(repository).findByAddedByAndAccountingAccountPrefixes(username, prefixes);
     }
 
     /**

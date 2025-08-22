@@ -11,6 +11,7 @@ import static com.epsgrau.pe.sicodetri.util.ConstantsTest.N_VAL_2;
 import static com.epsgrau.pe.sicodetri.util.ConstantsTest.N_VAL_3;
 import static com.epsgrau.pe.sicodetri.util.ConstantsTest.LIST_INPUT_DATA;
 import static com.epsgrau.pe.sicodetri.util.ConstantsTest.FORMATTER_YYYY_MM_DD;
+import static com.epsgrau.pe.sicodetri.util.DataTest.auth;
 import static com.epsgrau.pe.sicodetri.util.DataTest.getListFinancialFixedAsset;
 import static com.epsgrau.pe.sicodetri.util.DataTest.getListInputData;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -28,6 +29,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.anyMap;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -73,6 +75,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.ContentDisposition;
 import org.springframework.mock.web.MockHttpSession;
 import org.springframework.mock.web.MockMultipartFile;
+import org.springframework.security.authentication.TestingAuthenticationToken;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
@@ -162,12 +165,13 @@ class FinancialFixedAssetControllerTest {
         // Arrange
         String period = "2022-01-01";
         String fileName = "test.xlsx";
+        String username = "TEST";
         ByteArrayInputStream bais = createMockExcelInputStream();
 
         MultipartFile file = new MockMultipartFile("file", fileName, TYPE_XLSX, bais);
         List<InputData> inputDataList = getListInputData();
 
-        when(service.loadExcelFileToObjectService(file, period)).thenReturn(inputDataList);
+        when(service.loadExcelFileToObjectService(file, period, username)).thenReturn(inputDataList);
 
         MockHttpSession session = new MockHttpSession();
 
@@ -231,15 +235,20 @@ class FinancialFixedAssetControllerTest {
         // Arrange
         String fileName = "test.xlsx";
         String period = "2022-01-01";
+        String username = "katherine_gutierrez";
         ByteArrayInputStream errorInputStream  = createMockExcelInputStreamFailed();
         MultipartFile file = new MockMultipartFile("file", fileName, TYPE_XLSX, errorInputStream);
 
-        when(service.loadExcelFileToObjectService(file, period))
+        when(service.loadExcelFileToObjectService(file, period, username))
                 .thenThrow(new RuntimeException("Error al procesar archivo: test.xlsx"));
+
+        TestingAuthenticationToken auth = new TestingAuthenticationToken(username, "pwd", "ROLE_AssetUploader");
+        auth.setAuthenticated(true);
 
         MockHttpServletRequestBuilder requestBuilder = multipart(BASE_URI + "/upload")
                 .file((MockMultipartFile) file)
-                .param("period", period);
+                .param("period", period)
+                .with(req -> { req.setUserPrincipal(auth); return req; });
 
         // Act
         MvcResult result = mockMvc.perform(requestBuilder)
@@ -267,11 +276,12 @@ class FinancialFixedAssetControllerTest {
     void returnCreatedResponseWhenInputDataIsStoredSuccessfullyFromSession() {
         // Arrange
         String period = "2022-01-01";
+
         List<InputData> inputDataList = getListInputData();
         when(session.getAttribute(LIST_INPUT_DATA)).thenReturn(inputDataList);
 
         // Act
-        ResponseEntity<ResponseData> response = controller.saveFinancialFixedAssetController(period, session);
+        ResponseEntity<ResponseData> response = controller.saveFinancialFixedAssetController(period, session, null);
 
         // Assert
         assertEquals(HttpStatus.CREATED, response.getStatusCode());
@@ -290,10 +300,10 @@ class FinancialFixedAssetControllerTest {
         String period = "2024-08-01";
         List<InputData> listInputData = Collections.singletonList(new InputData()); // Simula datos de entrada
         when(session.getAttribute(LIST_INPUT_DATA)).thenReturn(listInputData);
-        doThrow(new RuntimeException("Test Exception")).when(service).saveAllService(anyString(), anyList());
+        doThrow(new RuntimeException("Test Exception")).when(service).saveAllService(anyString(), anyList(), anyString());
 
         // Act
-        ResponseEntity<ResponseData> response = controller.saveFinancialFixedAssetController(period, session);
+        ResponseEntity<ResponseData> response = controller.saveFinancialFixedAssetController(period, session, null);
 
         // Assert
         assertEquals(HttpStatus.EXPECTATION_FAILED, response.getStatusCode());
@@ -316,7 +326,7 @@ class FinancialFixedAssetControllerTest {
         when(session.getAttribute(LIST_INPUT_DATA)).thenReturn(new ArrayList<>());
 
         // Act
-        ResponseEntity<ResponseData> response = controller.saveFinancialFixedAssetController("2024-08", session);
+        ResponseEntity<ResponseData> response = controller.saveFinancialFixedAssetController("2024-08", session, null);
 
         // Assert
         assertEquals(HttpStatus.EXPECTATION_FAILED, response.getStatusCode());
@@ -333,12 +343,12 @@ class FinancialFixedAssetControllerTest {
     void returnOkWhenFinancialProjectionIsGeneratedSuccessfully() {
         // Arrange
         String period = "2022-01-01";
-        when(service.findByPeriodAndAccountStartingWithService(any(LocalDate.class), anyString()))
+        when(service.findByPeriodAndAddedByAndAccountStartingWithService(any(LocalDate.class), anyString(), anyString()))
                 .thenReturn(getListFinancialFixedAsset());
 
         // Act
         ProjectionType projectionType = ProjectionType.TEMPORARY_ADDITIONS;
-        ResponseEntity<ResponseData> response = controller.generateProjectionController(projectionType, period, S_VAL_332);
+        ResponseEntity<ResponseData> response = controller.generateProjectionController(projectionType, period, S_VAL_332, null);
 
         // Assert
         assertEquals(HttpStatus.OK, response.getStatusCode());
@@ -354,11 +364,13 @@ class FinancialFixedAssetControllerTest {
     @DisplayName("Return expectation failed when no data is found for projection generation")
     void returnExpectationFailedWhenNoDataIsFoundForProjectionGeneration() {
         // Arrange
-        when(service.findByPeriodAndAccountStartingWithService(any(LocalDate.class), anyString())).thenReturn(new ArrayList<>());
+        when(service.findByPeriodAndAddedByAndAccountStartingWithService(any(LocalDate.class), anyString(), anyString()))
+            .thenReturn(new ArrayList<>());
 
         // Act
         ProjectionType projectionType = ProjectionType.TEMPORARY_ADDITIONS;
-        ResponseEntity<ResponseData> response = controller.generateProjectionController(projectionType, "2024-08-01", "account");
+        ResponseEntity<ResponseData> response = controller.generateProjectionController(projectionType, "2024-08-01",
+            "account", null);
 
         // Assert
         assertEquals(HttpStatus.EXPECTATION_FAILED, response.getStatusCode());
@@ -377,12 +389,12 @@ class FinancialFixedAssetControllerTest {
         String period = "2024-08-01";
         String account = "account";
         HttpServletRequest request = mock(HttpServletRequest.class);
-        when(service.findByPeriodAndAccountStartingWithService(any(LocalDate.class), anyString()))
+        when(service.findByPeriodAndAddedByAndAccountStartingWithService(any(LocalDate.class), anyString(), anyString()))
                 .thenThrow(new RuntimeException("Simulated exception"));
 
         // Act
         ProjectionType projectionType = ProjectionType.TEMPORARY_ADDITIONS;
-        ResponseEntity<ResponseData> response = controller.generateProjectionController(projectionType, period, account);
+        ResponseEntity<ResponseData> response = controller.generateProjectionController(projectionType, period, account, null);
 
         // Assert
         assertEquals(HttpStatus.EXPECTATION_FAILED, response.getStatusCode());
@@ -410,42 +422,46 @@ class FinancialFixedAssetControllerTest {
      */
     @ParameterizedTest
     @CsvSource({
-            "1, 2022-01-01, , , OK, 00, Se obtuvo informacion para el periodo",       // Caso éxito para N_VAL_1
-            "1, 2022-02-01, , , NOT_FOUND, 01, Error al obtener informacion para el periodo", // Caso fallo para N_VAL_1
-            "2, , 22.01.010862, , OK, 00, Se obtuvo informacion para el código de activo fijo principal", // Caso éxito para N_VAL_2
-            "2, , 22.01.010773, , NOT_FOUND, 01, Error al obtener informacion para el código de activo fijo principal", // Caso fallo para N_VAL_2
-            "3, , , 3321161001, OK, 00, Se obtuvo informacion para la cuenta contable", // Caso éxito para N_VAL_3
-            "3, , , 3321161002, NOT_FOUND, 01, Error al obtener informacion para la cuenta contable", // Caso fallo para N_VAL_3
-            "999, 2024-08-01, , , EXPECTATION_FAILED, 01, Error al obtener informacion del activo fijo" // Caso opción inválida
+        "1,'2022-01-01','','','katherine_gutierrez',OK,00,'Se obtuvo informacion para el periodo'",
+        "1,'2022-02-01','','','katherine_gutierrez',NOT_FOUND,01,'Error al obtener informacion para el periodo'",
+        "2,'','22.01.010862','','katherine_gutierrez',OK,00,'Se obtuvo informacion para el código de activo fijo principal'",
+        "2,'','22.01.010773','','katherine_gutierrez',NOT_FOUND,01,'Error al obtener informacion para el código de activo fijo principal'",
+        "3,'','','3321161001','katherine_gutierrez',OK,00,'Se obtuvo informacion para la cuenta contable'",
+        "3,'','','3321161002','katherine_gutierrez',NOT_FOUND,01,'Error al obtener informacion para la cuenta contable'",
+        "999,'2024-08-01','','','katherine_gutierrez',EXPECTATION_FAILED,01,'Error al obtener informacion del activo fijo'"
     })
     @DisplayName("Return appropriate response for getFinancialFixedAssetController based on option and input")
-    void returnAppropriateResponseForGetFinancialFixedAssetControllerBasedOnOptionAndInput(int option, String period, String mainFixedAssetCode, String accountingAccount,
-                                              HttpStatus expectedStatus, String expectedCode, String expectedMessage) {
+    void returnAppropriateResponseForGetFinancialFixedAssetControllerBasedOnOptionAndInput(int option, String period,
+        String mainFixedAssetCode, String accountingAccount, String username, HttpStatus expectedStatus, String expectedCode,
+        String expectedMessage) {
         // Arrange
         List<FinancialFixedAsset> financialFixedAssets = getListFinancialFixedAsset();
 
         if (option == N_VAL_1) {
             if (expectedStatus == HttpStatus.OK) {
-                when(service.findByPeriodService(any(LocalDate.class))).thenReturn(financialFixedAssets);
+                when(service.findByPeriodAndAddedByService(any(LocalDate.class), anyString())).thenReturn(financialFixedAssets);
             } else {
-                when(service.findByPeriodService(any(LocalDate.class))).thenReturn(null);
+                when(service.findByPeriodAndAddedByService(any(LocalDate.class), anyString())).thenReturn(null);
             }
         } else if (option == N_VAL_2) {
             if (expectedStatus == HttpStatus.OK) {
-                when(service.findByMainFixedAssetCodeService(mainFixedAssetCode)).thenReturn(financialFixedAssets);
+                when(service.findByMainFixedAssetCodeAndAddedByService(mainFixedAssetCode, username)).thenReturn(financialFixedAssets);
             } else {
-                when(service.findByMainFixedAssetCodeService(mainFixedAssetCode)).thenReturn(null);
+                when(service.findByMainFixedAssetCodeAndAddedByService(mainFixedAssetCode, username)).thenReturn(null);
             }
         } else if (option == N_VAL_3) {
             if (expectedStatus == HttpStatus.OK) {
-                when(service.findByFixedAssetAccountingAccountService(accountingAccount)).thenReturn(financialFixedAssets);
+                when(service.findByFixedAssetAccountingAccountAndAddedByService(accountingAccount, username))
+                    .thenReturn(financialFixedAssets);
             } else {
-                when(service.findByFixedAssetAccountingAccountService(accountingAccount)).thenReturn(null);
+                when(service.findByFixedAssetAccountingAccountAndAddedByService(accountingAccount, username))
+                    .thenReturn(null);
             }
         }
 
         // Act
-        ResponseEntity<ResponseData> response = controller.getFinancialFixedAssetController(option, period, mainFixedAssetCode, accountingAccount);
+        ResponseEntity<ResponseData> response = controller.getFinancialFixedAssetController(option, period, mainFixedAssetCode,
+            accountingAccount, auth(username, "ROLE_DepreciationProcessor"));
 
         // Assert
         assertEquals(expectedStatus, response.getStatusCode());
@@ -467,12 +483,12 @@ class FinancialFixedAssetControllerTest {
         String accountingAccount = "someAccount";
 
         // Simulate the service to throw an exception
-        when(service.findByPeriodService(any(LocalDate.class)))
+        when(service.findByPeriodAndAddedByService(any(LocalDate.class), anyString()))
                 .thenThrow(new RuntimeException("Simulated exception"));
 
         // Act
         ResponseEntity<ResponseData> response = controller.getFinancialFixedAssetController(
-                option, period, mainFixedAssetCode, accountingAccount);
+                option, period, mainFixedAssetCode, accountingAccount, null);
 
         // Assert
         assertEquals(HttpStatus.EXPECTATION_FAILED, response.getStatusCode());
@@ -711,13 +727,13 @@ class FinancialFixedAssetControllerTest {
     void returnOkWhenPeriodExistsAndReturnNotFoundWhenPeriodHasNoData() {
         // Arrange: caso OK
         LocalDate fechaValida = LocalDate.now();
-        when(service.findByPeriodService(any(LocalDate.class))).thenReturn(List.of(new FinancialFixedAsset()));
+        when(service.findByPeriodAndAddedByService(any(LocalDate.class), anyString())).thenReturn(List.of(new FinancialFixedAsset()));
 
         // Act
         ResponseEntity<ResponseData> respOk = controller.getFinancialFixedAssetController(
                 N_VAL_1,
                 fechaValida.format(DateTimeFormatter.ofPattern(FORMATTER_YYYY_MM_DD)),
-                "", "");
+                "", "", null);
 
         // Assert OK
         assertEquals(HttpStatus.OK, respOk.getStatusCode());
@@ -725,13 +741,14 @@ class FinancialFixedAssetControllerTest {
         assertTrue(respOk.getBody().getMessage().contains("Se obtuvo informacion para el periodo"));
 
         // Arrange: caso NOT_FOUND
-        when(service.findByPeriodService(any(LocalDate.class))).thenReturn(Collections.emptyList());
+        when(service.findByPeriodAndAddedByService(any(LocalDate.class), anyString())).thenReturn(Collections.emptyList());
 
         // Act
         ResponseEntity<ResponseData> respNotFound = controller.getFinancialFixedAssetController(
                 N_VAL_1,
                 fechaValida.format(DateTimeFormatter.ofPattern(FORMATTER_YYYY_MM_DD)),
-                "", "");
+                "", "",
+            null);
 
         // Assert NOT_FOUND
         assertEquals(HttpStatus.NOT_FOUND, respNotFound.getStatusCode());
@@ -746,12 +763,12 @@ class FinancialFixedAssetControllerTest {
     @DisplayName("Return OK when mainFixedAssetCode exists and return NOT_FOUND when none")
     void returnOkWhenMainFixedAssetCodeExistsAndReturnNotFoundWhenNone() {
         // Arrange: caso OK
-        when(service.findByMainFixedAssetCodeService(anyString()))
+        when(service.findByMainFixedAssetCodeAndAddedByService(anyString(), anyString()))
                 .thenReturn(List.of(new FinancialFixedAsset()));
 
         // Act
         ResponseEntity<ResponseData> respOk = controller.getFinancialFixedAssetController(
-                N_VAL_2, "", "ABC123", "");
+                N_VAL_2, "", "ABC123", "", null);
 
         // Assert OK
         assertEquals(HttpStatus.OK, respOk.getStatusCode());
@@ -759,11 +776,11 @@ class FinancialFixedAssetControllerTest {
         assertTrue(respOk.getBody().getMessage().contains("Se obtuvo informacion para el código de activo fijo principal"));
 
         // Arrange: caso NOT_FOUND
-        when(service.findByMainFixedAssetCodeService(anyString())).thenReturn(Collections.emptyList());
+        when(service.findByMainFixedAssetCodeAndAddedByService(anyString(), anyString())).thenReturn(Collections.emptyList());
 
         // Act
         ResponseEntity<ResponseData> respNotFound = controller.getFinancialFixedAssetController(
-                N_VAL_2, "", "ABC123", "");
+                N_VAL_2, "", "ABC123", "", null);
 
         // Assert NOT_FOUND
         assertEquals(HttpStatus.NOT_FOUND, respNotFound.getStatusCode());
@@ -778,12 +795,12 @@ class FinancialFixedAssetControllerTest {
     @DisplayName("Return OK when accountingAccount exists and return NOT_FOUND when none")
     void returnOkWhenAccountingAccountExistsAndReturnNotFoundWhenNone() {
         // Arrange: caso OK
-        when(service.findByFixedAssetAccountingAccountService(anyString()))
+        when(service.findByFixedAssetAccountingAccountAndAddedByService(anyString(), anyString()))
                 .thenReturn(List.of(new FinancialFixedAsset()));
 
         // Act
         ResponseEntity<ResponseData> respOk = controller.getFinancialFixedAssetController(
-                N_VAL_3, "", "", "ACC-001");
+                N_VAL_3, "", "", "ACC-001", null);
 
         // Assert OK
         assertEquals(HttpStatus.OK, respOk.getStatusCode());
@@ -791,12 +808,12 @@ class FinancialFixedAssetControllerTest {
         assertTrue(respOk.getBody().getMessage().contains("Se obtuvo informacion para la cuenta contable"));
 
         // Arrange: caso NOT_FOUND
-        when(service.findByFixedAssetAccountingAccountService(anyString()))
+        when(service.findByFixedAssetAccountingAccountAndAddedByService(anyString(), anyString()))
                 .thenReturn(Collections.emptyList());
 
         // Act
         ResponseEntity<ResponseData> respNotFound = controller.getFinancialFixedAssetController(
-                N_VAL_3, "", "", "ACC-001");
+                N_VAL_3, "", "", "ACC-001", null);
 
         // Assert NOT_FOUND
         assertEquals(HttpStatus.NOT_FOUND, respNotFound.getStatusCode());
@@ -811,7 +828,7 @@ class FinancialFixedAssetControllerTest {
     @DisplayName("Return EXPECTATION_FAILED when option is invalid")
     void returnExpectationFailedWhenOptionIsInvalid() {
         ResponseEntity<ResponseData> resp = controller.getFinancialFixedAssetController(
-                999, "2022-01-01", "X", "Y"
+                999, "2022-01-01", "X", "Y", null
         );
 
         assertEquals(HttpStatus.EXPECTATION_FAILED, resp.getStatusCode());
@@ -864,7 +881,7 @@ class FinancialFixedAssetControllerTest {
         when(session.getAttribute(LIST_INPUT_DATA)).thenReturn(null);
 
         // Act
-        ResponseEntity<ResponseData> response = controller.saveFinancialFixedAssetController("2022-01-01", session);
+        ResponseEntity<ResponseData> response = controller.saveFinancialFixedAssetController("2022-01-01", session, null);
 
         // Assert
         assertEquals(HttpStatus.EXPECTATION_FAILED, response.getStatusCode());
@@ -881,7 +898,7 @@ class FinancialFixedAssetControllerTest {
     void returnBadRequestWhenGeneratingProjectionWithInvalidDateFormat() {
         // Act
         ResponseEntity<ResponseData> response = controller.generateProjectionController(
-            ProjectionType.TEMPORARY_ADDITIONS, "2022/01/01", "332");
+            ProjectionType.TEMPORARY_ADDITIONS, "2022/01/01", "332", null);
 
         // Assert
         assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
