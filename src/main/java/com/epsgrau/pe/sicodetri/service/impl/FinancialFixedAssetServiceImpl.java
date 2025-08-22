@@ -126,7 +126,8 @@ public class FinancialFixedAssetServiceImpl implements FinancialFixedAssetServic
      * @throws RuntimeException if file cannot be read or a row mapping fails
      */
     @Override
-    public List<InputData> loadExcelFileToObjectService(MultipartFile file, String period) {
+    public List<InputData> loadExcelFileToObjectService(MultipartFile file, String period,
+                                                        String username) {
         List<InputData> listInputData = new ArrayList<>();
         try (Workbook workbook = new XSSFWorkbook(file.getInputStream())) {
             if (file.isEmpty() || file.getInputStream().available() == 0) {
@@ -157,6 +158,7 @@ public class FinancialFixedAssetServiceImpl implements FinancialFixedAssetServic
 
                     inputData.setFixedAssetDetail(assetDetail);
                     inputData.setDepreciation(depreciation);
+                    inputData.setUsername(username);
                     listInputData.add(inputData);
                 } catch (Exception e) {
                     String msgError = "Error al obtener información de la fila (" + rowNum
@@ -263,9 +265,10 @@ public class FinancialFixedAssetServiceImpl implements FinancialFixedAssetServic
      */
     @Override
     @Transactional
-    public void saveAllService(String accountingPeriod, List<InputData> listInputData) {
+    public void saveAllService(String accountingPeriod, List<InputData> listInputData,
+                               String username) {
         List<FinancialFixedAsset> list = getListFinancialFixedAsset(accountingPeriod,
-            listInputData);
+            listInputData, username);
         repository.saveAll(list);
     }
 
@@ -277,7 +280,7 @@ public class FinancialFixedAssetServiceImpl implements FinancialFixedAssetServic
      * @return List of FinancialFixedAsset
      */
     public static List<FinancialFixedAsset> getListFinancialFixedAsset(String accountingPeriod,
-        List<InputData> listInputData) {
+        List<InputData> listInputData, String username) {
         List<FinancialFixedAsset> list = new ArrayList<>();
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern(FORMATTER_YYYY_MM_DD);
         if (listInputData == null) {
@@ -292,8 +295,8 @@ public class FinancialFixedAssetServiceImpl implements FinancialFixedAssetServic
                     throw new IllegalArgumentException("Periodo contable nulo");
                 }
 
-                if (itemInputData.getAccountingPeriod() != null
-                    && accountingPeriod.equals(itemInputData.getAccountingPeriod())) {
+                if (accountingPeriod.equals(itemInputData.getAccountingPeriod())
+                    && username.equals(itemInputData.getUsername())) {
                     FinancialFixedAsset itemFinancialFixedAsset = new FinancialFixedAsset();
                     int rowNum = itemInputData.getRowNum();
 
@@ -407,7 +410,7 @@ public class FinancialFixedAssetServiceImpl implements FinancialFixedAssetServic
                     itemFinancialFixedAsset.setRowNum(rowNum);
                     itemFinancialFixedAsset.setPhysicalNumberOfRows(
                         itemInputData.getPhysicalNumberOfRows());
-                    itemFinancialFixedAsset.setAddedBy("CARNOL");
+                    itemFinancialFixedAsset.setAddedBy(itemInputData.getUsername());
                     itemFinancialFixedAsset.setAdditionDate(LocalDateTime.now());
                     list.add(itemFinancialFixedAsset);
                 }
@@ -448,8 +451,8 @@ public class FinancialFixedAssetServiceImpl implements FinancialFixedAssetServic
      */
     @Override
     @Transactional
-    public void deleteByAccountingPeriod(LocalDate period) {
-        repository.deleteByAccountingPeriod(period);
+    public void deleteByAccountingPeriodAndAddedByService(LocalDate period, String username) {
+        repository.deleteByAccountingPeriodAndAddedBy(period, username);
     }
 
     /**
@@ -468,12 +471,13 @@ public class FinancialFixedAssetServiceImpl implements FinancialFixedAssetServic
     public void generateProjectionService(ProjectionType type,
                                           LocalDate accountingPeriod,
                                           List<FinancialFixedAsset> fixedAssets,
-                                          String accountingAccount) {
+                                          String accountingAccount,
+                                          String username) {
         ProjectionGenerator gen = projectionGenerators.get(type);
         if (gen == null) {
             throw new IllegalArgumentException("Tipo de proyección no soportado: " + type);
         }
-        gen.generate(accountingPeriod, fixedAssets);
+        gen.generate(username, accountingPeriod, fixedAssets);
     }
 
     /**
@@ -497,8 +501,10 @@ public class FinancialFixedAssetServiceImpl implements FinancialFixedAssetServic
      */
     @Override
     @Transactional(readOnly = true)
-    public List<FinancialFixedAsset> findByMainFixedAssetCodeService(String mainFixedAssetCode) {
-        return new ArrayList<>(repository.findByMainFixedAssetCode(mainFixedAssetCode));
+    public List<FinancialFixedAsset> findByMainFixedAssetCodeAndAddedByService(
+        String mainFixedAssetCode, String username) {
+        return new ArrayList<>(repository.findByMainFixedAssetCodeAndAddedBy(mainFixedAssetCode,
+            username));
     }
 
     /**
@@ -510,9 +516,10 @@ public class FinancialFixedAssetServiceImpl implements FinancialFixedAssetServic
      */
     @Override
     @Transactional(readOnly = true)
-    public List<FinancialFixedAsset> findByFixedAssetAccountingAccountService(
-        String accountingAccount) {
-        return new ArrayList<>(repository.findByFixedAssetAccountingAccount(accountingAccount));
+    public List<FinancialFixedAsset> findByFixedAssetAccountingAccountAndAddedByService(
+        String accountingAccount, String username) {
+        return new ArrayList<>(repository.findByFixedAssetAccountingAccountAndAddedBy(
+            accountingAccount, username));
     }
 
     /**
@@ -534,8 +541,8 @@ public class FinancialFixedAssetServiceImpl implements FinancialFixedAssetServic
      */
     @Override
     @Transactional(readOnly = true)
-    public List<FinancialFixedAsset> findByPeriodService(LocalDate period) {
-        return new ArrayList<>(repository.findByAccountingPeriod(period));
+    public List<FinancialFixedAsset> findByPeriodAndAddedByService(LocalDate period, String username) {
+        return new ArrayList<>(repository.findByAccountingPeriodAndAddedBy(period, username));
     }
 
     /**
@@ -548,10 +555,11 @@ public class FinancialFixedAssetServiceImpl implements FinancialFixedAssetServic
      */
     @Override
     @Transactional(readOnly = true)
-    public List<FinancialFixedAsset> findByPeriodAndAccountStartingWithService(LocalDate period,
-                                                                               String account) {
-        return new ArrayList<>(repository
-            .findByAccountingPeriodAndFixedAssetAccountingAccountStartingWith(period, account));
+    public List<FinancialFixedAsset> findByPeriodAndAddedByAndAccountStartingWithService(LocalDate period,
+                                                                                         String account,
+                                                                                         String username) {
+        return new ArrayList<>(repository.findByAccountingPeriodAndAddedByAndFixedAssetAccountingAccountStartingWith(
+            period, username, account));
     }
 
     /**
@@ -563,8 +571,9 @@ public class FinancialFixedAssetServiceImpl implements FinancialFixedAssetServic
      */
     @Override
     @Transactional(readOnly = true)
-    public List<FinancialFixedAsset> findByAccountingAccountPrefixesService(List<String> prefixes) {
-        return new ArrayList<>(repository.findByAccountingAccountPrefixes(prefixes));
+    public List<FinancialFixedAsset> findByAddedByAndAccountingAccountPrefixesService(String username,
+                                                                                      List<String> prefixes) {
+        return new ArrayList<>(repository.findByAddedByAndAccountingAccountPrefixes(username, prefixes));
     }
 
     /**

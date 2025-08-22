@@ -39,7 +39,8 @@ public interface FinancialFixedAssetRepository extends JpaRepository<FinancialFi
      * @param accountingPeriod the accounting period to filter by
      * @return list of matching FinancialFixedAsset entities; empty if none found
      */
-    List<FinancialFixedAsset> findByAccountingPeriod(LocalDate accountingPeriod);
+    List<FinancialFixedAsset> findByAccountingPeriodAndAddedBy(LocalDate accountingPeriod,
+                                                               String username);
 
     /**
      * Retrieves financial fixed assets for the specified period whose accounting account
@@ -49,8 +50,8 @@ public interface FinancialFixedAssetRepository extends JpaRepository<FinancialFi
      * @param accountingAccountPrefix prefix of the accounting account code
      * @return list of matching FinancialFixedAsset entities; empty if none found
      */
-    List<FinancialFixedAsset> findByAccountingPeriodAndFixedAssetAccountingAccountStartingWith(
-        LocalDate accountingPeriod, String accountingAccountPrefix);
+    List<FinancialFixedAsset> findByAccountingPeriodAndAddedByAndFixedAssetAccountingAccountStartingWith(
+        LocalDate accountingPeriod, String username, String accountingAccountPrefix);
 
     /**
      * Retrieves financial fixed assets whose accounting account code prefix is in the given list.
@@ -59,8 +60,10 @@ public interface FinancialFixedAssetRepository extends JpaRepository<FinancialFi
      * @return list of matching FinancialFixedAsset entities; empty if none found
      */
     @Query("SELECT f FROM FinancialFixedAsset f "
-        + "WHERE SUBSTRING(f.fixedAssetAccountingAccount, 1, 3) IN :prefixes")
-    List<FinancialFixedAsset> findByAccountingAccountPrefixes(
+        + "WHERE f.addedBy = :addedBy AND SUBSTRING(f.fixedAssetAccountingAccount, 1, 3) "
+        + "IN :prefixes")
+    List<FinancialFixedAsset> findByAddedByAndAccountingAccountPrefixes(
+        @Param("addedBy") String username,
         @Param("prefixes") List<String> prefixes);
 
     /**
@@ -69,7 +72,8 @@ public interface FinancialFixedAssetRepository extends JpaRepository<FinancialFi
      * @param mainFixedAssetCode the main fixed asset code to filter by
      * @return list of matching FinancialFixedAsset entities; empty if none found
      */
-    List<FinancialFixedAsset> findByMainFixedAssetCode(String mainFixedAssetCode);
+    List<FinancialFixedAsset> findByMainFixedAssetCodeAndAddedBy(String mainFixedAssetCode,
+                                                                 String username);
 
     /**
      * Retrieves financial fixed assets matching the given accounting account code.
@@ -77,7 +81,8 @@ public interface FinancialFixedAssetRepository extends JpaRepository<FinancialFi
      * @param fixedAssetAccountingAccount the accounting account code to filter by
      * @return list of matching FinancialFixedAsset entities; empty if none found
      */
-    List<FinancialFixedAsset> findByFixedAssetAccountingAccount(String fixedAssetAccountingAccount);
+    List<FinancialFixedAsset> findByFixedAssetAccountingAccountAndAddedBy(
+        String fixedAssetAccountingAccount, String username);
 
     /**
      * Deletes all financial fixed assets for the specified accounting period.
@@ -88,7 +93,8 @@ public interface FinancialFixedAssetRepository extends JpaRepository<FinancialFi
      */
     @Transactional
     @Modifying
-    @Query("DELETE FROM FinancialFixedAsset f WHERE f.accountingPeriod = :period")
-    void deleteByAccountingPeriod(LocalDate period);
+    @Query("DELETE FROM FinancialFixedAsset f WHERE f.accountingPeriod = :period and "
+        + "f.addedBy = :addedBy")
+    void deleteByAccountingPeriodAndAddedBy(LocalDate period, String addedBy);
 
 }

@@ -44,6 +44,6 @@ public interface ProjectionGenerator {
      * @param accountingPeriod the starting period for projection (e.g., month/year)
      * @param fixedAssets      the list of {@link FinancialFixedAsset} entities to process
      */
-    void generate(LocalDate accountingPeriod, List<FinancialFixedAsset> fixedAssets);
+    void generate(String username, LocalDate accountingPeriod, List<FinancialFixedAsset> fixedAssets);
 
 }

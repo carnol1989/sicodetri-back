@@ -73,14 +73,14 @@ public class PermanentAdditionProjectionGenerator extends AbstractProjectionGene
      * @param fixedAssets      the list of fixed assets to project
      */
     @Override
-    public void generate(LocalDate accountingPeriod, List<FinancialFixedAsset> fixedAssets) {
+    public void generate(String username, LocalDate accountingPeriod, List<FinancialFixedAsset> fixedAssets) {
         TaxTableSunat table = taxTableService.findByAccountigAccountService(S_VAL_332);
         if (table == null) {
             return;
         }
         for (FinancialFixedAsset f : fixedAssets) {
             if (isEligible(f)) {
-                processAsset(f, accountingPeriod, table);
+                processAsset(f, username, accountingPeriod, table);
             }
         }
     }
@@ -127,6 +127,7 @@ public class PermanentAdditionProjectionGenerator extends AbstractProjectionGene
      * @param table      the SUNAT tax table entry for code "332"
      */
     private void processAsset(FinancialFixedAsset fixedAsset,
+                              String username,
                               LocalDate period,
                               TaxTableSunat table) {
         TaxDepreciation firstTax = new TaxDepreciation();
@@ -146,7 +147,7 @@ public class PermanentAdditionProjectionGenerator extends AbstractProjectionGene
         int yearsPassed = Period.between(fixedAsset.getAcquisitionDate(), period).getYears();
         int remaining = fixedAsset.getUsefulLifeYears().intValue() - yearsPassed;
         for (int i = 0; i < remaining; i++) {
-            proj = processYearDepreciation(fixedAsset, proj, table, S_VAL_03, -1);
+            proj = processYearDepreciation(fixedAsset, username, proj, table, S_VAL_03, -1);
         }
 
         List<FinancialDepreciation> listFinancialDepreciation =

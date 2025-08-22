@@ -98,12 +98,13 @@ class PermanentAdditionProjectionGeneratorTest {
   @DisplayName("generate skips when TaxTableSunatService returns null")
   void generateSkipsWhenTaxTableNull() {
     // Arrange
+    String username = "katherine_gutierrez";
     when(taxTableService.findByAccountigAccountService(S_VAL_332)).thenReturn(null);
     FinancialFixedAsset asset = new FinancialFixedAsset();
     asset.setFixedAssetAccountingAccount(S_VAL_332 + "001");
 
     // Act
-    generator.generate(LocalDate.now(), List.of(asset));
+    generator.generate(username, LocalDate.now(), List.of(asset));
 
     // Assert
     verifyNoInteractions(financialDepreciationService, taxDepreciationService, additionService, deductionService);
@@ -116,6 +117,7 @@ class PermanentAdditionProjectionGeneratorTest {
   @DisplayName("generate skips non-eligible assets")
   void generateSkipsNonEligibleAssets() {
     // Arrange: present table
+    String username = "katherine_gutierrez";
     when(taxTableService.findByAccountigAccountService(S_VAL_332))
         .thenReturn(new TaxTableSunat());
 
@@ -128,7 +130,7 @@ class PermanentAdditionProjectionGeneratorTest {
     asset.setInitialBalance(BigDecimal.ONE);
 
     // Act
-    generator.generate(LocalDate.now(), List.of(asset));
+    generator.generate(username, LocalDate.now(), List.of(asset));
 
     // Assert: skip because acquisitionDate == default
     verifyNoInteractions(financialDepreciationService, taxDepreciationService, additionService, deductionService);
@@ -141,13 +143,14 @@ class PermanentAdditionProjectionGeneratorTest {
   @DisplayName("generate invokes persistence on eligible asset")
   void generateInvokesPersistenceOnEligibleAsset() {
     // Arrange: table with useful life
+    String username = "katherine_gutierrez";
     TaxTableSunat table = DataTest.getTaxTable332();
     when(taxTableService.findByAccountigAccountService(S_VAL_332)).thenReturn(table);
 
     FinancialFixedAsset asset = DataTest.getFinancialFixedAsset332ForPermanentAddition();
 
     // Act
-    generator.generate(LocalDate.now(), List.of(asset));
+    generator.generate(username, LocalDate.now(), List.of(asset));
 
     // Assert: services called to persist projection lists
     verify(financialDepreciationService, atLeastOnce()).saveAllService(anyList());
@@ -163,11 +166,12 @@ class PermanentAdditionProjectionGeneratorTest {
   @DisplayName("generate does nothing when fixedAssets list is empty")
   void generateDoesNothingWhenNoAssets() {
     // Arrange
+    String username = "katherine_gutierrez";
     when(taxTableService.findByAccountigAccountService(S_VAL_332))
         .thenReturn(new TaxTableSunat());
 
     // Act
-    generator.generate(LocalDate.now(), Collections.emptyList());
+    generator.generate(username, LocalDate.now(), Collections.emptyList());
 
     // Assert
     verifyNoInteractions(
@@ -185,6 +189,7 @@ class PermanentAdditionProjectionGeneratorTest {
   @DisplayName("generate skips asset when description is null")
   void generateSkipsWhenDescriptionNull() {
     // Arrange
+    String username = "katherine_gutierrez";
     when(taxTableService.findByAccountigAccountService(S_VAL_332))
         .thenReturn(new TaxTableSunat());
 
@@ -197,7 +202,7 @@ class PermanentAdditionProjectionGeneratorTest {
     asset.setWellAppraisedPreInvestmentStudyDry(null);  // descripción nula
 
     // Act
-    generator.generate(LocalDate.now(), List.of(asset));
+    generator.generate(username, LocalDate.now(), List.of(asset));
 
     // Assert
     verifyNoInteractions(
@@ -215,6 +220,7 @@ class PermanentAdditionProjectionGeneratorTest {
   @DisplayName("generate skips asset when description lacks keyword")
   void generateSkipsWhenDescriptionWrong() {
     // Arrange
+    String username = "katherine_gutierrez";
     when(taxTableService.findByAccountigAccountService(S_VAL_332))
         .thenReturn(new TaxTableSunat());
 
@@ -227,7 +233,7 @@ class PermanentAdditionProjectionGeneratorTest {
     asset.setWellAppraisedPreInvestmentStudyDry("sin término relevante");  // no contiene "tasacion"
 
     // Act
-    generator.generate(LocalDate.now(), List.of(asset));
+    generator.generate(username, LocalDate.now(), List.of(asset));
 
     // Assert
     verifyNoInteractions(
@@ -245,6 +251,7 @@ class PermanentAdditionProjectionGeneratorTest {
   @DisplayName("generate skips asset when historicalCost is zero")
   void generateSkipsWhenHistoricalCostZero() {
     // Arrange
+    String username = "katherine_gutierrez";
     when(taxTableService.findByAccountigAccountService(S_VAL_332))
         .thenReturn(new TaxTableSunat());
 
@@ -257,7 +264,7 @@ class PermanentAdditionProjectionGeneratorTest {
     asset.setWellAppraisedPreInvestmentStudyDry("tasacion válida");
 
     // Act
-    generator.generate(LocalDate.now(), List.of(asset));
+    generator.generate(username, LocalDate.now(), List.of(asset));
 
     // Assert
     verifyNoInteractions(
@@ -275,6 +282,7 @@ class PermanentAdditionProjectionGeneratorTest {
   @DisplayName("generate skips asset when revaluedAmount is zero")
   void generateSkipsWhenRevaluedAmountZero() {
     // Arrange
+    String username = "katherine_gutierrez";
     when(taxTableService.findByAccountigAccountService(S_VAL_332))
         .thenReturn(new TaxTableSunat());
 
@@ -287,7 +295,7 @@ class PermanentAdditionProjectionGeneratorTest {
     asset.setWellAppraisedPreInvestmentStudyDry("valor tasado");
 
     // Act
-    generator.generate(LocalDate.now(), List.of(asset));
+    generator.generate(username, LocalDate.now(), List.of(asset));
 
     // Assert
     verifyNoInteractions(
@@ -305,6 +313,7 @@ class PermanentAdditionProjectionGeneratorTest {
   @DisplayName("generate skips asset when initialBalance is zero")
   void generateSkipsWhenInitialBalanceZero() {
     // Arrange
+    String username = "katherine_gutierrez";
     when(taxTableService.findByAccountigAccountService(S_VAL_332))
         .thenReturn(new TaxTableSunat());
 
@@ -317,7 +326,7 @@ class PermanentAdditionProjectionGeneratorTest {
     asset.setWellAppraisedPreInvestmentStudyDry("valor tasado");
 
     // Act
-    generator.generate(LocalDate.now(), List.of(asset));
+    generator.generate(username, LocalDate.now(), List.of(asset));
 
     // Assert
     verifyNoInteractions(

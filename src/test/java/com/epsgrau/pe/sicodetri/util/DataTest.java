@@ -24,6 +24,8 @@ import net.sf.jasperreports.engine.JasperPrint;
 import net.sf.jasperreports.engine.base.JRBasePrintPage;
 import net.sf.jasperreports.engine.base.JRBasePrintText;
 import net.sf.jasperreports.engine.type.ModeEnum;
+import org.springframework.security.authentication.TestingAuthenticationToken;
+import org.springframework.security.core.Authentication;
 
 /**
  * Utility class providing sample data objects for unit tests.
@@ -95,6 +97,7 @@ public class DataTest {
         itemInputData.setDepreciationInflationAdjustment("0");//27
         itemInputData.setAccumulatedDepreciationAdjustedInflation("0");//28
         itemInputData.setNetFixedAssets("0");//30
+        itemInputData.setUsername("katherine_gutierrez");
         listInputData.add(itemInputData);
         return listInputData;
     }
@@ -162,6 +165,7 @@ public class DataTest {
         itemInputFinacialFixedAsset.setDepreciationInflationAdjustment(BigDecimal.ZERO);//27
         itemInputFinacialFixedAsset.setAccumulatedDepreciationAdjustedInflation(BigDecimal.ZERO);//28
         itemInputFinacialFixedAsset.setNetFixedAssets(BigDecimal.ZERO);//30
+        itemInputFinacialFixedAsset.setAddedBy("katherine_gutierrez");
         return itemInputFinacialFixedAsset;
     }
 
@@ -218,6 +222,7 @@ public class DataTest {
         itemInputFinacialFixedAsset.setNetFixedAssets(new BigDecimal("13746850.40"));//30
         itemInputFinacialFixedAsset.setHistoricalCost(BigDecimal.ZERO);
         itemInputFinacialFixedAsset.setRevaluedAmount(BigDecimal.ZERO);
+        itemInputFinacialFixedAsset.setAddedBy("katherine_gutierrez");
         return itemInputFinacialFixedAsset;
     }
 
@@ -338,6 +343,7 @@ public class DataTest {
         taxTable.setAnnualRate(5);
         taxTable.setUsefulLifeYears(20);
         taxTable.setStatus("S");
+        taxTable.setAddedBy("katherine_gutierrez");
         return taxTable;
     }
 
@@ -353,6 +359,7 @@ public class DataTest {
         taxTable.setDescription("Terrenos");
         taxTable.setAnnualRate(0);
         taxTable.setStatus("S");
+        taxTable.setAddedBy("katherine_gutierrez");
         return taxTable;
     }
 
@@ -389,6 +396,7 @@ public class DataTest {
         taxDepreciation.setAnnualNetTaxValuePriorPeriod(new BigDecimal("8248110.195"));
         taxDepreciation.setValueDepreciation(new BigDecimal("114557.086"));
         taxDepreciation.setNetTaxValue(new BigDecimal("8133553.109"));
+        taxDepreciation.setAddedBy("katherine_gutierrez");
         return taxDepreciation;
     }
 
@@ -493,4 +501,11 @@ public class DataTest {
         dto.setErrorMessage("Mensaje de error");
         return dto;
     }
+
+    public static Authentication auth(String user, String role) {
+        TestingAuthenticationToken t = new TestingAuthenticationToken(user, "pwd", role);
+        t.setAuthenticated(true);
+        return t;
+    }
+
 }
