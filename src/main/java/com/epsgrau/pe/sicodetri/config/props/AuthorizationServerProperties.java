@@ -34,6 +34,7 @@ public record AuthorizationServerProperties(
     Provider provider,
     Jwk jwk,
     Client client,
+    Client perfClient,
     Token token) {
 
     /**
@@ -49,8 +50,10 @@ public record AuthorizationServerProperties(
         // Provide defaults if any section is missing
         provider = provider == null ? new Provider("") : provider;
         jwk      = jwk      == null ? new Jwk(2048) : jwk;
-        client   = client   == null ? new Client(null, null, List.of(), List.of(), true)
+        client   = client   == null ? new Client(null, null, List.of(), List.of(), List.of(), true)
             : client;
+        perfClient = perfClient == null ? new Client("perf-client", "perf-secret", List.of(), List.of(), List.of(),
+            false) : perfClient;
         token    = token    == null ? new Token(Duration.ofMinutes(15), Duration.ofDays(30), false)
             : token;
     }
@@ -87,6 +90,7 @@ public record AuthorizationServerProperties(
         String secret,
         List<String> redirectUris,
         List<String> scopes,
+        List<String> roles,
         boolean requireAuthorizationConsent) {
 
         /**
@@ -102,6 +106,25 @@ public record AuthorizationServerProperties(
             // Defensive copy to ensure immutability
             redirectUris = List.copyOf(redirectUris == null ? List.of() : redirectUris);
             scopes       = List.copyOf(scopes       == null ? List.of() : scopes);
+            roles       = List.copyOf(roles       == null ? List.of() : roles);
+        }
+
+        /**
+         * empty.
+         *
+         * @return Client
+         */
+        public static Client empty() {
+            return new Client(null, null, List.of(), List.of(), List.of(), false);
+        }
+
+        /**
+         * nonEmptyRoles.
+         *
+         * @return Roles
+         */
+        public List<String> nonEmptyRoles() {
+            return roles;
         }
 
     }

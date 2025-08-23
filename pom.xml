@@ -2,21 +2,20 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
 	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
 	<modelVersion>4.0.0</modelVersion>
+
 	<parent>
 		<groupId>org.springframework.boot</groupId>
 		<artifactId>spring-boot-starter-parent</artifactId>
 		<version>3.2.8</version>
 		<relativePath/> <!-- lookup parent from repository -->
 	</parent>
+
 	<groupId>com.epsgrau.pe</groupId>
 	<artifactId>sicodetri</artifactId>
 	<version>1.0.0-SNAPSHOT</version>
 	<name>sicodetri</name>
 	<description>Sismtema de conciliacion Tributaria vs Financiera de Activos Fijos</description>
-	<url/>
-	<licenses>
-		<license/>
-	</licenses>
+
 	<developers>
 		<developer>
 			<id>carlosnole</id>
@@ -29,14 +28,11 @@
 			</roles>
 		</developer>
 	</developers>
-	<scm>
-		<connection/>
-		<developerConnection/>
-		<tag/>
-		<url/>
-	</scm>
+
 	<properties>
 		<java.version>17</java.version>
+
+		<!-- Librerías -->
 		<apache.poi.version>5.3.0</apache.poi.version>
 		<mockito.core.version>5.3.1</mockito.core.version>
 		<mockito.inline.version>5.2.0</mockito.inline.version>
@@ -49,9 +45,16 @@
 		<spotbugs.annotations.version>4.0.0</spotbugs.annotations.version>
 		<karate.version>1.4.0</karate.version>
 		<spring-authorization-server.version>1.1.0</spring-authorization-server.version>
+
+		<!-- Plugins de calidad -->
 		<plugin.maven.checkstyle.version>3.3.1</plugin.maven.checkstyle.version>
 		<plugin.maven.spotbugs.version>4.8.6.6</plugin.maven.spotbugs.version>
 		<plugin.maven.javadoc.version>3.4.1</plugin.maven.javadoc.version>
+
+		<!-- JMeter -->
+		<jmeter.maven.plugin.version>3.8.0</jmeter.maven.plugin.version>
+		<jmeter.version>5.6.3</jmeter.version>
+
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 	</properties>
 	<dependencies>
@@ -216,7 +219,8 @@
 					</execution>
 				</executions>
 			</plugin>
-			<!-- Plugin de Javadoc -->
+
+			<!-- Javadoc -->
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-javadoc-plugin</artifactId>
@@ -227,7 +231,6 @@
 						<goals>
 							<goal>javadoc</goal>
 						</goals>
-						<!-- Opcional: lo ata al ciclo de vida en verify -->
 						<phase>verify</phase>
 					</execution>
 					<execution>
@@ -241,12 +244,13 @@
 					<!-- Codificación para que reconozca acentos y símbolos -->
 					<encoding>${project.build.sourceEncoding}</encoding>
 					<docencoding>${project.build.sourceEncoding}</docencoding>
-					<charSet>UTF-8</charSet>
+					<charset>UTF-8</charset>
 					<!-- Genera todos los niveles de visibilidad si lo deseas -->
 					<show>private</show>
 				</configuration>
 			</plugin>
-			<!-- Plugin de JaCoCo para la cobertura del código -->
+
+			<!-- JaCoCo -->
 			<plugin>
 				<groupId>org.jacoco</groupId>
 				<artifactId>jacoco-maven-plugin</artifactId>
@@ -260,7 +264,8 @@
 					</execution>
 				</executions>
 			</plugin>
-			<!-- Plugin de Checkstyle -->
+
+			<!-- Checkstyle -->
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-checkstyle-plugin</artifactId>
@@ -286,7 +291,8 @@
 					</execution>
 				</executions>
 			</plugin>
-			<!-- Plugin de SpotBugs -->
+
+			<!-- SpotBugs -->
 			<plugin>
 				<groupId>com.github.spotbugs</groupId>
 				<artifactId>spotbugs-maven-plugin</artifactId>
@@ -304,6 +310,8 @@
 					</execution>
 				</executions>
 			</plugin>
+
+			<!-- Failsafe (ITs Karate) -->
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-failsafe-plugin</artifactId>
@@ -328,6 +336,112 @@
 			</plugin>
 		</plugins>
 	</build>
+
+	<!-- Perfil para pruebas de performance con JMeter -->
+	<profiles>
+		<profile>
+			<id>performance</id>
+			<build>
+				<resources>
+					<resource>
+						<directory>${project.basedir}/src/test/jmeter/datasets</directory>
+						<includes>
+							<include>**/*.csv</include>
+						</includes>
+						<targetPath>${project.build.directory}/jmeter/testFiles</targetPath>
+					</resource>
+				</resources>
+				<plugins>
+					<plugin>
+						<groupId>com.lazerycode.jmeter</groupId>
+						<artifactId>jmeter-maven-plugin</artifactId>
+						<version>${jmeter.maven.plugin.version}</version>
+						<configuration>
+							<jmeterVersion>${jmeter.version}</jmeterVersion>
+						</configuration>
+						<executions>
+							<execution>
+								<id>configuration</id>
+								<goals>
+									<goal>configure</goal>
+								</goals>
+							</execution>
+							<execution>
+								<id>jmeter-tests</id>
+								<goals>
+									<goal>jmeter</goal>
+								</goals>
+								<configuration>
+									<testFilesIncluded>
+										<jMeterTestFile>${testFiles}</jMeterTestFile>
+									</testFilesIncluded>
+									<propertiesUser>
+										<host>${host}</host>
+										<port>${port}</port>
+										<protocol>${protocol}</protocol>
+										<base_api>${base_api}</base_api>
+										<users>${users}</users>
+										<rampup>${rampup}</rampup>
+										<duration>${duration}</duration>
+										<pct_upload_save>${pct.upload.save}</pct_upload_save>
+										<pct_query>${pct.query}</pct_query>
+										<pct_proj>${pct.proj}</pct_proj>
+										<pct_report>${pct.report}</pct_report>
+										<pct_tax>${pct.tax}</pct_tax>
+									</propertiesUser>
+									<generateReports>true</generateReports>
+								</configuration>
+							</execution>
+						</executions>
+					</plugin>
+					<plugin>
+						<groupId>org.apache.maven.plugins</groupId>
+						<artifactId>maven-surefire-plugin</artifactId>
+						<configuration>
+							<skip>true</skip>
+						</configuration>
+					</plugin>
+					<plugin>
+						<groupId>org.apache.maven.plugins</groupId>
+						<artifactId>maven-failsafe-plugin</artifactId>
+						<configuration>
+							<skipITs>true</skipITs>
+							<skipTests>true</skipTests>
+						</configuration>
+					</plugin>
+					<plugin>
+						<groupId>com.github.spotbugs</groupId>
+						<artifactId>spotbugs-maven-plugin</artifactId>
+						<configuration>
+							<skip>true</skip>
+						</configuration>
+					</plugin>
+					<plugin>
+						<groupId>org.apache.maven.plugins</groupId>
+						<artifactId>maven-javadoc-plugin</artifactId>
+						<configuration>
+							<skip>true</skip>
+						</configuration>
+					</plugin>
+				</plugins>
+			</build>
+			<properties>
+				<host>localhost</host>
+				<port>8082</port>
+				<protocol>http</protocol>
+				<base_api>/api/v1</base_api>
+				<users>20</users>
+				<rampup>60</rampup>
+				<duration>300</duration>
+				<testFiles>SICODETRI_LoadTest.jmx</testFiles>
+				<pct.upload.save>10</pct.upload.save>
+				<pct.query>40</pct.query>
+				<pct.proj>15</pct.proj>
+				<pct.report>20</pct.report>
+				<pct.tax>15</pct.tax>
+			</properties>
+		</profile>
+	</profiles>
 	<reporting>
 		<plugins>
 			<plugin>

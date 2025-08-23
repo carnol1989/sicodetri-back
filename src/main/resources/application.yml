@@ -52,6 +52,15 @@ authorization-server:
       - openid
       - roles
     require-authorization-consent: false
+  perf-client:
+    id: perf-client
+    secret: perf-secret
+    redirect-uris: []
+    roles:
+      - AssetUploader
+      - DepreciationProcessor
+      - ReportGenerator
+      - TaxTableViewer
   token:
     access-token-time-to-live: 15m
     refresh-token-time-to-live: 30d

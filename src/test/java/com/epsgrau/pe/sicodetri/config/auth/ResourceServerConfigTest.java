@@ -69,62 +69,6 @@ class ResourceServerConfigTest {
   private final ResourceServerConfig config = new ResourceServerConfig();
 
   /**
-   * Ensures that when a JWT contains both {@code scope} and {@code roles} claims, the converter
-   * aggregates them into authorities with the expected prefixes:
-   * {@code SCOPE_read}, {@code SCOPE_write}, {@code ROLE_ADMIN}, {@code ROLE_USER}.
-   */
-  @Test
-  @DisplayName("Combine scope and roles into authorities when JWT has both claims")
-  void combineScopeAndRolesIntoAuthoritiesWhenJwtHasBothClaims() {
-    JwtAuthenticationConverter converter = config.jwtAuthenticationConverter();
-
-    Jwt jwt = new Jwt(
-        "token-value",
-        Instant.now(),
-        Instant.now().plusSeconds(3600),
-        Map.of("alg", "none"),
-        Map.of("scope", "read write", "roles", List.of("ADMIN", "USER"))
-    );
-
-    List<String> authorities = converter.convert(jwt)
-        .getAuthorities()
-        .stream()
-        .map(GrantedAuthority::getAuthority)
-        .collect(Collectors.toList());
-
-    assertThat(authorities)
-        .containsExactlyInAnyOrder("SCOPE_read", "SCOPE_write", "ROLE_ADMIN", "ROLE_USER");
-  }
-
-  /**
-   * Verifies that when a JWT contains only a space-delimited {@code scope} claim (e.g.,
-   * {@code "alpha beta"}), the converter produces {@code SCOPE_alpha} and {@code SCOPE_beta}
-   * authorities and no role authorities.
-   */
-  @Test
-  @DisplayName("Return only scope authorities when JWT has only scope claim")
-  void returnOnlyScopeAuthoritiesWhenJwtHasOnlyScopeClaim() {
-    JwtAuthenticationConverter converter = config.jwtAuthenticationConverter();
-
-    Jwt jwt = new Jwt(
-        "token-value",
-        Instant.now(),
-        Instant.now().plusSeconds(3600),
-        Map.of("alg", "none"),
-        Map.of("scope", "alpha beta")
-    );
-
-    List<String> authorities = converter.convert(jwt)
-        .getAuthorities()
-        .stream()
-        .map(GrantedAuthority::getAuthority)
-        .collect(Collectors.toList());
-
-    assertThat(authorities)
-        .containsExactlyInAnyOrder("SCOPE_alpha", "SCOPE_beta");
-  }
-
-  /**
    * Verifies that when a JWT contains only a {@code roles} array (e.g., {@code ["MANAGER","OPERATOR"]}),
    * the converter produces {@code ROLE_MANAGER} and {@code ROLE_OPERATOR} authorities.
    */

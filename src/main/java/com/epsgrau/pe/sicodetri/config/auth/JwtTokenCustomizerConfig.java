@@ -1,9 +1,12 @@
 package com.epsgrau.pe.sicodetri.config.auth;
 
+import com.epsgrau.pe.sicodetri.config.props.AuthorizationServerProperties;
+import java.util.Collection;
 import java.util.List;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.oauth2.core.AuthorizationGrantType;
 import org.springframework.security.oauth2.server.authorization.OAuth2TokenType;
 import org.springframework.security.oauth2.server.authorization.token.JwtEncodingContext;
 import org.springframework.security.oauth2.server.authorization.token.OAuth2TokenCustomizer;
@@ -40,17 +43,26 @@ public class JwtTokenCustomizerConfig {
      * @return an {@link OAuth2TokenCustomizer} for {@link JwtEncodingContext}
      */
     @Bean
-    public OAuth2TokenCustomizer<JwtEncodingContext> tokenCustomizer() {
+    public OAuth2TokenCustomizer<JwtEncodingContext> tokenCustomizer(AuthorizationServerProperties props) {
         return context -> {
-            // Solo para el access token
-            if (OAuth2TokenType.ACCESS_TOKEN.equals(context.getTokenType())) {
-                var authorities = context.getPrincipal().getAuthorities();
+            if (!OAuth2TokenType.ACCESS_TOKEN.equals(context.getTokenType())) {
+                return;
+            }
+
+            // Caso 1: Client Credentials (no hay usuario final)
+            if (AuthorizationGrantType.CLIENT_CREDENTIALS.equals(context.getAuthorizationGrantType())) {
+                var perf = props.perfClient();
+                List<String> roles = perf.nonEmptyRoles();
+                context.getClaims().claim("roles", roles);
+                return;
+            }
+
+            // Caso 2: Flujos con usuario (authorization_code / refresh_token)
+            if (context.getPrincipal() != null && context.getPrincipal().getAuthorities() != null) {
+                Collection<? extends GrantedAuthority> authorities = context.getPrincipal().getAuthorities();
                 List<String> roles = authorities.stream()
                     .map(GrantedAuthority::getAuthority)
-                    // quita el prefijo "ROLE_" si lo hubiera
-                    .map(auth -> auth.startsWith("ROLE_")
-                        ? auth.substring(5)
-                        : auth)
+                    .map(auth -> auth.startsWith("ROLE_") ? auth.substring(5) : auth)
                     .toList();
                 context.getClaims().claim("roles", roles);
             }

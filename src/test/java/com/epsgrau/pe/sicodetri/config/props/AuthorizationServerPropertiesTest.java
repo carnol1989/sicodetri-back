@@ -55,7 +55,7 @@ class AuthorizationServerPropertiesTest {
   void useDefaultValuesWhenConstructingPropertiesWithAllSectionsNull() {
     // Act
     AuthorizationServerProperties props =
-        new AuthorizationServerProperties(null, null, null, null);
+        new AuthorizationServerProperties(null, null, null, null, null);
 
     // Assert provider defaults
     assertEquals("", props.provider().issuer(), "Provider.issuer should default to empty");
@@ -92,8 +92,9 @@ class AuthorizationServerPropertiesTest {
         new AuthorizationServerProperties.Jwk(4096);
     List<String> uris = List.of("https://app/callback");
     List<String> scopes = List.of("read", "write");
+    List<String> roles = List.of("AssetUploader", "DepreciationProcessor");
     AuthorizationServerProperties.Client client =
-        new AuthorizationServerProperties.Client("clientId", "secret", uris, scopes, false);
+        new AuthorizationServerProperties.Client("clientId", "secret", uris, scopes, roles, false);
     Duration atTtl = Duration.ofHours(1);
     Duration rtTtl = Duration.ofDays(7);
     AuthorizationServerProperties.Token token =
@@ -101,7 +102,7 @@ class AuthorizationServerPropertiesTest {
 
     // Act
     AuthorizationServerProperties props =
-        new AuthorizationServerProperties(provider, jwk, client, token);
+        new AuthorizationServerProperties(provider, jwk, client, null, token);
 
     // Assert that values are preserved
     assertEquals("https://issuer.example", props.provider().issuer());
@@ -128,10 +129,11 @@ class AuthorizationServerPropertiesTest {
     originalUris.add("u1");
     List<String> originalScopes = new ArrayList<>();
     originalScopes.add("s1");
+    List<String> roles = List.of("AssetUploader", "DepreciationProcessor");
 
     // Act
     AuthorizationServerProperties.Client client =
-        new AuthorizationServerProperties.Client("id", "sec", originalUris, originalScopes, true);
+        new AuthorizationServerProperties.Client("id", "sec", originalUris, originalScopes, roles, true);
 
     // Mutate originals
     originalUris.add("u2");

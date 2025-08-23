@@ -1,5 +1,6 @@
 package com.epsgrau.pe.sicodetri.config.auth;
 
+import static org.mockito.Answers.RETURNS_DEEP_STUBS;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -8,6 +9,8 @@ import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import java.util.List;
+
+import com.epsgrau.pe.sicodetri.config.props.AuthorizationServerProperties;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.security.core.Authentication;
@@ -48,13 +51,17 @@ import org.springframework.security.oauth2.server.authorization.token.OAuth2Toke
 @DisplayName("JwtTokenCustomizerConfig Tests")
 class JwtTokenCustomizerConfigTest {
 
-  private final JwtTokenCustomizerConfig config = new JwtTokenCustomizerConfig();
-  private final OAuth2TokenCustomizer<JwtEncodingContext> customizer = config.tokenCustomizer();
+  private OAuth2TokenCustomizer<JwtEncodingContext> newCustomizerWithProps(AuthorizationServerProperties props) {
+    return new JwtTokenCustomizerConfig().tokenCustomizer(props);
+  }
 
   @Test
   @DisplayName("Add roles claim to JWT encoding context when token type is ACCESS_TOKEN")
   void addRolesClaimToJwtEncodingContextWhenTokenTypeIsAccessToken() {
     // Arrange
+    AuthorizationServerProperties props = mock(AuthorizationServerProperties.class, RETURNS_DEEP_STUBS);
+    OAuth2TokenCustomizer<JwtEncodingContext> customizer = newCustomizerWithProps(props);
+
     JwtEncodingContext context = mock(JwtEncodingContext.class);
     JwtClaimsSet.Builder claimsBuilder = mock(JwtClaimsSet.Builder.class);
     Authentication principal = mock(Authentication.class);
@@ -82,6 +89,9 @@ class JwtTokenCustomizerConfigTest {
   @DisplayName("Do not add roles claim to JWT encoding context when token type is not ACCESS_TOKEN")
   void doNotAddRolesClaimToJwtEncodingContextWhenTokenTypeIsNotAccessToken() {
     // Arrange
+    AuthorizationServerProperties props = mock(AuthorizationServerProperties.class, RETURNS_DEEP_STUBS);
+    OAuth2TokenCustomizer<JwtEncodingContext> customizer = newCustomizerWithProps(props);
+
     JwtEncodingContext context = mock(JwtEncodingContext.class);
     JwtClaimsSet.Builder claimsBuilder = mock(JwtClaimsSet.Builder.class);
 

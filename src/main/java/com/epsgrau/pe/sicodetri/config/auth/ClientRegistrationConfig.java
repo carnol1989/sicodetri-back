@@ -1,6 +1,7 @@
 package com.epsgrau.pe.sicodetri.config.auth;
 
 import com.epsgrau.pe.sicodetri.config.props.AuthorizationServerProperties;
+import java.util.Set;
 import java.util.UUID;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
@@ -71,40 +72,75 @@ public class ClientRegistrationConfig {
         JdbcTemplate jdbcTemplate,
         PasswordEncoder encoder,
         AuthorizationServerProperties props) {
-        JdbcRegisteredClientRepository repo = new JdbcRegisteredClientRepository(jdbcTemplate);
-        var c = props.client();
 
-        // 1. Obtén el Builder según exista o no el cliente
-        RegisteredClient.Builder builder = repo.findByClientId(c.id()) != null
-            ? RegisteredClient.from(repo.findByClientId(c.id()))
+        JdbcRegisteredClientRepository repo = new JdbcRegisteredClientRepository(jdbcTemplate);
+
+        // 1) Cliente INTERACTIVO (SPA): authorization_code + PKCE + refresh_token
+        upsertClient(repo, encoder, props.client(), props, true);
+
+        // 2) Cliente TÉCNICO (performance): client_credentials
+        upsertClient(repo, encoder, props.perfClient(), props, false);
+
+        return repo;
+    }
+
+    private void upsertClient(JdbcRegisteredClientRepository repo,
+                              PasswordEncoder encoder,
+                              AuthorizationServerProperties.Client c,
+                              AuthorizationServerProperties props,
+                              boolean interactive) {
+        if (c == null || c.id() == null || c.secret() == null) {
+            // Evita NullPointer si no hay configuración; puedes cambiar a log.warn si prefieres
+            return;
+        }
+
+        RegisteredClient existing = repo.findByClientId(c.id());
+        RegisteredClient.Builder builder = (existing != null)
+            ? RegisteredClient.from(existing)
             : RegisteredClient.withId(UUID.randomUUID().toString());
 
-        // 2. Configura el builder siempre a partir de tu YAML
+        // Configuración base común
         builder
             .clientId(c.id())
             .clientSecret(encoder.encode(c.secret()))
             .clientAuthenticationMethod(ClientAuthenticationMethod.CLIENT_SECRET_BASIC)
-            .authorizationGrantType(AuthorizationGrantType.AUTHORIZATION_CODE)
-            .authorizationGrantType(AuthorizationGrantType.REFRESH_TOKEN)
-            .authorizationGrantType(AuthorizationGrantType.CLIENT_CREDENTIALS)
-            .redirectUris(r -> r.addAll(c.redirectUris()))
-            .scopes(s -> s.addAll(c.scopes()))
-            .clientSettings(ClientSettings.builder()
-                .requireAuthorizationConsent(c.requireAuthorizationConsent())
-                .requireProofKey(true)
-                .build())
+            .clientAuthenticationMethod(ClientAuthenticationMethod.CLIENT_SECRET_POST)
+            .scopes(s -> {
+                s.clear();
+                s.addAll(c.scopes());
+            })
             .tokenSettings(TokenSettings.builder()
                 .accessTokenTimeToLive(props.token().accessTokenTimeToLive())
                 .refreshTokenTimeToLive(props.token().refreshTokenTimeToLive())
                 .reuseRefreshTokens(props.token().reuseRefreshTokens())
                 .build());
 
-        // 3. Construye el RegisteredClient final
-        RegisteredClient client = builder.build();
+        if (interactive) {
+            // Cliente para la SPA: Authorization Code + Refresh + PKCE
+            builder
+                .authorizationGrantType(AuthorizationGrantType.AUTHORIZATION_CODE)
+                .authorizationGrantType(AuthorizationGrantType.REFRESH_TOKEN)
+                .clientSettings(ClientSettings.builder()
+                    .requireAuthorizationConsent(c.requireAuthorizationConsent())
+                    .requireProofKey(true) // PKCE
+                    .build())
+                .redirectUris(r -> {
+                    r.clear();
+                    r.addAll(c.redirectUris());
+                });
+        } else {
+            // Cliente TÉCNICO de performance: Client Credentials
+            builder
+                .authorizationGrantType(AuthorizationGrantType.CLIENT_CREDENTIALS)
+                .clientSettings(ClientSettings.builder()
+                    .requireAuthorizationConsent(false)
+                    .requireProofKey(false)
+                    .build())
+                .redirectUris(Set::clear)
+                .scopes(Set::clear);
+        }
 
-        // 4. Guarda (insert o update)
-        repo.save(client);
-
-        return repo;
+        // Guarda (insert/update). Si existía, RegisteredClient.from(existing) conserva el id.
+        repo.save(builder.build());
     }
 }

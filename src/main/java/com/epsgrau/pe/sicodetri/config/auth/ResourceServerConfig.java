@@ -54,8 +54,6 @@ public class ResourceServerConfig {
     */
     @Bean
     public JwtAuthenticationConverter jwtAuthenticationConverter() {
-        JwtGrantedAuthoritiesConverter scopesConverter = new JwtGrantedAuthoritiesConverter();
-
         JwtGrantedAuthoritiesConverter rolesConverter = new JwtGrantedAuthoritiesConverter();
         rolesConverter.setAuthorityPrefix("ROLE_");
         rolesConverter.setAuthoritiesClaimName("roles");
@@ -65,12 +63,6 @@ public class ResourceServerConfig {
         converter.setJwtGrantedAuthoritiesConverter(jwt -> {
             // 1) Creamos siempre una lista nueva
             List<GrantedAuthority> authorities = new ArrayList<>();
-
-            // 2) Si convert(jwt) no es null, la copiamos
-            Collection<GrantedAuthority> scopeAuths = scopesConverter.convert(jwt);
-            if (scopeAuths != null) {
-                authorities.addAll(scopeAuths);
-            }
 
             Collection<GrantedAuthority> roleAuths = rolesConverter.convert(jwt);
             if (roleAuths != null) {
