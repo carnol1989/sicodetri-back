@@ -54,6 +54,7 @@
 		<!-- JMeter -->
 		<jmeter.maven.plugin.version>3.8.0</jmeter.maven.plugin.version>
 		<jmeter.version>5.6.3</jmeter.version>
+		<properties.maven.plugin.version>1.2.1</properties.maven.plugin.version>
 
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 	</properties>
@@ -353,6 +354,24 @@
 				</resources>
 				<plugins>
 					<plugin>
+						<groupId>org.codehaus.mojo</groupId>
+						<artifactId>properties-maven-plugin</artifactId>
+						<version>${properties.maven.plugin.version}</version>
+						<executions>
+							<execution>
+								<phase>initialize</phase>
+								<goals>
+									<goal>read-project-properties</goal>
+								</goals>
+								<configuration>
+									<files>
+										<file>${project.basedir}/src/test/jmeter/perf-env.properties</file>
+									</files>
+								</configuration>
+							</execution>
+						</executions>
+					</plugin>
+					<plugin>
 						<groupId>com.lazerycode.jmeter</groupId>
 						<artifactId>jmeter-maven-plugin</artifactId>
 						<version>${jmeter.maven.plugin.version}</version>
@@ -380,19 +399,30 @@
 										<port>${port}</port>
 										<protocol>${protocol}</protocol>
 										<base_api>${base_api}</base_api>
+										<client_id>${client_id}</client_id>
+										<client_secret>${client_secret}</client_secret>
+										<token_path>${token_path}</token_path>
 										<users>${users}</users>
 										<rampup>${rampup}</rampup>
 										<duration>${duration}</duration>
-										<pct_upload_save>${pct.upload.save}</pct_upload_save>
-										<pct_query>${pct.query}</pct_query>
-										<pct_proj>${pct.proj}</pct_proj>
-										<pct_report>${pct.report}</pct_report>
-										<pct_tax>${pct.tax}</pct_tax>
+										<pct_upload_save>${pct_upload_save}</pct_upload_save>
+										<pct_query>${pct_query}</pct_query>
+										<pct_proj>${pct_proj}</pct_proj>
+										<pct_report>${pct_report}</pct_report>
+										<pct_tax>${pct_tax}</pct_tax>
+										<max_resp_ms>${max_resp_ms}</max_resp_ms>
 									</propertiesUser>
 									<generateReports>true</generateReports>
 								</configuration>
 							</execution>
 						</executions>
+					</plugin>
+					<plugin>
+						<groupId>org.apache.maven.plugins</groupId>
+						<artifactId>maven-checkstyle-plugin</artifactId>
+						<configuration>
+							<skip>true</skip>
+						</configuration>
 					</plugin>
 					<plugin>
 						<groupId>org.apache.maven.plugins</groupId>
@@ -426,19 +456,7 @@
 				</plugins>
 			</build>
 			<properties>
-				<host>localhost</host>
-				<port>8082</port>
-				<protocol>http</protocol>
-				<base_api>/api/v1</base_api>
-				<users>20</users>
-				<rampup>60</rampup>
-				<duration>300</duration>
 				<testFiles>SICODETRI_LoadTest.jmx</testFiles>
-				<pct.upload.save>10</pct.upload.save>
-				<pct.query>40</pct.query>
-				<pct.proj>15</pct.proj>
-				<pct.report>20</pct.report>
-				<pct.tax>15</pct.tax>
 			</properties>
 		</profile>
 	</profiles>
