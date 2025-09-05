@@ -1,0 +1,79 @@
+spring:
+  devtools:
+    restart:
+      enabled: false
+    add-properties: false
+  main:
+    banner-mode: "off"
+  lifecycle:
+    timeout-per-shutdown-phase: 20s
+  servlet:
+    multipart:
+      max-file-size: 100MB
+      max-request-size: 100MB
+  datasource:
+    url: jdbc:postgresql://localhost:5432/sicodetridb
+    driverClassName: org.postgresql.Driver
+    username: postgres
+    password: 'D%z1dD09L&0L'
+    hikari:
+      maximum-pool-size: 30
+      minimum-idle: 10
+      connection-timeout: 20000
+      idle-timeout: 600000
+      max-lifetime: 1800000
+      pool-name: sicodetri-hikari
+  jpa:
+    hibernate:
+      ddl-auto: update
+    open-in-view: false
+    show-sql: false
+    properties:
+      hibernate.jdbc.batch_size: 50
+      hibernate.order_inserts: true
+      hibernate.order_updates: true
+
+server:
+  port: 8082
+  connection-timeout: 20s
+  shutdown: graceful
+  tomcat:
+    max-swallow-size: -1
+    max-keep-alive-requests: 1000
+    keep-alive-timeout: 60s
+    threads:
+      max: 200
+      min-spare: 20
+    accept-count: 200
+    connection-timeout: 20000
+
+# Logging sobrio (reduce IO en pruebas de carga)
+logging:
+  level:
+    root: INFO
+    org.springframework.boot.devtools: OFF
+    org.hibernate.SQL: OFF
+    org.hibernate.type.descriptor.sql: OFF
+
+# 🔐 OAuth / Authorization Server (igual que tu versión actual)
+authorization-server:
+  provider:
+    issuer: "http://localhost:8082"
+  jwk:
+    key-size: 2048
+  perf-client:
+    id: perf-client
+    secret: perf-secret
+    redirect-uris: []
+    roles:
+      - AssetUploader
+      - DepreciationProcessor
+      - ReportGenerator
+      - TaxTableViewer
+    scopes:
+      - openid
+      - roles
+  token:
+    access-token-time-to-live: 15m
+    refresh-token-time-to-live: 30d
+    reuse-refresh-tokens: false

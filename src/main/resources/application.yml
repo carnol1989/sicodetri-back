@@ -9,7 +9,7 @@ spring:
     url: jdbc:postgresql://localhost:5432/sicodetridb
     driverClassName: org.postgresql.Driver
     username: postgres
-    password: D%z1dD09L&0L
+    password: 'D%z1dD09L&0L'
   jpa:
     show-sql: true
     hibernate:
@@ -27,14 +27,19 @@ spring:
 
 info:
   project:
-    name: @project.name@
-    description: @project.description@
-    version: @project.version@
+    name: '@project.name@'
+    description: '@project.description@'
+    version: '@project.version@'
     type: core
-    artifact-id: @project.artifactId@
+    artifact-id: '@project.artifactId@'
 
 server:
   port: 8082
+  tomcat:
+    max-swallow-size: -1
+    max-keep-alive-requests: 1000
+    keep-alive-timeout: 60s
+  connection-timeout: 20s
 
 authorization-server:
   provider:
@@ -61,6 +66,9 @@ authorization-server:
       - DepreciationProcessor
       - ReportGenerator
       - TaxTableViewer
+    scopes:
+      - openid
+      - roles
   token:
     access-token-time-to-live: 15m
     refresh-token-time-to-live: 30d

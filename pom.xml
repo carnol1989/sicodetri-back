@@ -65,13 +65,6 @@
 		</dependency>
 
 		<dependency>
-			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-devtools</artifactId>
-			<scope>runtime</scope>
-			<optional>true</optional>
-		</dependency>
-
-		<dependency>
 			<groupId>org.projectlombok</groupId>
 			<artifactId>lombok</artifactId>
 			<optional>true</optional>
@@ -80,10 +73,6 @@
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-data-jpa</artifactId>
-		</dependency>
-		<dependency>
-			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-starter-data-jdbc</artifactId>
 		</dependency>
 		<dependency>
 			<groupId>org.postgresql</groupId>
@@ -337,9 +326,19 @@
 			</plugin>
 		</plugins>
 	</build>
-
-	<!-- Perfil para pruebas de performance con JMeter -->
 	<profiles>
+		<!-- PERFIL dev con DevTools -->
+		<profile>
+			<id>dev</id>
+			<dependencies>
+				<dependency>
+					<groupId>org.springframework.boot</groupId>
+					<artifactId>spring-boot-devtools</artifactId>
+					<scope>runtime</scope>
+					<optional>true</optional>
+				</dependency>
+			</dependencies>
+		</profile>
 		<profile>
 			<id>performance</id>
 			<build>
@@ -351,8 +350,30 @@
 						</includes>
 						<targetPath>${project.build.directory}/jmeter/testFiles</targetPath>
 					</resource>
+					<resource>
+						<directory>${project.basedir}/src/test/jmeter/files</directory>
+						<includes>
+							<include>**/*.xlsx</include>
+						</includes>
+						<targetPath>${project.build.directory}/jmeter/testFiles</targetPath>
+					</resource>
 				</resources>
 				<plugins>
+<!--					<plugin>-->
+<!--						<groupId>org.springframework.boot</groupId>-->
+<!--						<artifactId>spring-boot-maven-plugin</artifactId>-->
+<!--						<executions>-->
+<!--							<execution>-->
+<!--								<id>repackage</id>-->
+<!--								<goals>-->
+<!--									<goal>repackage</goal>-->
+<!--								</goals>-->
+<!--								<configuration>-->
+<!--									<excludeDevtools>true</excludeDevtools>-->
+<!--								</configuration>-->
+<!--							</execution>-->
+<!--						</executions>-->
+<!--					</plugin>-->
 					<plugin>
 						<groupId>org.codehaus.mojo</groupId>
 						<artifactId>properties-maven-plugin</artifactId>
@@ -391,6 +412,10 @@
 									<goal>jmeter</goal>
 								</goals>
 								<configuration>
+									<jmeterProcessJVMSettings>
+										<xms>1024</xms>
+										<xmx>2048</xmx>
+									</jmeterProcessJVMSettings>
 									<testFilesIncluded>
 										<jMeterTestFile>${testFiles}</jMeterTestFile>
 									</testFilesIncluded>
@@ -411,8 +436,16 @@
 										<pct_report>${pct_report}</pct_report>
 										<pct_tax>${pct_tax}</pct_tax>
 										<max_resp_ms>${max_resp_ms}</max_resp_ms>
+										<testFiles>${testFiles}</testFiles>
+										<files_dir>${files_dir}</files_dir>
+										<httpclient4.use_expect_continue>false</httpclient4.use_expect_continue>
+										<http.connection.stalecheck>true</http.connection.stalecheck>
+										<httpclient4.use.keepalive>true</httpclient4.use.keepalive>
+										<httpclient4.retrycount>1</httpclient4.retrycount>
 									</propertiesUser>
 									<generateReports>true</generateReports>
+									<testResultsTimestamp>true</testResultsTimestamp>
+									<resultsFileNameDateFormat>yyyyMMdd-HHmmss</resultsFileNameDateFormat>
 								</configuration>
 							</execution>
 						</executions>
@@ -457,6 +490,7 @@
 			</build>
 			<properties>
 				<testFiles>SICODETRI_LoadTest.jmx</testFiles>
+				<files_dir>${project.build.directory}/jmeter/testFiles</files_dir>
 			</properties>
 		</profile>
 	</profiles>
