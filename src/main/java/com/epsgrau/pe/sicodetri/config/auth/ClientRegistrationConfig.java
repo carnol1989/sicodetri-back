@@ -137,10 +137,7 @@ public class ClientRegistrationConfig {
                     .requireProofKey(false)
                     .build())
                 .redirectUris(Set::clear)
-                .scopes(s -> {
-                    s.clear();
-                    s.addAll(c.scopes());
-                });
+                .scopes(Set::clear);
         }
 
         // Guarda (insert/update). Si existía, RegisteredClient.from(existing) conserva el id.

@@ -32,6 +32,11 @@ spring:
       hibernate.jdbc.batch_size: 50
       hibernate.order_inserts: true
       hibernate.order_updates: true
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: "http://localhost:8082"
 
 server:
   port: 8082
@@ -46,14 +51,6 @@ server:
       min-spare: 20
     accept-count: 200
     connection-timeout: 20000
-
-# Logging sobrio (reduce IO en pruebas de carga)
-logging:
-  level:
-    root: INFO
-    org.springframework.boot.devtools: OFF
-    org.hibernate.SQL: OFF
-    org.hibernate.type.descriptor.sql: OFF
 
 # 🔐 OAuth / Authorization Server (igual que tu versión actual)
 authorization-server:
@@ -70,10 +67,20 @@ authorization-server:
       - DepreciationProcessor
       - ReportGenerator
       - TaxTableViewer
-    scopes:
-      - openid
-      - roles
+    scopes: []
   token:
     access-token-time-to-live: 15m
     refresh-token-time-to-live: 30d
     reuse-refresh-tokens: false
+
+# Logging sobrio (reduce IO en pruebas de carga)
+logging:
+  level:
+    root: INFO
+    org.springframework.boot.devtools: OFF
+    org.hibernate.SQL: OFF
+    org.hibernate.type.descriptor.sql: OFF
+    org.springframework.security: INFO
+    org.springframework.security.jackson2: WARN
+    org.springframework.web: DEBUG
+    com.epsgrau.pe.sicodetri: DEBUG

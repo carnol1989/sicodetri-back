@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <jmeterTestPlan version="1.2" properties="5.0" jmeter="5.6.3">
   <hashTree>
-    <TestPlan guiclass="TestPlanGui" testclass="TestPlan" testname="SICODETRI Load Test - Solución Final y Definitiva">
+    <TestPlan guiclass="TestPlanGui" testclass="TestPlan" testname="SICODETRI Load Test - Roles &amp; Auth Hardened">
       <elementProp name="TestPlan.user_defined_variables" elementType="Arguments" guiclass="ArgumentsPanel" testclass="Arguments">
         <collectionProp name="Arguments.arguments"/>
       </elementProp>
@@ -12,7 +12,7 @@
 
       <!-- Defaults -->
       <ConfigTestElement guiclass="HttpDefaultsGui" testclass="ConfigTestElement" testname="HTTP Request Defaults">
-        <boolProp name="HTTPSampler.image_parser">true</boolProp>
+        <boolProp name="HTTPSampler.image_parser">false</boolProp>
         <intProp name="HTTPSampler.connect_timeout">10000</intProp>
         <intProp name="HTTPSampler.response_timeout">30000</intProp>
         <stringProp name="HTTPSampler.domain">${__P(host, localhost)}</stringProp>
@@ -41,14 +41,25 @@
       </ThreadGroup>
       <hashTree>
 
-        <!-- Managers & Data -->
+        <!-- Cookie Manager -->
         <CookieManager guiclass="CookiePanel" testclass="CookieManager" testname="HTTP Cookie Manager">
           <collectionProp name="CookieManager.cookies"/>
-          <boolProp name="CookieManager.clearEachIteration">true</boolProp>
-          <boolProp name="CookieManager.controlledByThreadGroup">false</boolProp>
+          <boolProp name="CookieManager.clearEachIteration">false</boolProp>
         </CookieManager>
         <hashTree/>
 
+        <!-- Header Defaults -->
+        <HeaderManager guiclass="HeaderPanel" testclass="HeaderManager" testname="HTTP Header Defaults">
+          <collectionProp name="HeaderManager.headers">
+            <elementProp name="" elementType="Header">
+              <stringProp name="Header.name">Accept</stringProp>
+              <stringProp name="Header.value">application/json</stringProp>
+            </elementProp>
+          </collectionProp>
+        </HeaderManager>
+        <hashTree/>
+
+        <!-- CSV Data -->
         <CSVDataSet guiclass="TestBeanGUI" testclass="CSVDataSet" testname="CSV Data Set - Flujos de Prueba">
           <stringProp name="delimiter">,</stringProp>
           <stringProp name="fileEncoding">UTF-8</stringProp>
@@ -62,7 +73,7 @@
         </CSVDataSet>
         <hashTree/>
 
-        <!-- AUTH: una sola vez por hilo -->
+        <!-- Once Only Controller for Auth -->
         <OnceOnlyController guiclass="OnceOnlyControllerGui" testclass="OnceOnlyController" testname="AUTH - Once Only"/>
         <hashTree>
           <TransactionController guiclass="TransactionControllerGui" testclass="TransactionController" testname="AUTH - 01 Get Token">
@@ -70,37 +81,36 @@
             <boolProp name="TransactionController.includeTimers">false</boolProp>
           </TransactionController>
           <hashTree>
+          <AuthManager guiclass="AuthPanel" testclass="AuthManager" testname="HTTP Authorization Manager">
+                <collectionProp name="AuthManager.auth_list">
+                  <elementProp name="" elementType="Authorization">
+                    <stringProp name="Authorization.url">http://localhost:8082</stringProp>
+                    <stringProp name="Authorization.username">${__P(client_id, perf-client)}</stringProp>
+                    <stringProp name="Authorization.password">${__P(client_secret, perf-secret)}</stringProp>
+                    <stringProp name="Authorization.domain"></stringProp>
+                    <stringProp name="Authorization.realm"></stringProp>
+                    <stringProp name="Authorization.mechanism">BASIC</stringProp>
+                  </elementProp>
+                </collectionProp>
+                <boolProp name="AuthManager.clearEachIteration">true</boolProp>
+              </AuthManager>
+              <hashTree/>
             <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="POST Get Token (client_credentials)">
-              <boolProp name="HTTPSampler.image_parser">true</boolProp>
+              <boolProp name="HTTPSampler.image_parser">false</boolProp>
               <intProp name="HTTPSampler.connect_timeout">10000</intProp>
               <intProp name="HTTPSampler.response_timeout">30000</intProp>
               <stringProp name="HTTPSampler.path">${__P(token_path, /oauth2/token)}</stringProp>
-              <boolProp name="HTTPSampler.follow_redirects">true</boolProp>
+              <boolProp name="HTTPSampler.follow_redirects">false</boolProp>
               <stringProp name="HTTPSampler.method">POST</stringProp>
               <boolProp name="HTTPSampler.use_keepalive">true</boolProp>
               <boolProp name="HTTPSampler.postBodyRaw">false</boolProp>
-              <elementProp name="HTTPsampler.Arguments" elementType="Arguments" guiclass="HTTPArgumentsPanel" testclass="Arguments" testname="User Defined Variables">
+              <elementProp name="HTTPsampler.Arguments" elementType="Arguments" guiclass="HTTPArgumentsPanel" testclass="Arguments">
                 <collectionProp name="Arguments.arguments">
                   <elementProp name="grant_type" elementType="HTTPArgument">
-                    <boolProp name="HTTPArgument.always_encode">true</boolProp>
+                    <stringProp name="Argument.name">grant_type</stringProp>
                     <stringProp name="Argument.value">client_credentials</stringProp>
                     <stringProp name="Argument.metadata">=</stringProp>
                     <boolProp name="HTTPArgument.use_equals">true</boolProp>
-                    <stringProp name="Argument.name">grant_type</stringProp>
-                  </elementProp>
-                  <elementProp name="scope" elementType="HTTPArgument">
-                    <boolProp name="HTTPArgument.always_encode">true</boolProp>
-                    <stringProp name="Argument.value">openid roles</stringProp>
-                    <stringProp name="Argument.metadata">=</stringProp>
-                    <boolProp name="HTTPArgument.use_equals">true</boolProp>
-                    <stringProp name="Argument.name">scope</stringProp>
-                  </elementProp>
-                  <elementProp name="roles" elementType="HTTPArgument">
-                    <boolProp name="HTTPArgument.always_encode">true</boolProp>
-                    <stringProp name="Argument.value">AssetUploader DepreciationProcessor ReportGenerator TaxTableViewer</stringProp>
-                    <stringProp name="Argument.metadata">=</stringProp>
-                    <boolProp name="HTTPArgument.use_equals">true</boolProp>
-                    <stringProp name="Argument.name">roles</stringProp>
                   </elementProp>
                 </collectionProp>
               </elementProp>
@@ -113,16 +123,12 @@
                     <stringProp name="Header.name">Content-Type</stringProp>
                     <stringProp name="Header.value">application/x-www-form-urlencoded</stringProp>
                   </elementProp>
-                  <elementProp name="" elementType="Header">
-                    <stringProp name="Header.name">Authorization</stringProp>
-                    <stringProp name="Header.value">Basic ${__base64Encode(${__P(client_id)}:${__P(client_secret)},)}</stringProp>
-                  </elementProp>
                 </collectionProp>
               </HeaderManager>
               <hashTree/>
 
-              <!-- Assert 2xx + Max Time -->
-              <ResponseAssertion guiclass="AssertionGui" testclass="ResponseAssertion" testname="Assert Response Code 2xx">
+              <!-- Assert 2xx + tiempo -->
+              <ResponseAssertion guiclass="AssertionGui" testclass="ResponseAssertion" testname="Assert Response Code 2xx (Token)">
                 <collectionProp name="Asserion.test_strings">
                   <stringProp name="-1951605602">^2\d\d$</stringProp>
                 </collectionProp>
@@ -131,7 +137,7 @@
                 <intProp name="Assertion.test_type">16</intProp>
               </ResponseAssertion>
               <hashTree/>
-              <DurationAssertion guiclass="DurationAssertionGui" testclass="DurationAssertion" testname="Max Response Time (ms)">
+              <DurationAssertion guiclass="DurationAssertionGui" testclass="DurationAssertion" testname="Max Response Time (Token)">
                 <stringProp name="DurationAssertion.duration">${__P(max_resp_ms,5000)}</stringProp>
               </DurationAssertion>
               <hashTree/>
@@ -143,18 +149,36 @@
                 <stringProp name="JSONPostProcessor.defaultValues">TOKEN_NOT_FOUND</stringProp>
               </JSONPostProcessor>
               <hashTree/>
+
+              <!-- Fail-fast si no hay token -->
+              <IfController guiclass="IfControllerPanel" testclass="IfController" testname="If ACCESS_TOKEN not found - Stop Test">
+                <boolProp name="IfController.evaluateAll">false</boolProp>
+                <stringProp name="IfController.condition">
+                  ${__groovy(!vars.get('ACCESS_TOKEN') || vars.get('ACCESS_TOKEN') == 'TOKEN_NOT_FOUND')}
+                </stringProp>
+                <boolProp name="IfController.useExpression">true</boolProp>
+              </IfController>
+              <hashTree>
+                <JSR223Sampler guiclass="TestBeanGUI" testclass="JSR223Sampler" testname="Stop Test Now">
+                  <stringProp name="scriptLanguage">groovy</stringProp>
+                  <stringProp name="script">SampleResult.setSuccessful(false)
+log.error('ACCESS_TOKEN not found. Stopping test.')
+org.apache.jmeter.engine.StandardJMeterEngine.stopTest(true)</stringProp>
+                </JSR223Sampler>
+                <hashTree/>
+              </hashTree>
             </hashTree>
           </hashTree>
         </hashTree>
 
-        <!-- BUSINESS -->
+        <!-- Business Flow -->
         <TransactionController guiclass="TransactionControllerGui" testclass="TransactionController" testname="BUSINESS - 02 Flujo ${flow_name}">
           <boolProp name="TransactionController.parent">true</boolProp>
           <boolProp name="TransactionController.includeTimers">false</boolProp>
         </TransactionController>
         <hashTree>
 
-          <!-- Header de Autorización solo para este flujo -->
+          <!-- Header de Autorización -->
           <HeaderManager guiclass="HeaderPanel" testclass="HeaderManager" testname="HTTP Header Manager - API Auth">
             <collectionProp name="HeaderManager.headers">
               <elementProp name="" elementType="Header">
@@ -165,13 +189,13 @@
           </HeaderManager>
           <hashTree/>
 
-          <!-- Upload -->
+          <!-- ========== 1) Upload Excel ========== -->
           <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="POST Upload Excel">
-            <boolProp name="HTTPSampler.image_parser">true</boolProp>
+            <boolProp name="HTTPSampler.image_parser">false</boolProp>
             <intProp name="HTTPSampler.connect_timeout">10000</intProp>
             <intProp name="HTTPSampler.response_timeout">30000</intProp>
             <stringProp name="HTTPSampler.path">/api/v1/financial-fixed-assets/upload</stringProp>
-            <boolProp name="HTTPSampler.follow_redirects">true</boolProp>
+            <boolProp name="HTTPSampler.follow_redirects">false</boolProp>
             <stringProp name="HTTPSampler.method">POST</stringProp>
             <boolProp name="HTTPSampler.use_keepalive">true</boolProp>
             <boolProp name="HTTPSampler.DO_MULTIPART_POST">true</boolProp>
@@ -185,7 +209,7 @@
               </collectionProp>
             </elementProp>
             <boolProp name="HTTPSampler.postBodyRaw">false</boolProp>
-            <elementProp name="HTTPsampler.Arguments" elementType="Arguments" guiclass="HTTPArgumentsPanel" testclass="Arguments" testname="User Defined Variables">
+            <elementProp name="HTTPsampler.Arguments" elementType="Arguments" guiclass="HTTPArgumentsPanel" testclass="Arguments">
               <collectionProp name="Arguments.arguments">
                 <elementProp name="period" elementType="HTTPArgument">
                   <boolProp name="HTTPArgument.always_encode">false</boolProp>
@@ -199,22 +223,7 @@
             <stringProp name="HTTPSampler.implementation">HttpClient4</stringProp>
           </HTTPSamplerProxy>
           <hashTree>
-            <!-- Assertions -->
-            <ResponseAssertion guiclass="AssertionGui" testclass="ResponseAssertion" testname="Assert Response Code 2xx">
-              <collectionProp name="Asserion.test_strings">
-                <stringProp name="-1951605602">^2\d\d$</stringProp>
-              </collectionProp>
-              <stringProp name="Assertion.test_field">Assertion.response_code</stringProp>
-              <boolProp name="Assertion.assume_success">false</boolProp>
-              <intProp name="Assertion.test_type">16</intProp>
-            </ResponseAssertion>
-            <hashTree/>
-            <DurationAssertion guiclass="DurationAssertionGui" testclass="DurationAssertion" testname="Max Response Time (ms)">
-              <stringProp name="DurationAssertion.duration">${__P(max_resp_ms,5000)}</stringProp>
-            </DurationAssertion>
-            <hashTree/>
-
-            <!-- Resolver ruta Excel -->
+            <!-- Resolver ruta Excel (robusto) -->
             <JSR223PreProcessor guiclass="TestBeanGUI" testclass="JSR223PreProcessor" testname="JSR223 PreProcessor - Resolve Excel File Path">
               <stringProp name="scriptLanguage">groovy</stringProp>
               <stringProp name="cacheKey">true</stringProp>
@@ -227,41 +236,25 @@ def filename = vars.get('excel_file')
 if (!filename) {
     throw new IllegalStateException("CSV variable 'excel_file' is empty or undefined")
 }
-def base = FileServer.getFileServer().getBaseDir()
-def path = new File(base, filename).getPath()
+// Primero intenta ruta relativa original (../testFiles/…)
+def rel = new File(new File(FileServer.getFileServer().getBaseDir()), "../testFiles/${filename}")
+File path = rel.exists() ? rel : new File(filename) // fallback al nombre directo
 
 def mime = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
 def param = 'file'
 
 HTTPSamplerProxy s = (HTTPSamplerProxy) ctx.getCurrentSampler()
 s.setDoMultipart(true)
-s.setHTTPFiles([ new HTTPFileArg(path, mime, param) ] as HTTPFileArg[])
-log.info("Upload file resolved to: " + path)
+s.setHTTPFiles([ new HTTPFileArg(path.getPath(), mime, param) ] as HTTPFileArg[])
+log.info("Upload file resolved to: " + path.getPath())
 ]]></stringProp>
               <stringProp name="parameters"></stringProp>
               <stringProp name="filename"></stringProp>
             </JSR223PreProcessor>
             <hashTree/>
-          </hashTree>
 
-          <!-- Save -->
-          <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="POST Save Excel Data">
-            <boolProp name="HTTPSampler.image_parser">true</boolProp>
-            <intProp name="HTTPSampler.connect_timeout">10000</intProp>
-            <intProp name="HTTPSampler.response_timeout">30000</intProp>
-            <stringProp name="HTTPSampler.path">/api/v1/financial-fixed-assets?period=${period}</stringProp>
-            <boolProp name="HTTPSampler.follow_redirects">true</boolProp>
-            <stringProp name="HTTPSampler.method">POST</stringProp>
-            <boolProp name="HTTPSampler.use_keepalive">true</boolProp>
-            <boolProp name="HTTPSampler.postBodyRaw">false</boolProp>
-            <elementProp name="HTTPsampler.Arguments" elementType="Arguments" guiclass="HTTPArgumentsPanel" testclass="Arguments" testname="User Defined Variables">
-              <collectionProp name="Arguments.arguments"/>
-            </elementProp>
-            <stringProp name="HTTPSampler.implementation">HttpClient4</stringProp>
-          </HTTPSamplerProxy>
-          <hashTree>
             <!-- Assertions -->
-            <ResponseAssertion guiclass="AssertionGui" testclass="ResponseAssertion" testname="Assert Response Code 2xx">
+            <ResponseAssertion guiclass="AssertionGui" testclass="ResponseAssertion" testname="Assert Response Code 2xx (Upload)">
               <collectionProp name="Asserion.test_strings">
                 <stringProp name="-1951605602">^2\d\d$</stringProp>
               </collectionProp>
@@ -270,23 +263,55 @@ log.info("Upload file resolved to: " + path)
               <intProp name="Assertion.test_type">16</intProp>
             </ResponseAssertion>
             <hashTree/>
-            <DurationAssertion guiclass="DurationAssertionGui" testclass="DurationAssertion" testname="Max Response Time (ms)">
+            <DurationAssertion guiclass="DurationAssertionGui" testclass="DurationAssertion" testname="Max Response Time (Upload)">
               <stringProp name="DurationAssertion.duration">${__P(max_resp_ms,5000)}</stringProp>
             </DurationAssertion>
             <hashTree/>
           </hashTree>
 
-          <!-- Projection -->
-          <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="POST Generate Projection">
-            <boolProp name="HTTPSampler.image_parser">true</boolProp>
+          <!-- ========== 2) Save Excel Data ========== -->
+          <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="POST Save Excel Data">
+            <boolProp name="HTTPSampler.image_parser">false</boolProp>
             <intProp name="HTTPSampler.connect_timeout">10000</intProp>
             <intProp name="HTTPSampler.response_timeout">30000</intProp>
-            <stringProp name="HTTPSampler.path">/api/v1/financial-fixed-assets/projection</stringProp>
-            <boolProp name="HTTPSampler.follow_redirects">true</boolProp>
+            <stringProp name="HTTPSampler.path">/api/v1/financial-fixed-assets?period=${period}</stringProp>
+            <boolProp name="HTTPSampler.follow_redirects">false</boolProp>
             <stringProp name="HTTPSampler.method">POST</stringProp>
             <boolProp name="HTTPSampler.use_keepalive">true</boolProp>
             <boolProp name="HTTPSampler.postBodyRaw">false</boolProp>
-            <elementProp name="HTTPsampler.Arguments" elementType="Arguments" guiclass="HTTPArgumentsPanel" testclass="Arguments" testname="User Defined Variables">
+            <elementProp name="HTTPsampler.Arguments" elementType="Arguments" guiclass="HTTPArgumentsPanel" testclass="Arguments">
+              <collectionProp name="Arguments.arguments"/>
+            </elementProp>
+            <stringProp name="HTTPSampler.implementation">HttpClient4</stringProp>
+          </HTTPSamplerProxy>
+          <hashTree>
+            <!-- Assertions -->
+            <ResponseAssertion guiclass="AssertionGui" testclass="ResponseAssertion" testname="Assert Response Code 2xx (Save)">
+              <collectionProp name="Asserion.test_strings">
+                <stringProp name="-1951605602">^2\d\d$</stringProp>
+              </collectionProp>
+              <stringProp name="Assertion.test_field">Assertion.response_code</stringProp>
+              <boolProp name="Assertion.assume_success">false</boolProp>
+              <intProp name="Assertion.test_type">16</intProp>
+            </ResponseAssertion>
+            <hashTree/>
+            <DurationAssertion guiclass="DurationAssertionGui" testclass="DurationAssertion" testname="Max Response Time (Save)">
+              <stringProp name="DurationAssertion.duration">${__P(max_resp_ms,5000)}</stringProp>
+            </DurationAssertion>
+            <hashTree/>
+          </hashTree>
+
+          <!-- ========== 3) Generate Projection ========== -->
+          <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="POST Generate Projection">
+            <boolProp name="HTTPSampler.image_parser">false</boolProp>
+            <intProp name="HTTPSampler.connect_timeout">10000</intProp>
+            <intProp name="HTTPSampler.response_timeout">30000</intProp>
+            <stringProp name="HTTPSampler.path">/api/v1/financial-fixed-assets/projection</stringProp>
+            <boolProp name="HTTPSampler.follow_redirects">false</boolProp>
+            <stringProp name="HTTPSampler.method">POST</stringProp>
+            <boolProp name="HTTPSampler.use_keepalive">true</boolProp>
+            <boolProp name="HTTPSampler.postBodyRaw">false</boolProp>
+            <elementProp name="HTTPsampler.Arguments" elementType="Arguments" guiclass="HTTPArgumentsPanel" testclass="Arguments">
               <collectionProp name="Arguments.arguments">
                 <elementProp name="type" elementType="HTTPArgument">
                   <boolProp name="HTTPArgument.always_encode">true</boolProp>
@@ -315,7 +340,7 @@ log.info("Upload file resolved to: " + path)
           </HTTPSamplerProxy>
           <hashTree>
             <!-- Assertions -->
-            <ResponseAssertion guiclass="AssertionGui" testclass="ResponseAssertion" testname="Assert Response Code 2xx">
+            <ResponseAssertion guiclass="AssertionGui" testclass="ResponseAssertion" testname="Assert Response Code 2xx (Projection)">
               <collectionProp name="Asserion.test_strings">
                 <stringProp name="-1951605602">^2\d\d$</stringProp>
               </collectionProp>
@@ -324,7 +349,7 @@ log.info("Upload file resolved to: " + path)
               <intProp name="Assertion.test_type">16</intProp>
             </ResponseAssertion>
             <hashTree/>
-            <DurationAssertion guiclass="DurationAssertionGui" testclass="DurationAssertion" testname="Max Response Time (ms)">
+            <DurationAssertion guiclass="DurationAssertionGui" testclass="DurationAssertion" testname="Max Response Time (Projection)">
               <stringProp name="DurationAssertion.duration">${__P(max_resp_ms,5000)}</stringProp>
             </DurationAssertion>
             <hashTree/>
@@ -332,7 +357,7 @@ log.info("Upload file resolved to: " + path)
 
         </hashTree>
 
-        <!-- LISTENERS (útiles en GUI; en CLI no estorban) -->
+        <!-- LISTENERS -->
         <ResultCollector guiclass="SummaryReport" testclass="ResultCollector" testname="Summary Report" enabled="true">
           <boolProp name="ResultCollector.error_logging">false</boolProp>
           <objProp>
@@ -392,8 +417,8 @@ log.info("Upload file resolved to: " + path)
               <samplerData>false</samplerData>
               <xml>false</xml>
               <fieldNames>true</fieldNames>
-              <responseHeaders>false</responseHeaders>
-              <requestHeaders>false</requestHeaders>
+              <responseHeaders>true</responseHeaders>
+              <requestHeaders>true</requestHeaders>
               <responseDataOnError>true</responseDataOnError>
               <saveAssertionResultsFailureMessage>true</saveAssertionResultsFailureMessage>
               <assertionsResultsToSave>0</assertionsResultsToSave>

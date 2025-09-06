@@ -359,21 +359,6 @@
 					</resource>
 				</resources>
 				<plugins>
-<!--					<plugin>-->
-<!--						<groupId>org.springframework.boot</groupId>-->
-<!--						<artifactId>spring-boot-maven-plugin</artifactId>-->
-<!--						<executions>-->
-<!--							<execution>-->
-<!--								<id>repackage</id>-->
-<!--								<goals>-->
-<!--									<goal>repackage</goal>-->
-<!--								</goals>-->
-<!--								<configuration>-->
-<!--									<excludeDevtools>true</excludeDevtools>-->
-<!--								</configuration>-->
-<!--							</execution>-->
-<!--						</executions>-->
-<!--					</plugin>-->
 					<plugin>
 						<groupId>org.codehaus.mojo</groupId>
 						<artifactId>properties-maven-plugin</artifactId>
@@ -427,6 +412,7 @@
 										<client_id>${client_id}</client_id>
 										<client_secret>${client_secret}</client_secret>
 										<token_path>${token_path}</token_path>
+										<scope>${scope}</scope>
 										<users>${users}</users>
 										<rampup>${rampup}</rampup>
 										<duration>${duration}</duration>
