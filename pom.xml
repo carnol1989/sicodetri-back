@@ -423,6 +423,11 @@
 										<pct_tax>${pct_tax}</pct_tax>
 										<max_resp_ms>${max_resp_ms}</max_resp_ms>
 										<testFiles>${testFiles}</testFiles>
+										<csv_recycle>${csv_recycle}</csv_recycle>
+										<csv_stop_on_eof>${csv_stop_on_eof}</csv_stop_on_eof>
+										<global_sequential>${global_sequential}</global_sequential>
+										<retry_417_max>${retry_417_max}</retry_417_max>
+										<retry_417_base_ms>${retry_417_base_ms}</retry_417_base_ms>
 										<files_dir>${files_dir}</files_dir>
 										<httpclient4.use_expect_continue>false</httpclient4.use_expect_continue>
 										<http.connection.stalecheck>true</http.connection.stalecheck>
