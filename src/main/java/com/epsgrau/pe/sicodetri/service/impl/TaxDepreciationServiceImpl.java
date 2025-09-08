@@ -79,6 +79,7 @@ public class TaxDepreciationServiceImpl implements TaxDepreciationService {
     @Transactional
     public void deleteByIdService(Long id) {
         repository.deleteById(id);
+        repository.flush();
     }
 
     /**
@@ -90,6 +91,7 @@ public class TaxDepreciationServiceImpl implements TaxDepreciationService {
     @Transactional
     public void deleteAllService(List<TaxDepreciation> listObj) {
         repository.deleteAll(listObj);
+        repository.flush();
     }
 
     /**

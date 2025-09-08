@@ -4,7 +4,7 @@ import com.epsgrau.pe.sicodetri.dto.FinancialFixedAssetDto;
 import com.epsgrau.pe.sicodetri.dto.ParamReportDto;
 import com.epsgrau.pe.sicodetri.entity.FinancialFixedAsset;
 import com.epsgrau.pe.sicodetri.model.InputData;
-import com.epsgrau.pe.sicodetri.service.projection.ProjectionType;
+import com.epsgrau.pe.sicodetri.util.enums.ProjectionType;
 import java.sql.SQLException;
 import java.time.LocalDate;
 import java.util.List;
@@ -77,6 +77,8 @@ public interface FinancialFixedAssetService {
      * @param period the accounting period whose assets should be removed
      */
     void deleteByAccountingPeriodAndAddedByService(LocalDate period, String username);
+
+    void deleteAllFinancialFixedAsset(List<FinancialFixedAsset> fixedAssets);
 
     /**
      * Generates a projection of depreciation or additions/deductions for a list of assets.

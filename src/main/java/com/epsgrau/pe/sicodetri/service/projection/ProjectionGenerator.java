@@ -1,6 +1,8 @@
 package com.epsgrau.pe.sicodetri.service.projection;
 
 import com.epsgrau.pe.sicodetri.entity.FinancialFixedAsset;
+import com.epsgrau.pe.sicodetri.util.enums.ProjectionType;
+
 import java.time.LocalDate;
 import java.util.List;
 

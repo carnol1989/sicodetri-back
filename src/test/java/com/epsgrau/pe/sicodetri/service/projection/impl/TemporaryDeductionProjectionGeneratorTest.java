@@ -18,7 +18,7 @@ import com.epsgrau.pe.sicodetri.service.DeductionService;
 import com.epsgrau.pe.sicodetri.service.FinancialDepreciationService;
 import com.epsgrau.pe.sicodetri.service.TaxDepreciationService;
 import com.epsgrau.pe.sicodetri.service.TaxTableSunatService;
-import com.epsgrau.pe.sicodetri.service.projection.ProjectionType;
+import com.epsgrau.pe.sicodetri.util.enums.ProjectionType;
 import com.epsgrau.pe.sicodetri.util.DataTest;
 import java.math.BigDecimal;
 import java.time.LocalDate;

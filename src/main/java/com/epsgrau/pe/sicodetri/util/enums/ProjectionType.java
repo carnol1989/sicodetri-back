@@ -1,4 +1,4 @@
-package com.epsgrau.pe.sicodetri.service.projection;
+package com.epsgrau.pe.sicodetri.util.enums;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonValue;
@@ -42,7 +42,7 @@ public enum  ProjectionType {
     /**
      * Projection of permanent additions.
      */
-    PERMANENT_ADDITIONS("PERMANENT_ADDITIONS", "Adición permanente");
+    PERMANENT_ADDITIONS("PERMANENT_ADDITION", "Adición permanente");
 
     /**
      * Code to be used in the query-param or in JSON (e.g.: ?type=TEMPORARY_DEDUCTION).

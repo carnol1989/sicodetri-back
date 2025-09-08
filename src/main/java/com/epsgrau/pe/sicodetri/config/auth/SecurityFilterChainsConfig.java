@@ -2,7 +2,6 @@ package com.epsgrau.pe.sicodetri.config.auth;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -11,6 +10,8 @@ import org.springframework.security.oauth2.server.authorization.config.annotatio
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.LoginUrlAuthenticationEntryPoint;
 import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
+import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
+import org.springframework.security.web.util.matcher.OrRequestMatcher;
 
 /**
  * Configuration class defining security filter chains for the application.
@@ -92,7 +93,7 @@ public class SecurityFilterChainsConfig {
      * @see org.springframework.security.config.Customizer#withDefaults()
     */
     @Bean
-    @Order(Ordered.HIGHEST_PRECEDENCE)
+    @Order(1)
     public SecurityFilterChain authorizationServerSecurityFilterChain(HttpSecurity http)
         throws Exception {
         OAuth2AuthorizationServerConfiguration.applyDefaultSecurity(http);
@@ -161,9 +162,20 @@ public class SecurityFilterChainsConfig {
      * @see org.springframework.security.web.authentication.logout.LogoutHandler
     */
     @Bean
-    @Order(Ordered.LOWEST_PRECEDENCE)
+    @Order(3)
     public SecurityFilterChain defaultSecurityFilterChain(HttpSecurity http) throws Exception {
         http
+            .securityMatcher(request -> new OrRequestMatcher(
+                new AntPathRequestMatcher("/"),
+                new AntPathRequestMatcher("/login**"),
+                new AntPathRequestMatcher("/callback"),
+                new AntPathRequestMatcher("/v1/callback"),
+                new AntPathRequestMatcher("/index.html"),
+                new AntPathRequestMatcher("/favicon.ico"),
+                new AntPathRequestMatcher("/static/**"),
+                new AntPathRequestMatcher("/auth/token"),
+                new AntPathRequestMatcher("/error**")
+            ).matches(request))
             .cors(Customizer.withDefaults())
             .csrf(csrf -> csrf
                 .ignoringRequestMatchers("/auth/token", "/logout")
@@ -182,9 +194,7 @@ public class SecurityFilterChainsConfig {
                 .anyRequest().authenticated()
             )
             .formLogin(Customizer.withDefaults())
-            .oauth2ResourceServer(oaut2 ->
-                oaut2.jwt(Customizer.withDefaults())
-            ).logout(logout -> logout
+            .logout(logout -> logout
                 .logoutUrl("/logout")
                 .logoutSuccessUrl("/login?logout")
                 .deleteCookies("JSESSIONID", "XSRF-TOKEN")

@@ -13,14 +13,16 @@ import static com.epsgrau.pe.sicodetri.util.Constants.RUC_VALUE;
 
 import com.epsgrau.pe.sicodetri.dto.FinancialFixedAssetDto;
 import com.epsgrau.pe.sicodetri.dto.ParamReportDto;
+import com.epsgrau.pe.sicodetri.entity.FinancialDepreciation;
 import com.epsgrau.pe.sicodetri.entity.FinancialFixedAsset;
 import com.epsgrau.pe.sicodetri.exception.ExceptionResponse;
 import com.epsgrau.pe.sicodetri.exception.ResourceNotFoundException;
 import com.epsgrau.pe.sicodetri.model.InputData;
 import com.epsgrau.pe.sicodetri.model.ResponseData;
+import com.epsgrau.pe.sicodetri.service.FinancialDepreciationService;
 import com.epsgrau.pe.sicodetri.service.FinancialFixedAssetService;
 import com.epsgrau.pe.sicodetri.service.ReportJasperService;
-import com.epsgrau.pe.sicodetri.service.projection.ProjectionType;
+import com.epsgrau.pe.sicodetri.util.enums.ProjectionType;
 import com.epsgrau.pe.sicodetri.service.report.ReportStrategy;
 import com.epsgrau.pe.sicodetri.service.report.ReportStrategyFactory;
 import com.epsgrau.pe.sicodetri.util.Constants;
@@ -169,7 +171,7 @@ public class FinancialFixedAssetController {
             return buildResponse("Archivo subido correctamente: " + file.getOriginalFilename(),
                 listInputData.size(), HttpStatus.OK);
         } catch (Exception e) {
-            return handleException("Error al subir archivo.", e, HttpStatus.EXPECTATION_FAILED);
+            return handleException("Error al subir archivo.", e, HttpStatus.BAD_REQUEST);
         }
     }
 
@@ -207,14 +209,15 @@ public class FinancialFixedAssetController {
         List<InputData> listInputData = (List<InputData>) session
             .getAttribute(Constants.LIST_INPUT_DATA);
         if (listInputData == null || listInputData.isEmpty()) {
-            return buildResponseWithError(messageError, HttpStatus.EXPECTATION_FAILED, period);
+            return buildResponseWithError(messageError, HttpStatus.BAD_REQUEST, period);
         }
         log.info("Cantidad registros a guardar: {}", listInputData.size());
         try {
             LocalDate periodDate = LocalDate.parse(period, DateTimeFormatter
                 .ofPattern(Constants.FORMATTER_YYYY_MM_DD));
-
-            service.deleteByAccountingPeriodAndAddedByService(periodDate, username);
+            List<FinancialFixedAsset> listFinancialFixedAsset =
+                service.findByPeriodAndAddedByService(periodDate, username);
+            service.deleteAllFinancialFixedAsset(listFinancialFixedAsset);
             service.saveAllService(period, listInputData, username);
             return buildResponse("Información guardada correctamente para el periodo: " + period,
                 listInputData.size(), HttpStatus.CREATED);
@@ -273,14 +276,14 @@ public class FinancialFixedAssetController {
             if (listFinancialFixedAsset.isEmpty()) {
                 return buildResponseWithError(
                     messageError + " No se encontraron registros.",
-                    HttpStatus.EXPECTATION_FAILED,
+                    HttpStatus.NOT_FOUND,
                     period);
             }
 
             service.generateProjectionService(type, periodDate, listFinancialFixedAsset, account,
                 username);
             return buildResponse("Proyección generada correctamente.",
-                listFinancialFixedAsset.size(), HttpStatus.OK);
+                listFinancialFixedAsset.size(), HttpStatus.CREATED);
         } catch (DateTimeParseException dtpe) {
             return buildResponseWithError(
                 "Formato de fecha inválido. Use 'YYYY-MM-DD'.",

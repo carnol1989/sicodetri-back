@@ -79,6 +79,7 @@ public class FinancialDepreciationServiceImpl implements FinancialDepreciationSe
     @Transactional
     public void deleteByIdService(Long id) {
         repository.deleteById(id);
+        repository.flush();
     }
 
     /**
@@ -90,6 +91,7 @@ public class FinancialDepreciationServiceImpl implements FinancialDepreciationSe
     @Transactional
     public void deleteAllService(List<FinancialDepreciation> listObj) {
         repository.deleteAll(listObj);
+        repository.flush();
     }
 
     /**

@@ -80,6 +80,7 @@ public class DeductionServiceImpl implements DeductionService {
     @Transactional
     public void deleteByIdService(Long id) {
         repository.deleteById(id);
+        repository.flush();
     }
 
     /**
@@ -91,6 +92,7 @@ public class DeductionServiceImpl implements DeductionService {
     @Transactional
     public void deleteAllService(List<Deduction> listObj) {
         repository.deleteAll(listObj);
+        repository.flush();
     }
 
     /**

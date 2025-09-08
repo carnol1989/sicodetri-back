@@ -80,6 +80,7 @@ public class AdditionServiceImpl implements AdditionService {
     @Transactional
     public void deleteByIdService(Long id) {
         repository.deleteById(id);
+        repository.flush();
     }
 
     /**
@@ -91,6 +92,7 @@ public class AdditionServiceImpl implements AdditionService {
     @Transactional
     public void deleteAllService(List<Addition> listObj) {
         repository.deleteAll(listObj);
+        repository.flush();
     }
 
     /**

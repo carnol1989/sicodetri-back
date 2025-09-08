@@ -24,7 +24,7 @@ import com.epsgrau.pe.sicodetri.service.FinancialFixedAssetService;
 import com.epsgrau.pe.sicodetri.service.TaxDepreciationService;
 import com.epsgrau.pe.sicodetri.service.TaxTableSunatService;
 import com.epsgrau.pe.sicodetri.service.projection.ProjectionGenerator;
-import com.epsgrau.pe.sicodetri.service.projection.ProjectionType;
+import com.epsgrau.pe.sicodetri.util.enums.ProjectionType;
 import java.io.IOException;
 import java.sql.SQLException;
 import java.time.LocalDate;
@@ -453,6 +453,14 @@ public class FinancialFixedAssetServiceImpl implements FinancialFixedAssetServic
     @Transactional
     public void deleteByAccountingPeriodAndAddedByService(LocalDate period, String username) {
         repository.deleteByAccountingPeriodAndAddedBy(period, username);
+        repository.flush();
+    }
+
+    @Override
+    @Transactional
+    public void deleteAllFinancialFixedAsset(List<FinancialFixedAsset> fixedAssets) {
+        repository.deleteAll(fixedAssets);
+        repository.flush();
     }
 
     /**
