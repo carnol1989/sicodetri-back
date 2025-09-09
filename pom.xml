@@ -383,6 +383,44 @@
 						<version>${jmeter.maven.plugin.version}</version>
 						<configuration>
 							<jmeterVersion>${jmeter.version}</jmeterVersion>
+							<userPropertiesFiles>
+								<file>${project.basedir}/src/test/jmeter/perf-env.properties</file>
+							</userPropertiesFiles>
+							<propertiesUser>
+								<!-- Target -->
+								<host>${host}</host>
+								<port>${port}</port>
+								<protocol>${protocol}</protocol>
+								<base_api>${base_api}</base_api>
+								<!-- OAuth2 -->
+								<client_id>${client_id}</client_id>
+								<client_secret>${client_secret}</client_secret>
+								<token_path>${token_path}</token_path>
+								<scope>${scope}</scope>
+								<!-- Carga -->
+								<users>${users}</users>
+								<rampup>${rampup}</rampup>
+								<duration>${duration}</duration>
+								<!-- Asserts & Config -->
+								<max_resp_ms>${max_resp_ms}</max_resp_ms>
+								<testFiles>${testFiles}</testFiles>
+								<files_dir>${files_dir}</files_dir>
+								<!-- CSV y candado -->
+								<csv_recycle>${csv_recycle}</csv_recycle>
+								<csv_stop_on_eof>${csv_stop_on_eof}</csv_stop_on_eof>
+								<global_sequential>${global_sequential}</global_sequential>
+								<!-- Retry 417 -->
+								<retry_417_max>${retry_417_max}</retry_417_max>
+								<retry_417_base_ms>${retry_417_base_ms}</retry_417_base_ms>
+								<!-- HTTP tuning -->
+								<httpclient4.use_expect_continue>false</httpclient4.use_expect_continue>
+								<http.connection.stalecheck>true</http.connection.stalecheck>
+								<httpclient4.use.keepalive>true</httpclient4.use.keepalive>
+								<httpclient4.retrycount>1</httpclient4.retrycount>
+							</propertiesUser>
+							<generateReports>true</generateReports>
+							<testResultsTimestamp>true</testResultsTimestamp>
+							<resultsFileNameDateFormat>yyyyMMdd-HHmmss</resultsFileNameDateFormat>
 						</configuration>
 						<executions>
 							<execution>
@@ -404,39 +442,6 @@
 									<testFilesIncluded>
 										<jMeterTestFile>${testFiles}</jMeterTestFile>
 									</testFilesIncluded>
-									<propertiesUser>
-										<host>${host}</host>
-										<port>${port}</port>
-										<protocol>${protocol}</protocol>
-										<base_api>${base_api}</base_api>
-										<client_id>${client_id}</client_id>
-										<client_secret>${client_secret}</client_secret>
-										<token_path>${token_path}</token_path>
-										<scope>${scope}</scope>
-										<users>${users}</users>
-										<rampup>${rampup}</rampup>
-										<duration>${duration}</duration>
-										<pct_upload_save>${pct_upload_save}</pct_upload_save>
-										<pct_query>${pct_query}</pct_query>
-										<pct_proj>${pct_proj}</pct_proj>
-										<pct_report>${pct_report}</pct_report>
-										<pct_tax>${pct_tax}</pct_tax>
-										<max_resp_ms>${max_resp_ms}</max_resp_ms>
-										<testFiles>${testFiles}</testFiles>
-										<csv_recycle>${csv_recycle}</csv_recycle>
-										<csv_stop_on_eof>${csv_stop_on_eof}</csv_stop_on_eof>
-										<global_sequential>${global_sequential}</global_sequential>
-										<retry_417_max>${retry_417_max}</retry_417_max>
-										<retry_417_base_ms>${retry_417_base_ms}</retry_417_base_ms>
-										<files_dir>${files_dir}</files_dir>
-										<httpclient4.use_expect_continue>false</httpclient4.use_expect_continue>
-										<http.connection.stalecheck>true</http.connection.stalecheck>
-										<httpclient4.use.keepalive>true</httpclient4.use.keepalive>
-										<httpclient4.retrycount>1</httpclient4.retrycount>
-									</propertiesUser>
-									<generateReports>true</generateReports>
-									<testResultsTimestamp>true</testResultsTimestamp>
-									<resultsFileNameDateFormat>yyyyMMdd-HHmmss</resultsFileNameDateFormat>
 								</configuration>
 							</execution>
 						</executions>
