@@ -45,7 +45,7 @@
       </ThreadGroup>
       <hashTree>
 
-        <!-- Cookie Manager -->
+        <!-- HTTP Cookie Manager (único) -->
         <CookieManager guiclass="CookiePanel" testclass="CookieManager" testname="HTTP Cookie Manager">
           <collectionProp name="CookieManager.cookies"/>
           <boolProp name="CookieManager.clearEachIteration">false</boolProp>
@@ -347,18 +347,20 @@ Thread.sleep(sleep)
               </HTTPSamplerProxy>
               <hashTree>
 
+                <!-- FIXED: JSR223PostProcessor con regex compatibles Groovy -->
                 <JSR223PostProcessor guiclass="TestBeanGUI" testclass="JSR223PostProcessor" testname="SAVE - Retry decision (417 temporal)">
                   <stringProp name="scriptLanguage">groovy</stringProp>
                   <stringProp name="script"><![CDATA[
 def code    = prev.getResponseCode()
 def body    = prev.getResponseDataAsString() ?: ''
 def headers = prev.getResponseHeaders() ?: ''
+
 int count   = (vars.get('SAVE_RETRY_COUNT') ?: '0') as int
 int max     = Integer.parseInt(props.getProperty('retry_417_max','2'))
 
 boolean isTemporal =
-        (body    =~ /"temporary"\s*:\s*true/i) ||
-        (body    =~ /"type"\s*:\s*"TEMPORAL"/i) ||
+        (body    =~ /(?i)"temporary"\s*:\s*true/) ||
+        (body    =~ /(?i)"type"\s*:\s*"TEMPORAL"/) ||
         (headers =~ /(?mi)^X-Error-Type:\s*TEMPORAL\s*$/)
 
 if (code ==~ /2\d\d/) {
@@ -457,18 +459,20 @@ Thread.sleep(sleep)
               </HTTPSamplerProxy>
               <hashTree>
 
+                <!-- FIXED: JSR223PostProcessor con regex compatibles Groovy -->
                 <JSR223PostProcessor guiclass="TestBeanGUI" testclass="JSR223PostProcessor" testname="PROJ - Retry decision (417 temporal)">
                   <stringProp name="scriptLanguage">groovy</stringProp>
                   <stringProp name="script"><![CDATA[
 def code    = prev.getResponseCode()
 def body    = prev.getResponseDataAsString() ?: ''
 def headers = prev.getResponseHeaders() ?: ''
+
 int count   = (vars.get('PROJ_RETRY_COUNT') ?: '0') as int
 int max     = Integer.parseInt(props.getProperty('retry_417_max','2'))
 
 boolean isTemporal =
-        (body    =~ /"temporary"\s*:\s*true/i) ||
-        (body    =~ /"type"\s*:\s*"TEMPORAL"/i) ||
+        (body    =~ /(?i)"temporary"\s*:\s*true/) ||
+        (body    =~ /(?i)"type"\s*:\s*"TEMPORAL"/) ||
         (headers =~ /(?mi)^X-Error-Type:\s*TEMPORAL\s*$/)
 
 if (code ==~ /2\d\d/) {

@@ -383,9 +383,6 @@
 						<version>${jmeter.maven.plugin.version}</version>
 						<configuration>
 							<jmeterVersion>${jmeter.version}</jmeterVersion>
-							<userPropertiesFiles>
-								<file>${project.basedir}/src/test/jmeter/perf-env.properties</file>
-							</userPropertiesFiles>
 							<propertiesUser>
 								<!-- Target -->
 								<host>${host}</host>
@@ -421,6 +418,7 @@
 							<generateReports>true</generateReports>
 							<testResultsTimestamp>true</testResultsTimestamp>
 							<resultsFileNameDateFormat>yyyyMMdd-HHmmss</resultsFileNameDateFormat>
+							<propertiesFilesDirectory>${project.basedir}/src/test/jmeter/perf-env.properties</propertiesFilesDirectory>
 						</configuration>
 						<executions>
 							<execution>
@@ -435,10 +433,10 @@
 									<goal>jmeter</goal>
 								</goals>
 								<configuration>
-									<jmeterProcessJVMSettings>
+									<jMeterProcessJVMSettings>
 										<xms>1024</xms>
 										<xmx>2048</xmx>
-									</jmeterProcessJVMSettings>
+									</jMeterProcessJVMSettings>
 									<testFilesIncluded>
 										<jMeterTestFile>${testFiles}</jMeterTestFile>
 									</testFilesIncluded>
