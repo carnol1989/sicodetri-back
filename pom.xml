@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+		 xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
 	<modelVersion>4.0.0</modelVersion>
 
 	<parent>
@@ -406,6 +406,7 @@
 								<csv_recycle>${csv_recycle}</csv_recycle>
 								<csv_stop_on_eof>${csv_stop_on_eof}</csv_stop_on_eof>
 								<global_sequential>${global_sequential}</global_sequential>
+								<eof_idle_ms>${eof_idle_ms}</eof_idle_ms>
 								<!-- Retry 417 -->
 								<retry_417_max>${retry_417_max}</retry_417_max>
 								<retry_417_base_ms>${retry_417_base_ms}</retry_417_base_ms>
@@ -418,7 +419,7 @@
 							<generateReports>true</generateReports>
 							<testResultsTimestamp>true</testResultsTimestamp>
 							<resultsFileNameDateFormat>yyyyMMdd-HHmmss</resultsFileNameDateFormat>
-							<propertiesFilesDirectory>${project.basedir}/src/test/jmeter/perf-env.properties</propertiesFilesDirectory>
+							<propertiesFilesDirectory>${project.basedir}/src/test/jmeter</propertiesFilesDirectory>
 						</configuration>
 						<executions>
 							<execution>

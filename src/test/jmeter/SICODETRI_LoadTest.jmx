@@ -2,7 +2,7 @@
 <jmeterTestPlan version="1.2" properties="5.0" jmeter="5.6.3">
   <hashTree>
     <TestPlan guiclass="TestPlanGui" testclass="TestPlan" testname="SICODETRI Load Test - Secuencial por usuario (fixed)">
-      <stringProp name="TestPlan.comments">Secuencia: CSV row -> Upload -> Save (con retry 417 temporal) -> Projection (con retry 417 temporal). Candado opcional via -Dglobal_sequential=true. CSV: stopThread=true y recycle=false para evitar &lt;EOF&gt; en variables.</stringProp>
+      <stringProp name="TestPlan.comments">Secuencia: CSV row -&gt; Upload -&gt; Save (con retry 417 temporal) -&gt; Projection (con retry 417 temporal). Candado opcional via -Dglobal_sequential=true. CSV: recycle=false; stopThread controlado por -Dcsv_stop_on_eof (true corta hilo, false mantiene idle).</stringProp>
       <boolProp name="TestPlan.functional_mode">false</boolProp>
       <boolProp name="TestPlan.serialize_threadgroups">false</boolProp>
       <elementProp name="TestPlan.user_defined_variables" elementType="Arguments" guiclass="ArgumentsPanel" testclass="Arguments">
@@ -64,7 +64,7 @@
         </HeaderManager>
         <hashTree/>
 
-        <!-- CSV Data Set (FORZADO: recycle=false, stopThread=true) -->
+        <!-- CSV Data Set (recycle=false; stopThread controlado por propiedad) -->
         <CSVDataSet guiclass="TestBeanGUI" testclass="CSVDataSet" testname="CSV Data Set - Flujos de Prueba">
           <stringProp name="delimiter">,</stringProp>
           <stringProp name="fileEncoding">UTF-8</stringProp>
@@ -72,25 +72,48 @@
           <boolProp name="ignoreFirstLine">true</boolProp>
           <boolProp name="quotedData">true</boolProp>
           <boolProp name="recycle">false</boolProp>
-          <stringProp name="shareMode">shareMode.current_thread</stringProp>
-          <boolProp name="stopThread">true</boolProp>
+          <!-- CLAVE: dejar que el propio CSV detenga el hilo si así se pide -->
+          <boolProp name="stopThread">${__P(csv_stop_on_eof,true)}</boolProp>
+          <stringProp name="shareMode">${__P(csv_shareMode,shareMode.current_thread)}</stringProp>
           <stringProp name="variableNames">flow_name,excel_file,period,projection_type,account</stringProp>
         </CSVDataSet>
         <hashTree/>
 
-        <!-- Guard: si CSV devolvió &lt;EOF&gt; en alguna variable clave, parar hilo -->
-        <IfController guiclass="IfControllerPanel" testclass="IfController" testname="IF any &lt;EOF&gt; → Stop Thread">
+        <!-- PRECALC: EOF flags (fuera del subárbol del CSV) -->
+        <JSR223Sampler guiclass="TestBeanGUI" testclass="JSR223Sampler" testname="Compute EOF flags">
+          <stringProp name="scriptLanguage">groovy</stringProp>
+          <stringProp name="script"><![CDATA[
+/*
+  Reglas:
+  - EOF_ANY: alguna variable CSV es <EOF>
+  - EOF_CONTINUE: !EOF_ANY
+  - EOF_IDLE: EOF_ANY && !csv_stop_on_eof (esperar hasta que venza la duración)
+*/
+def stopOnEof = (props.getProperty('csv_stop_on_eof') ?: 'true').toBoolean()
+def keys = ['flow_name','excel_file','period','projection_type','account']
+def eofAny = keys.any { (vars.get(it) ?: '') == '<EOF>' }
+
+vars.put('EOF_ANY',       String.valueOf(eofAny))
+vars.put('EOF_CONTINUE',  String.valueOf(!eofAny))
+vars.put('EOF_IDLE',      String.valueOf(eofAny && !stopOnEof))
+SampleResult.setSuccessful(true)
+]]></stringProp>
+        </JSR223Sampler>
+        <hashTree/>
+
+        <!-- Anti busy-loop: si hay EOF pero no debemos cortar el hilo, dormir un poco -->
+        <IfController guiclass="IfControllerPanel" testclass="IfController" testname="IF EOF_IDLE → small sleep">
           <boolProp name="IfController.evaluateAll">false</boolProp>
-          <stringProp name="IfController.condition">'&lt;EOF&gt;'.equals(vars.get('flow_name')) || '&lt;EOF&gt;'.equals(vars.get('excel_file')) || '&lt;EOF&gt;'.equals(vars.get('period')) || '&lt;EOF&gt;'.equals(vars.get('projection_type')) || '&lt;EOF&gt;'.equals(vars.get('account'))</stringProp>
+          <stringProp name="IfController.condition">${EOF_IDLE}</stringProp>
           <boolProp name="IfController.useExpression">true</boolProp>
         </IfController>
         <hashTree>
-          <JSR223Sampler guiclass="TestBeanGUI" testclass="JSR223Sampler" testname="Stop Thread (EOF detected)">
+          <JSR223Sampler guiclass="TestBeanGUI" testclass="JSR223Sampler" testname="Idle sleep after EOF">
             <stringProp name="scriptLanguage">groovy</stringProp>
             <stringProp name="script"><![CDATA[
+long ms = Long.parseLong(props.getProperty('eof_idle_ms','200'))
+Thread.sleep(ms)
 SampleResult.setSuccessful(true)
-log.warn('EOF detected in CSV variables. Stopping thread gracefully.')
-org.apache.jmeter.threads.JMeterContextService.getContext().getThread().stop()
 ]]></stringProp>
           </JSR223Sampler>
           <hashTree/>
@@ -173,9 +196,19 @@ org.apache.jmeter.threads.JMeterContextService.getContext().getThread().stop()
                 <boolProp name="JSONPostProcessor.compute_concat">false</boolProp>
               </JSONPostProcessor>
               <hashTree/>
+              <!-- PRECALC: bandera TOKEN_MISSING -->
+              <JSR223Sampler guiclass="TestBeanGUI" testclass="JSR223Sampler" testname="Compute TOKEN_MISSING">
+                <stringProp name="scriptLanguage">groovy</stringProp>
+                <stringProp name="script"><![CDATA[
+def token = vars.get('ACCESS_TOKEN') ?: 'TOKEN_NOT_FOUND'
+vars.put('TOKEN_MISSING', String.valueOf(token == 'TOKEN_NOT_FOUND'))
+SampleResult.setSuccessful(true)
+]]></stringProp>
+              </JSR223Sampler>
+              <hashTree/>
               <IfController guiclass="IfControllerPanel" testclass="IfController" testname="If no ACCESS_TOKEN → Stop">
                 <boolProp name="IfController.evaluateAll">false</boolProp>
-                <stringProp name="IfController.condition">${__groovy((vars.get('ACCESS_TOKEN') ?: 'TOKEN_NOT_FOUND') == 'TOKEN_NOT_FOUND')}</stringProp>
+                <stringProp name="IfController.condition">${TOKEN_MISSING}</stringProp>
                 <boolProp name="IfController.useExpression">true</boolProp>
               </IfController>
               <hashTree>
@@ -194,34 +227,41 @@ org.apache.jmeter.engine.StandardJMeterEngine.stopTest(true)
           </hashTree>
         </hashTree>
 
-        <!-- BUSINESS -->
-        <TransactionController guiclass="TransactionControllerGui" testclass="TransactionController" testname="BUSINESS - Flujo ${flow_name}">
-          <boolProp name="TransactionController.parent">true</boolProp>
-          <boolProp name="TransactionController.includeTimers">false</boolProp>
-        </TransactionController>
+        <!-- BUSINESS solo si no hay EOF -->
+        <IfController guiclass="IfControllerPanel" testclass="IfController" testname="IF not EOF → BUSINESS">
+          <boolProp name="IfController.evaluateAll">false</boolProp>
+          <stringProp name="IfController.condition">${EOF_CONTINUE}</stringProp>
+          <boolProp name="IfController.useExpression">true</boolProp>
+        </IfController>
         <hashTree>
 
-          <!-- Bearer para el subárbol -->
-          <HeaderManager guiclass="HeaderPanel" testclass="HeaderManager" testname="HTTP Header - API Auth (subtree)">
-            <collectionProp name="HeaderManager.headers">
-              <elementProp name="" elementType="Header">
-                <stringProp name="Header.name">Authorization</stringProp>
-                <stringProp name="Header.value">Bearer ${ACCESS_TOKEN}</stringProp>
-              </elementProp>
-            </collectionProp>
-          </HeaderManager>
-          <hashTree/>
-
-          <!-- Candado global (opcional via -Dglobal_sequential=true) -->
-          <IfController guiclass="IfControllerPanel" testclass="IfController" testname="IF global_sequential=true → Acquire lock">
-            <boolProp name="IfController.evaluateAll">false</boolProp>
-            <stringProp name="IfController.condition">${__groovy((props.getProperty('global_sequential') ?: 'true').toBoolean())}</stringProp>
-            <boolProp name="IfController.useExpression">true</boolProp>
-          </IfController>
+          <TransactionController guiclass="TransactionControllerGui" testclass="TransactionController" testname="BUSINESS - Flujo ${flow_name}">
+            <boolProp name="TransactionController.parent">true</boolProp>
+            <boolProp name="TransactionController.includeTimers">false</boolProp>
+          </TransactionController>
           <hashTree>
-            <JSR223Sampler guiclass="TestBeanGUI" testclass="JSR223Sampler" testname="GLOBAL LOCK - Acquire">
-              <stringProp name="scriptLanguage">groovy</stringProp>
-              <stringProp name="script"><![CDATA[
+
+            <!-- Bearer para el subárbol -->
+            <HeaderManager guiclass="HeaderPanel" testclass="HeaderManager" testname="HTTP Header - API Auth (subtree)">
+              <collectionProp name="HeaderManager.headers">
+                <elementProp name="" elementType="Header">
+                  <stringProp name="Header.name">Authorization</stringProp>
+                  <stringProp name="Header.value">Bearer ${ACCESS_TOKEN}</stringProp>
+                </elementProp>
+              </collectionProp>
+            </HeaderManager>
+            <hashTree/>
+
+            <!-- Candado global (opcional via -Dglobal_sequential=true) -->
+            <IfController guiclass="IfControllerPanel" testclass="IfController" testname="IF global_sequential=true → Acquire lock">
+              <boolProp name="IfController.evaluateAll">false</boolProp>
+              <stringProp name="IfController.condition">${__P(global_sequential,true)}</stringProp>
+              <boolProp name="IfController.useExpression">true</boolProp>
+            </IfController>
+            <hashTree>
+              <JSR223Sampler guiclass="TestBeanGUI" testclass="JSR223Sampler" testname="GLOBAL LOCK - Acquire">
+                <stringProp name="scriptLanguage">groovy</stringProp>
+                <stringProp name="script"><![CDATA[
 import java.util.concurrent.Semaphore
 def obj = props.get('perf.global.lock')
 Semaphore sem = (obj instanceof Semaphore) ? (Semaphore)obj : null
@@ -233,124 +273,127 @@ sem.acquire()
 vars.put('GLOBAL_LOCK_ACQUIRED','true')
 SampleResult.setSuccessful(true)
 ]]></stringProp>
-            </JSR223Sampler>
-            <hashTree/>
-          </hashTree>
+              </JSR223Sampler>
+              <hashTree/>
+            </hashTree>
 
-          <!-- 1) UPLOAD -->
-          <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="POST Upload Excel (multipart)">
-            <stringProp name="HTTPSampler.path">${__P(base_api,/api/v1)}/financial-fixed-assets/upload</stringProp>
-            <stringProp name="HTTPSampler.method">POST</stringProp>
-            <boolProp name="HTTPSampler.use_keepalive">true</boolProp>
-            <boolProp name="HTTPSampler.DO_MULTIPART_POST">true</boolProp>
-            <boolProp name="HTTPSampler.follow_redirects">false</boolProp>
-            <boolProp name="HTTPSampler.auto_redirects">false</boolProp>
-            <intProp name="HTTPSampler.connect_timeout">10000</intProp>
-            <intProp name="HTTPSampler.response_timeout">30000</intProp>
-            <stringProp name="HTTPSampler.implementation">HttpClient4</stringProp>
-            <boolProp name="HTTPSampler.postBodyRaw">false</boolProp>
-            <elementProp name="HTTPsampler.Files" elementType="HTTPFileArgs">
-              <collectionProp name="HTTPFileArgs.files">
-                <elementProp name="${__P(files_dir,)}/${excel_file}" elementType="HTTPFileArg">
-                  <stringProp name="File.path">${__P(files_dir,)}/${excel_file}</stringProp>
-                  <stringProp name="File.paramname">file</stringProp>
-                  <stringProp name="File.mimetype">application/vnd.openxmlformats-officedocument.spreadsheetml.sheet</stringProp>
-                </elementProp>
-              </collectionProp>
-            </elementProp>
-            <elementProp name="HTTPsampler.Arguments" elementType="Arguments" guiclass="HTTPArgumentsPanel" testclass="Arguments">
-              <collectionProp name="Arguments.arguments">
-                <elementProp name="period" elementType="HTTPArgument">
-                  <boolProp name="HTTPArgument.always_encode">false</boolProp>
-                  <stringProp name="Argument.value">${period}</stringProp>
-                  <stringProp name="Argument.metadata">=</stringProp>
-                  <boolProp name="HTTPArgument.use_equals">true</boolProp>
-                  <stringProp name="Argument.name">period</stringProp>
-                </elementProp>
-              </collectionProp>
-            </elementProp>
-          </HTTPSamplerProxy>
-          <hashTree>
-            <ResponseAssertion guiclass="AssertionGui" testclass="ResponseAssertion" testname="Assert 2xx (Upload)">
-              <collectionProp name="Asserion.test_strings">
-                <stringProp name="assert_2xx">^2\d\d$</stringProp>
-              </collectionProp>
-              <stringProp name="Assertion.test_field">Assertion.response_code</stringProp>
-              <boolProp name="Assertion.assume_success">false</boolProp>
-              <intProp name="Assertion.test_type">2</intProp>
-            </ResponseAssertion>
-            <hashTree/>
-            <DurationAssertion guiclass="DurationAssertionGui" testclass="DurationAssertion" testname="Max Response Time (Upload)">
-              <stringProp name="DurationAssertion.duration">${__P(max_resp_ms,12000)}</stringProp>
-            </DurationAssertion>
-            <hashTree/>
-          </hashTree>
+            <!-- 1) UPLOAD -->
+            <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="POST Upload Excel (multipart)">
+              <stringProp name="HTTPSampler.path">${__P(base_api,/api/v1)}/financial-fixed-assets/upload</stringProp>
+              <stringProp name="HTTPSampler.method">POST</stringProp>
+              <boolProp name="HTTPSampler.use_keepalive">true</boolProp>
+              <boolProp name="HTTPSampler.DO_MULTIPART_POST">true</boolProp>
+              <boolProp name="HTTPSampler.follow_redirects">false</boolProp>
+              <boolProp name="HTTPSampler.auto_redirects">false</boolProp>
+              <intProp name="HTTPSampler.connect_timeout">10000</intProp>
+              <intProp name="HTTPSampler.response_timeout">30000</intProp>
+              <stringProp name="HTTPSampler.implementation">HttpClient4</stringProp>
+              <boolProp name="HTTPSampler.postBodyRaw">false</boolProp>
+              <elementProp name="HTTPsampler.Files" elementType="HTTPFileArgs">
+                <collectionProp name="HTTPFileArgs.files">
+                  <elementProp name="${__P(files_dir,)}/${excel_file}" elementType="HTTPFileArg">
+                    <stringProp name="File.path">${__P(files_dir,)}/${excel_file}</stringProp>
+                    <stringProp name="File.paramname">file</stringProp>
+                    <stringProp name="File.mimetype">application/vnd.openxmlformats-officedocument.spreadsheetml.sheet</stringProp>
+                  </elementProp>
+                </collectionProp>
+              </elementProp>
+              <elementProp name="HTTPsampler.Arguments" elementType="Arguments" guiclass="HTTPArgumentsPanel" testclass="Arguments">
+                <collectionProp name="Arguments.arguments">
+                  <elementProp name="period" elementType="HTTPArgument">
+                    <boolProp name="HTTPArgument.always_encode">false</boolProp>
+                    <stringProp name="Argument.value">${period}</stringProp>
+                    <stringProp name="Argument.metadata">=</stringProp>
+                    <boolProp name="HTTPArgument.use_equals">true</boolProp>
+                    <stringProp name="Argument.name">period</stringProp>
+                  </elementProp>
+                </collectionProp>
+              </elementProp>
+            </HTTPSamplerProxy>
+            <hashTree>
+              <ResponseAssertion guiclass="AssertionGui" testclass="ResponseAssertion" testname="Assert 2xx (Upload)">
+                <collectionProp name="Asserion.test_strings">
+                  <stringProp name="assert_2xx">^2\d\d$</stringProp>
+                </collectionProp>
+                <stringProp name="Assertion.test_field">Assertion.response_code</stringProp>
+                <boolProp name="Assertion.assume_success">false</boolProp>
+                <intProp name="Assertion.test_type">2</intProp>
+              </ResponseAssertion>
+              <hashTree/>
+              <DurationAssertion guiclass="DurationAssertionGui" testclass="DurationAssertion" testname="Max Response Time (Upload)">
+                <stringProp name="DurationAssertion.duration">${__P(max_resp_ms,12000)}</stringProp>
+              </DurationAssertion>
+              <hashTree/>
+            </hashTree>
 
-          <!-- 2) SAVE (solo si Upload OK) -->
-          <IfController guiclass="IfControllerPanel" testclass="IfController" testname="IF Upload OK → SAVE">
-            <boolProp name="IfController.evaluateAll">false</boolProp>
-            <stringProp name="IfController.condition">${JMeterThread.last_sample_ok}</stringProp>
-            <boolProp name="IfController.useExpression">true</boolProp>
-          </IfController>
-          <hashTree>
-
-            <ConstantTimer guiclass="ConstantTimerGui" testclass="ConstantTimer" testname="Breathing before SAVE">
-              <stringProp name="ConstantTimer.delay">200</stringProp>
-            </ConstantTimer>
-            <hashTree/>
-
-            <JSR223Sampler guiclass="TestBeanGUI" testclass="JSR223Sampler" testname="SAVE - Init retry">
-              <stringProp name="scriptLanguage">groovy</stringProp>
-              <stringProp name="script"><![CDATA[
-vars.put('SAVE_RETRY_COUNT','0')
-vars.put('SAVE_SHOULD_RETRY','true')
-]]></stringProp>
-            </JSR223Sampler>
-            <hashTree/>
-
-            <WhileController guiclass="WhileControllerGui" testclass="WhileController" testname="SAVE - Retry loop (417)">
-              <stringProp name="WhileController.condition">${SAVE_SHOULD_RETRY}</stringProp>
-            </WhileController>
+            <!-- 2) SAVE (solo si Upload OK) -->
+            <IfController guiclass="IfControllerPanel" testclass="IfController" testname="IF Upload OK → SAVE">
+              <boolProp name="IfController.evaluateAll">false</boolProp>
+              <stringProp name="IfController.condition">${JMeterThread.last_sample_ok}</stringProp>
+              <boolProp name="IfController.useExpression">true</boolProp>
+            </IfController>
             <hashTree>
 
-              <IfController guiclass="IfControllerPanel" testclass="IfController" testname="If SAVE retry → backoff">
-                <boolProp name="IfController.evaluateAll">false</boolProp>
-                <stringProp name="IfController.condition">${__groovy((vars.get('SAVE_RETRY_COUNT') ?: '0') as int &gt; 0)}</stringProp>
-                <boolProp name="IfController.useExpression">true</boolProp>
-              </IfController>
+              <ConstantTimer guiclass="ConstantTimerGui" testclass="ConstantTimer" testname="Breathing before SAVE">
+                <stringProp name="ConstantTimer.delay">200</stringProp>
+              </ConstantTimer>
+              <hashTree/>
+
+              <JSR223Sampler guiclass="TestBeanGUI" testclass="JSR223Sampler" testname="SAVE - Init retry">
+                <stringProp name="scriptLanguage">groovy</stringProp>
+                <stringProp name="script"><![CDATA[
+vars.put('SAVE_RETRY_COUNT','0')
+vars.put('SAVE_SHOULD_RETRY','true')
+vars.put('SAVE_IS_RETRY','false')
+SampleResult.setSuccessful(true)
+]]></stringProp>
+              </JSR223Sampler>
+              <hashTree/>
+
+              <WhileController guiclass="WhileControllerGui" testclass="WhileController" testname="SAVE - Retry loop (417)">
+                <stringProp name="WhileController.condition">${SAVE_SHOULD_RETRY}</stringProp>
+              </WhileController>
               <hashTree>
-                <JSR223Sampler guiclass="TestBeanGUI" testclass="JSR223Sampler" testname="Backoff (SAVE)">
-                  <stringProp name="scriptLanguage">groovy</stringProp>
-                  <stringProp name="script"><![CDATA[
+
+                <IfController guiclass="IfControllerPanel" testclass="IfController" testname="If SAVE retry → backoff">
+                  <boolProp name="IfController.evaluateAll">false</boolProp>
+                  <stringProp name="IfController.condition">${SAVE_IS_RETRY}</stringProp>
+                  <boolProp name="IfController.useExpression">true</boolProp>
+                </IfController>
+                <hashTree>
+                  <JSR223Sampler guiclass="TestBeanGUI" testclass="JSR223Sampler" testname="Backoff (SAVE)">
+                    <stringProp name="scriptLanguage">groovy</stringProp>
+                    <stringProp name="script"><![CDATA[
 int count = (vars.get('SAVE_RETRY_COUNT') ?: '0') as int
 long base = Long.parseLong(props.getProperty('retry_417_base_ms','200'))
 long sleep = (long)(base * Math.pow(2, Math.max(0, count-1))) + new java.util.Random().nextInt(200)
 Thread.sleep(sleep)
+SampleResult.setSuccessful(true)
 ]]></stringProp>
-                </JSR223Sampler>
-                <hashTree/>
-              </hashTree>
+                  </JSR223Sampler>
+                  <hashTree/>
+                </hashTree>
 
-              <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="POST Save Excel Data">
-                <stringProp name="HTTPSampler.path">${__P(base_api,/api/v1)}/financial-fixed-assets?period=${period}</stringProp>
-                <stringProp name="HTTPSampler.method">POST</stringProp>
-                <boolProp name="HTTPSampler.use_keepalive">true</boolProp>
-                <boolProp name="HTTPSampler.follow_redirects">false</boolProp>
-                <boolProp name="HTTPSampler.auto_redirects">false</boolProp>
-                <intProp name="HTTPSampler.connect_timeout">10000</intProp>
-                <intProp name="HTTPSampler.response_timeout">30000</intProp>
-                <stringProp name="HTTPSampler.implementation">HttpClient4</stringProp>
-                <boolProp name="HTTPSampler.postBodyRaw">false</boolProp>
-                <elementProp name="HTTPsampler.Arguments" elementType="Arguments" guiclass="HTTPArgumentsPanel" testclass="Arguments">
-                  <collectionProp name="Arguments.arguments"/>
-                </elementProp>
-              </HTTPSamplerProxy>
-              <hashTree>
+                <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="POST Save Excel Data">
+                  <stringProp name="HTTPSampler.path">${__P(base_api,/api/v1)}/financial-fixed-assets?period=${period}</stringProp>
+                  <stringProp name="HTTPSampler.method">POST</stringProp>
+                  <boolProp name="HTTPSampler.use_keepalive">true</boolProp>
+                  <boolProp name="HTTPSampler.follow_redirects">false</boolProp>
+                  <boolProp name="HTTPSampler.auto_redirects">false</boolProp>
+                  <intProp name="HTTPSampler.connect_timeout">10000</intProp>
+                  <intProp name="HTTPSampler.response_timeout">30000</intProp>
+                  <stringProp name="HTTPSampler.implementation">HttpClient4</stringProp>
+                  <boolProp name="HTTPSampler.postBodyRaw">false</boolProp>
+                  <elementProp name="HTTPsampler.Arguments" elementType="Arguments" guiclass="HTTPArgumentsPanel" testclass="Arguments">
+                    <collectionProp name="Arguments.arguments"/>
+                  </elementProp>
+                </HTTPSamplerProxy>
+                <hashTree>
 
-                <!-- FIXED: JSR223PostProcessor con regex compatibles Groovy -->
-                <JSR223PostProcessor guiclass="TestBeanGUI" testclass="JSR223PostProcessor" testname="SAVE - Retry decision (417 temporal)">
-                  <stringProp name="scriptLanguage">groovy</stringProp>
-                  <stringProp name="script"><![CDATA[
+                  <!-- Retry decision (417 temporal) -->
+                  <JSR223PostProcessor guiclass="TestBeanGUI" testclass="JSR223PostProcessor" testname="SAVE - Retry decision (417 temporal)">
+                    <stringProp name="scriptLanguage">groovy</stringProp>
+                    <stringProp name="script"><![CDATA[
 def code    = prev.getResponseCode()
 def body    = prev.getResponseDataAsString() ?: ''
 def headers = prev.getResponseHeaders() ?: ''
@@ -365,20 +408,23 @@ boolean isTemporal =
 
 if (code ==~ /2\d\d/) {
   vars.put('SAVE_SHOULD_RETRY','false')
+  vars.put('SAVE_IS_RETRY','false')
 } else if (code == '417' && isTemporal && count < max) {
   count++
   vars.put('SAVE_RETRY_COUNT', count.toString())
   vars.put('SAVE_SHOULD_RETRY','true')
+  vars.put('SAVE_IS_RETRY','true')
 } else {
   vars.put('SAVE_SHOULD_RETRY','false')
+  vars.put('SAVE_IS_RETRY','false')
 }
 ]]></stringProp>
-                </JSR223PostProcessor>
-                <hashTree/>
+                  </JSR223PostProcessor>
+                  <hashTree/>
 
-                <JSR223Assertion guiclass="TestBeanGUI" testclass="JSR223Assertion" testname="SAVE - Assert 2xx (o 417 con retry)">
-                  <stringProp name="scriptLanguage">groovy</stringProp>
-                  <stringProp name="script"><![CDATA[
+                  <JSR223Assertion guiclass="TestBeanGUI" testclass="JSR223Assertion" testname="SAVE - Assert 2xx (o 417 con retry)">
+                    <stringProp name="scriptLanguage">groovy</stringProp>
+                    <stringProp name="script"><![CDATA[
 def code = prev.getResponseCode()
 def shouldRetry = vars.get('SAVE_SHOULD_RETRY') == 'true'
 if (code ==~ /2\d\d/) { AssertionResult.setFailure(false); return }
@@ -386,83 +432,86 @@ if (code == '417' && shouldRetry) { AssertionResult.setFailure(false); prev.setS
 AssertionResult.setFailure(true)
 AssertionResult.setFailureMessage("SAVE failed with code ${code} (retries=${vars.get('SAVE_RETRY_COUNT')})")
 ]]></stringProp>
-                </JSR223Assertion>
-                <hashTree/>
+                  </JSR223Assertion>
+                  <hashTree/>
 
-                <DurationAssertion guiclass="DurationAssertionGui" testclass="DurationAssertion" testname="Max Response Time (SAVE)">
-                  <stringProp name="DurationAssertion.duration">${__P(max_resp_ms,12000)}</stringProp>
-                </DurationAssertion>
-                <hashTree/>
+                  <DurationAssertion guiclass="DurationAssertionGui" testclass="DurationAssertion" testname="Max Response Time (SAVE)">
+                    <stringProp name="DurationAssertion.duration">${__P(max_resp_ms,12000)}</stringProp>
+                  </DurationAssertion>
+                  <hashTree/>
 
+                </hashTree>
               </hashTree>
             </hashTree>
-          </hashTree>
 
-          <!-- 3) PROJECTION (solo si SAVE OK) -->
-          <IfController guiclass="IfControllerPanel" testclass="IfController" testname="IF Save OK → PROJECTION">
-            <boolProp name="IfController.evaluateAll">false</boolProp>
-            <stringProp name="IfController.condition">${JMeterThread.last_sample_ok}</stringProp>
-            <boolProp name="IfController.useExpression">true</boolProp>
-          </IfController>
-          <hashTree>
-
-            <ConstantTimer guiclass="ConstantTimerGui" testclass="ConstantTimer" testname="Breathing before PROJECTION">
-              <stringProp name="ConstantTimer.delay">150</stringProp>
-            </ConstantTimer>
-            <hashTree/>
-
-            <JSR223Sampler guiclass="TestBeanGUI" testclass="JSR223Sampler" testname="PROJ - Init retry">
-              <stringProp name="scriptLanguage">groovy</stringProp>
-              <stringProp name="script"><![CDATA[
-vars.put('PROJ_RETRY_COUNT','0')
-vars.put('PROJ_SHOULD_RETRY','true')
-]]></stringProp>
-            </JSR223Sampler>
-            <hashTree/>
-
-            <WhileController guiclass="WhileControllerGui" testclass="WhileController" testname="PROJ - Retry loop (417)">
-              <stringProp name="WhileController.condition">${PROJ_SHOULD_RETRY}</stringProp>
-            </WhileController>
+            <!-- 3) PROJECTION (solo si SAVE OK) -->
+            <IfController guiclass="IfControllerPanel" testclass="IfController" testname="IF Save OK → PROJECTION">
+              <boolProp name="IfController.evaluateAll">false</boolProp>
+              <stringProp name="IfController.condition">${JMeterThread.last_sample_ok}</stringProp>
+              <boolProp name="IfController.useExpression">true</boolProp>
+            </IfController>
             <hashTree>
 
-              <IfController guiclass="IfControllerPanel" testclass="IfController" testname="If PROJ retry → backoff">
-                <boolProp name="IfController.evaluateAll">false</boolProp>
-                <stringProp name="IfController.condition">${__groovy((vars.get('PROJ_RETRY_COUNT') ?: '0') as int &gt; 0)}</stringProp>
-                <boolProp name="IfController.useExpression">true</boolProp>
-              </IfController>
+              <ConstantTimer guiclass="ConstantTimerGui" testclass="ConstantTimer" testname="Breathing before PROJECTION">
+                <stringProp name="ConstantTimer.delay">150</stringProp>
+              </ConstantTimer>
+              <hashTree/>
+
+              <JSR223Sampler guiclass="TestBeanGUI" testclass="JSR223Sampler" testname="PROJ - Init retry">
+                <stringProp name="scriptLanguage">groovy</stringProp>
+                <stringProp name="script"><![CDATA[
+vars.put('PROJ_RETRY_COUNT','0')
+vars.put('PROJ_SHOULD_RETRY','true')
+vars.put('PROJ_IS_RETRY','false')
+SampleResult.setSuccessful(true)
+]]></stringProp>
+              </JSR223Sampler>
+              <hashTree/>
+
+              <WhileController guiclass="WhileControllerGui" testclass="WhileController" testname="PROJ - Retry loop (417)">
+                <stringProp name="WhileController.condition">${PROJ_SHOULD_RETRY}</stringProp>
+              </WhileController>
               <hashTree>
-                <JSR223Sampler guiclass="TestBeanGUI" testclass="JSR223Sampler" testname="Backoff (PROJ)">
-                  <stringProp name="scriptLanguage">groovy</stringProp>
-                  <stringProp name="script"><![CDATA[
+
+                <IfController guiclass="IfControllerPanel" testclass="IfController" testname="If PROJ retry → backoff">
+                  <boolProp name="IfController.evaluateAll">false</boolProp>
+                  <stringProp name="IfController.condition">${PROJ_IS_RETRY}</stringProp>
+                  <boolProp name="IfController.useExpression">true</boolProp>
+                </IfController>
+                <hashTree>
+                  <JSR223Sampler guiclass="TestBeanGUI" testclass="JSR223Sampler" testname="Backoff (PROJ)">
+                    <stringProp name="scriptLanguage">groovy</stringProp>
+                    <stringProp name="script"><![CDATA[
 int count = (vars.get('PROJ_RETRY_COUNT') ?: '0') as int
 long base = Long.parseLong(props.getProperty('retry_417_base_ms','200'))
 long sleep = (long)(base * Math.pow(2, Math.max(0, count-1))) + new java.util.Random().nextInt(200)
 Thread.sleep(sleep)
+SampleResult.setSuccessful(true)
 ]]></stringProp>
-                </JSR223Sampler>
-                <hashTree/>
-              </hashTree>
+                  </JSR223Sampler>
+                  <hashTree/>
+                </hashTree>
 
-              <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="POST Generate Projection">
-                <stringProp name="HTTPSampler.path">${__P(base_api,/api/v1)}/financial-fixed-assets/projection?type=${projection_type}&amp;period=${period}&amp;account=${account}</stringProp>
-                <stringProp name="HTTPSampler.method">POST</stringProp>
-                <boolProp name="HTTPSampler.use_keepalive">true</boolProp>
-                <boolProp name="HTTPSampler.follow_redirects">false</boolProp>
-                <boolProp name="HTTPSampler.auto_redirects">false</boolProp>
-                <intProp name="HTTPSampler.connect_timeout">10000</intProp>
-                <intProp name="HTTPSampler.response_timeout">30000</intProp>
-                <stringProp name="HTTPSampler.implementation">HttpClient4</stringProp>
-                <boolProp name="HTTPSampler.postBodyRaw">false</boolProp>
-                <elementProp name="HTTPsampler.Arguments" elementType="Arguments" guiclass="HTTPArgumentsPanel" testclass="Arguments">
-                  <collectionProp name="Arguments.arguments"/>
-                </elementProp>
-              </HTTPSamplerProxy>
-              <hashTree>
+                <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="POST Generate Projection">
+                  <stringProp name="HTTPSampler.path">${__P(base_api,/api/v1)}/financial-fixed-assets/projection?type=${projection_type}&amp;period=${period}&amp;account=${account}</stringProp>
+                  <stringProp name="HTTPSampler.method">POST</stringProp>
+                  <boolProp name="HTTPSampler.use_keepalive">true</boolProp>
+                  <boolProp name="HTTPSampler.follow_redirects">false</boolProp>
+                  <boolProp name="HTTPSampler.auto_redirects">false</boolProp>
+                  <intProp name="HTTPSampler.connect_timeout">10000</intProp>
+                  <intProp name="HTTPSampler.response_timeout">30000</intProp>
+                  <stringProp name="HTTPSampler.implementation">HttpClient4</stringProp>
+                  <boolProp name="HTTPSampler.postBodyRaw">false</boolProp>
+                  <elementProp name="HTTPsampler.Arguments" elementType="Arguments" guiclass="HTTPArgumentsPanel" testclass="Arguments">
+                    <collectionProp name="Arguments.arguments"/>
+                  </elementProp>
+                </HTTPSamplerProxy>
+                <hashTree>
 
-                <!-- FIXED: JSR223PostProcessor con regex compatibles Groovy -->
-                <JSR223PostProcessor guiclass="TestBeanGUI" testclass="JSR223PostProcessor" testname="PROJ - Retry decision (417 temporal)">
-                  <stringProp name="scriptLanguage">groovy</stringProp>
-                  <stringProp name="script"><![CDATA[
+                  <!-- Retry decision (417 temporal) -->
+                  <JSR223PostProcessor guiclass="TestBeanGUI" testclass="JSR223PostProcessor" testname="PROJ - Retry decision (417 temporal)">
+                    <stringProp name="scriptLanguage">groovy</stringProp>
+                    <stringProp name="script"><![CDATA[
 def code    = prev.getResponseCode()
 def body    = prev.getResponseDataAsString() ?: ''
 def headers = prev.getResponseHeaders() ?: ''
@@ -477,20 +526,23 @@ boolean isTemporal =
 
 if (code ==~ /2\d\d/) {
   vars.put('PROJ_SHOULD_RETRY','false')
+  vars.put('PROJ_IS_RETRY','false')
 } else if (code == '417' && isTemporal && count < max) {
   count++
   vars.put('PROJ_RETRY_COUNT', count.toString())
   vars.put('PROJ_SHOULD_RETRY','true')
+  vars.put('PROJ_IS_RETRY','true')
 } else {
   vars.put('PROJ_SHOULD_RETRY','false')
+  vars.put('PROJ_IS_RETRY','false')
 }
 ]]></stringProp>
-                </JSR223PostProcessor>
-                <hashTree/>
+                  </JSR223PostProcessor>
+                  <hashTree/>
 
-                <JSR223Assertion guiclass="TestBeanGUI" testclass="JSR223Assertion" testname="PROJ - Assert 2xx (o 417 con retry)">
-                  <stringProp name="scriptLanguage">groovy</stringProp>
-                  <stringProp name="script"><![CDATA[
+                  <JSR223Assertion guiclass="TestBeanGUI" testclass="JSR223Assertion" testname="PROJ - Assert 2xx (o 417 con retry)">
+                    <stringProp name="scriptLanguage">groovy</stringProp>
+                    <stringProp name="script"><![CDATA[
 def code = prev.getResponseCode()
 def shouldRetry = vars.get('PROJ_SHOULD_RETRY') == 'true'
 if (code ==~ /2\d\d/) { AssertionResult.setFailure(false); return }
@@ -498,28 +550,28 @@ if (code == '417' && shouldRetry) { AssertionResult.setFailure(false); prev.setS
 AssertionResult.setFailure(true)
 AssertionResult.setFailureMessage("PROJ failed with code ${code} (retries=${vars.get('PROJ_RETRY_COUNT')})")
 ]]></stringProp>
-                </JSR223Assertion>
-                <hashTree/>
+                  </JSR223Assertion>
+                  <hashTree/>
 
-                <DurationAssertion guiclass="DurationAssertionGui" testclass="DurationAssertion" testname="Max Response Time (PROJECTION)">
-                  <stringProp name="DurationAssertion.duration">${__P(max_resp_ms,12000)}</stringProp>
-                </DurationAssertion>
-                <hashTree/>
+                  <DurationAssertion guiclass="DurationAssertionGui" testclass="DurationAssertion" testname="Max Response Time (PROJECTION)">
+                    <stringProp name="DurationAssertion.duration">${__P(max_resp_ms,12000)}</stringProp>
+                  </DurationAssertion>
+                  <hashTree/>
 
+                </hashTree>
               </hashTree>
             </hashTree>
-          </hashTree>
 
-          <!-- Release lock (si se adquirió) -->
-          <IfController guiclass="IfControllerPanel" testclass="IfController" testname="IF lock acquired → Release">
-            <boolProp name="IfController.evaluateAll">false</boolProp>
-            <stringProp name="IfController.condition">${__groovy(vars.get('GLOBAL_LOCK_ACQUIRED') == 'true')}</stringProp>
-            <boolProp name="IfController.useExpression">true</boolProp>
-          </IfController>
-          <hashTree>
-            <JSR223Sampler guiclass="TestBeanGUI" testclass="JSR223Sampler" testname="GLOBAL LOCK - Release">
-              <stringProp name="scriptLanguage">groovy</stringProp>
-              <stringProp name="script"><![CDATA[
+            <!-- Release lock (si se adquirió) -->
+            <IfController guiclass="IfControllerPanel" testclass="IfController" testname="IF lock acquired → Release">
+              <boolProp name="IfController.evaluateAll">false</boolProp>
+              <stringProp name="IfController.condition">${GLOBAL_LOCK_ACQUIRED}</stringProp>
+              <boolProp name="IfController.useExpression">true</boolProp>
+            </IfController>
+            <hashTree>
+              <JSR223Sampler guiclass="TestBeanGUI" testclass="JSR223Sampler" testname="GLOBAL LOCK - Release">
+                <stringProp name="scriptLanguage">groovy</stringProp>
+                <stringProp name="script"><![CDATA[
 def obj = props.get('perf.global.lock')
 if (obj instanceof java.util.concurrent.Semaphore) {
   ((java.util.concurrent.Semaphore)obj).release()
@@ -527,10 +579,11 @@ if (obj instanceof java.util.concurrent.Semaphore) {
 }
 SampleResult.setSuccessful(true)
 ]]></stringProp>
-            </JSR223Sampler>
-            <hashTree/>
-          </hashTree>
+              </JSR223Sampler>
+              <hashTree/>
+            </hashTree>
 
+          </hashTree>
         </hashTree>
 
         <!-- LISTENERS -->
