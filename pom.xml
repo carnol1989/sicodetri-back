@@ -276,10 +276,29 @@
 					</execution>
 				</executions>
 				<configuration>
-					<!-- Codificación para que reconozca acentos y símbolos -->
+					<!-- Garantiza versión de lenguaje/encoding -->
+					<source>${java.version}</source>
 					<encoding>${project.build.sourceEncoding}</encoding>
 					<docencoding>${project.build.sourceEncoding}</docencoding>
-					<charset>UTF-8</charset>
+					<charset>${project.build.sourceEncoding}</charset>
+					<!-- Registrar tags adicionales en formato explícito -->
+					<tags>
+						<tag>
+							<name>apiNote</name>
+							<placement>a</placement>
+							<head>API Note:</head>
+						</tag>
+						<tag>
+							<name>implSpec</name>
+							<placement>a</placement>
+							<head>Implementation Requirements:</head>
+						</tag>
+						<tag>
+							<name>implNote</name>
+							<placement>a</placement>
+							<head>Implementation Note:</head>
+						</tag>
+					</tags>
 					<!-- Genera todos los niveles de visibilidad si lo deseas -->
 					<show>private</show>
 				</configuration>

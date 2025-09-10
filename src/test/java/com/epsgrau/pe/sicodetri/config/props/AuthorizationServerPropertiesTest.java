@@ -15,37 +15,43 @@ import org.junit.jupiter.api.Test;
 /**
  * Unit tests for {@link AuthorizationServerProperties}.
  *
- * <p>
- * Verifies that:
+ * <p><b>Objectives</b>:</p>
  * <ul>
- *   <li>Default values are applied when constructed with all sections null, including:
- *     <ul>
- *       <li>Empty issuer in {@link AuthorizationServerProperties.Provider}</li>
- *       <li>Key size 2048 in {@link AuthorizationServerProperties.Jwk}</li>
- *       <li>Null id/secret, empty {@code redirectUris} and {@code scopes}, and consent required in {@link AuthorizationServerProperties.Client}</li>
- *       <li>Access token TTL 15 minutes, refresh token TTL 30 days, and no reuse in {@link AuthorizationServerProperties.Token}</li>
- *     </ul>
- *   </li>
- *   <li>Provided non-null values are preserved correctly for provider, jwk, client, and token sections.</li>
- *   <li>Lists {@code redirectUris} and {@code scopes} are defensively copied and remain immutable.</li>
+ *   <li>Validate that the canonical constructor applies sane defaults when any section is {@code null}
+ *       (provider, jwk, client, perfClient, token).</li>
+ *   <li>Verify that provided values are preserved verbatim when sections are non-null.</li>
+ *   <li>Assert immutability via defensive copies for {@code redirectUris}, {@code scopes} and {@code roles}
+ *       (lists are unmodifiable and do not reflect external mutations).</li>
+ *   <li>Check normalization of {@code null} lists to empty lists.</li>
+ *   <li>Confirm the semantics of {@link AuthorizationServerProperties.Client#empty()} and
+ *       {@link AuthorizationServerProperties.Client#nonEmptyRoles()}.</li>
+ *   <li>Ensure default configuration for the dedicated {@code perfClient} is applied when not provided.</li>
  * </ul>
- * </p>
+ *
+ * <p><b>Notes</b>:</p>
+ * <ul>
+ *   <li>These tests focus on data integrity, immutability, and constructor-level business rules.</li>
+ *   <li>Thrown {@link UnsupportedOperationException} is used to prove returned lists are unmodifiable.</li>
+ * </ul>
  *
  * <b>Class</b>: {@link AuthorizationServerPropertiesTest}<br/>
- * <b>Copyright</b>: &Copy; 2024 EPS Grau. <br/>
- * <b>Company</b>: EPS Grau. <br/>
+ * <b>Copyright</b>: &copy; 2024 EPS Grau.<br/>
+ * <b>Company</b>: EPS Grau.<br/>
  *
- * @author EPS Grau <br/>
- *     <u>Service Provider</u>: Consultor TI <br/>
- *     <u>Developed by</u>: <br/>
+ * @author EPS Grau
+ *     <br/><u>Service Provider</u>: Consultor TI
+ *     <br/><u>Developed by</u>:
  *     <ul>
- *     <li>Carlos Augusto Nole Machaca</li>
+ *       <li>Carlos Augusto Nole Machaca</li>
  *     </ul>
- *     <u>Changes</u>:<br/>
+ *     <u>Changes</u>:
  *     <ul>
- *     <li>Jul 29, 2025 (JAR) Creation class.</li>
+ *       <li>Jul 17, 2025 (JAR) Creation class.</li>
  *     </ul>
  * @version 1.0
+ * @since 1.0
+ * @see AuthorizationServerProperties
+ * @see AuthorizationServerProperties.Client
  */
  @DisplayName("AuthorizationServerProperties Tests")
 class AuthorizationServerPropertiesTest {
@@ -69,8 +75,19 @@ class AuthorizationServerPropertiesTest {
     assertNull(client.secret(), "Client.secret should default to null");
     assertTrue(client.redirectUris().isEmpty(), "Client.redirectUris should default to empty list");
     assertTrue(client.scopes().isEmpty(), "Client.scopes should default to empty list");
+    assertTrue(client.roles().isEmpty(), "Client.roles should default to empty list");
     assertTrue(client.requireAuthorizationConsent(),
         "Client.requireAuthorizationConsent should default to true");
+
+    // Assert perfClient defaults
+    AuthorizationServerProperties.Client perf = props.perfClient();
+    assertEquals("perf-client", perf.id(), "perfClient.id should default to 'perf-client'");
+    assertEquals("perf-secret", perf.secret(), "perfClient.secret should default to 'perf-secret'");
+    assertTrue(perf.redirectUris().isEmpty(), "perfClient.redirectUris should default to empty list");
+    assertTrue(perf.scopes().isEmpty(), "perfClient.scopes should default to empty list");
+    assertTrue(perf.roles().isEmpty(), "perfClient.roles should default to empty list");
+    assertFalse(perf.requireAuthorizationConsent(),
+        "perfClient.requireAuthorizationConsent should default to false");
 
     // Assert token defaults
     AuthorizationServerProperties.Token token = props.token();
@@ -113,12 +130,23 @@ class AuthorizationServerPropertiesTest {
     assertEquals("secret", resultClient.secret());
     assertEquals(uris, resultClient.redirectUris());
     assertEquals(scopes, resultClient.scopes());
+    assertEquals(roles, resultClient.roles());
     assertFalse(resultClient.requireAuthorizationConsent());
 
     AuthorizationServerProperties.Token resultToken = props.token();
     assertEquals(atTtl, resultToken.accessTokenTimeToLive());
     assertEquals(rtTtl, resultToken.refreshTokenTimeToLive());
     assertTrue(resultToken.reuseRefreshTokens());
+
+    // Also assert perfClient defaults when provided as null in constructor
+    AuthorizationServerProperties.Client perf = props.perfClient();
+    assertEquals("perf-client", perf.id(), "perfClient.id should default to 'perf-client'");
+    assertEquals("perf-secret", perf.secret(), "perfClient.secret should default to 'perf-secret'");
+    assertTrue(perf.redirectUris().isEmpty(), "perfClient.redirectUris should default to empty list");
+    assertTrue(perf.scopes().isEmpty(), "perfClient.scopes should default to empty list");
+    assertTrue(perf.roles().isEmpty(), "perfClient.roles should default to empty list");
+    assertFalse(perf.requireAuthorizationConsent(),
+        "perfClient.requireAuthorizationConsent should default to false");
   }
 
   @Test
@@ -154,5 +182,64 @@ class AuthorizationServerPropertiesTest {
     assertThrows(UnsupportedOperationException.class,
         () -> clientScopes.add("y"),
         "scopes list should be unmodifiable");
+  }
+
+  @Test
+  @DisplayName("Copy roles when constructing client to ensure immutability")
+  void copyRolesWhenConstructingClientToEnsureImmutability() {
+    // Arrange mutable roles
+    List<String> originalRoles = new ArrayList<>();
+    originalRoles.add("R1");
+
+    // Act
+    AuthorizationServerProperties.Client client =
+        new AuthorizationServerProperties.Client("id", "sec", List.of("cb"), List.of("sc"), originalRoles, false);
+
+    // Mutate original
+    originalRoles.add("R2");
+
+    // Assert that client roles are unaffected and unmodifiable
+    List<String> clientRoles = client.roles();
+    assertEquals(List.of("R1"), clientRoles,
+        "Client.roles should not reflect mutations to original list");
+    assertThrows(UnsupportedOperationException.class,
+        () -> clientRoles.add("Z"),
+        "roles list should be unmodifiable");
+
+    // Also validate nonEmptyRoles() mirrors roles()
+    assertEquals(clientRoles, client.nonEmptyRoles(),
+        "nonEmptyRoles should return the same (unmodifiable) roles list");
+  }
+
+  @Test
+  @DisplayName("Normalize null lists in Client constructor (redirectUris, scopes, roles) to empty lists")
+  void normalizeNullListsInClientConstructorToEmptyLists() {
+    // Act
+    AuthorizationServerProperties.Client client =
+        new AuthorizationServerProperties.Client("id", "sec", null, null, null, true);
+
+    // Assert
+    assertTrue(client.redirectUris().isEmpty(), "redirectUris should default to empty when null is provided");
+    assertTrue(client.scopes().isEmpty(), "scopes should default to empty when null is provided");
+    assertTrue(client.roles().isEmpty(), "roles should default to empty when null is provided");
+    assertTrue(client.requireAuthorizationConsent(), "requireAuthorizationConsent should be preserved");
+    // nonEmptyRoles should also be empty
+    assertTrue(client.nonEmptyRoles().isEmpty(), "nonEmptyRoles should be empty when roles are empty");
+  }
+
+  @Test
+  @DisplayName("Client.empty() should return an empty client with expected defaults")
+  void clientEmptyShouldReturnExpectedDefaults() {
+    // Act
+    AuthorizationServerProperties.Client empty = AuthorizationServerProperties.Client.empty();
+
+    // Assert
+    assertNull(empty.id(), "empty.id should be null");
+    assertNull(empty.secret(), "empty.secret should be null");
+    assertTrue(empty.redirectUris().isEmpty(), "empty.redirectUris should be empty");
+    assertTrue(empty.scopes().isEmpty(), "empty.scopes should be empty");
+    assertTrue(empty.roles().isEmpty(), "empty.roles should be empty");
+    assertFalse(empty.requireAuthorizationConsent(),
+        "empty.requireAuthorizationConsent should be false");
   }
 }

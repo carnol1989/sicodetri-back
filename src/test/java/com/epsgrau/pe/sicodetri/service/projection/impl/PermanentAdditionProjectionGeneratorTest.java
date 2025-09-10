@@ -5,6 +5,7 @@ import static com.epsgrau.pe.sicodetri.util.Constants.S_VAL_332;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.anyList;
 import static org.mockito.Mockito.atLeastOnce;
+import static org.mockito.Mockito.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
@@ -30,70 +31,82 @@ import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
 /**
- * Unit tests for {@link PermanentAdditionProjectionGenerator}.
+ * Unit test suite for {@link PermanentAdditionProjectionGenerator}.
  *
- * <p>Verifies that this generator:
+ * <p><strong>Scope</strong></p>
  * <ul>
- *   <li>Reports its correct projection type.</li>
- *   <li>Skips generation when preconditions are not met (missing table, invalid asset data).</li>
- *   <li>Invokes persistence services for eligible assets.</li>
- *   <li>Handles empty input lists gracefully.</li>
+ *   <li>Declares the generator type as {@link ProjectionType#PERMANENT_ADDITIONS}.</li>
+ *   <li>Verifies short-circuit behavior when SUNAT tax table lookup is absent.</li>
+ *   <li>Verifies eligibility gating (date/account/description/amounts) prevents persistence calls.</li>
+ *   <li>Verifies the happy path triggers find → delete → save across all projection artifacts
+ *       (financial/tax depreciation, additions, deductions).</li>
+ *   <li>Ensures empty inputs are handled gracefully (no service interaction).</li>
  * </ul>
- * </p>
  *
- * <b>Class</b>: {@link PermanentAdditionProjectionGeneratorTest}<br/>
- * <b>Copyright</b>: &Copy; 2024 EPS Grau. <br/>
- * <b>Company</b>: EPS Grau. <br/>
+ * <p><strong>Test doubles</strong></p>
+ * <ul>
+ *   <li>{@link TaxTableSunatService}, {@link FinancialDepreciationService},
+ *       {@link TaxDepreciationService}, {@link AdditionService}, {@link DeductionService} are mocked.</li>
+ *   <li>Concrete fixture builders come from {@link DataTest} for canonical assets/tax tables.</li>
+ * </ul>
  *
- * @author EPS Grau <br/>
- *     <u>Service Provider</u>: Consultor TI <br/>
- *     <u>Developed by</u>: <br/>
- *     <ul>
- *     <li>Carlos Augusto Nole Machaca</li>
- *     </ul>
- *     <u>Changes</u>:<br/>
- *     <ul>
- *     <li>Jun 25, 2025 (JAR) Creation class.</li>
- *     </ul>
- * @version 1.0
+ * <p><strong>Operational notes</strong></p>
+ * <ul>
+ *   <li>Interactions are asserted rather than content equality; the generator performs destructive
+ *       updates (delete-then-save), which is validated via Mockito verifications.</li>
+ *   <li>Eligibility is intentionally re-tested across multiple negative cases to lock behavior.</li>
+ * </ul>
+ *
+ * <p><strong>Class</strong>: {@code PermanentAdditionProjectionGeneratorTest}<br/>
+ * <strong>Company</strong>: EPS Grau S.A.<br/>
+ * <strong>Copyright</strong>: &copy; 2025 EPS Grau S.A. All rights reserved.</p>
+ *
+ * <p><strong>Authors</strong>:</p>
+ * <ul>
+ *   <li>Carlos Augusto Nole Machaca</li>
+ * </ul>
+ *
+ * <p><strong>Change log</strong>:</p>
+ * <ul>
+ *   <li>Jun 25, 2025 — Initial version.</li>
+ * </ul>
+ *
+ * @since 1.0
+ * @see PermanentAdditionProjectionGenerator
+ * @see DataTest
  */
 @DisplayName("PermanentAdditionProjectionGenerator Tests")
 class PermanentAdditionProjectionGeneratorTest {
 
   @Mock
   private TaxTableSunatService taxTableService;
+
   @Mock
   private FinancialDepreciationService financialDepreciationService;
+
   @Mock
   private TaxDepreciationService taxDepreciationService;
+
   @Mock
   private AdditionService additionService;
+
   @Mock
   private DeductionService deductionService;
 
   @InjectMocks
   private PermanentAdditionProjectionGenerator generator;
 
-  /**
-   * Initializes Mockito mocks before each test.
-   */
   @BeforeEach
   void setUp() {
     MockitoAnnotations.openMocks(this);
   }
 
-  /**
-   * Verifies that {@code getType()} returns the PERMANENT_ADDITIONS projection type.
-   */
   @Test
   @DisplayName("getType returns PERMANENT_ADDITIONS")
   void getTypeReturnsPermanentAdditions() {
     assertEquals(ProjectionType.PERMANENT_ADDITIONS, generator.getType());
   }
 
-  /**
-   * Ensures that generation is skipped when no tax table is found for the asset's account prefix.
-   */
   @Test
   @DisplayName("generate skips when TaxTableSunatService returns null")
   void generateSkipsWhenTaxTableNull() {
@@ -110,9 +123,6 @@ class PermanentAdditionProjectionGeneratorTest {
     verifyNoInteractions(financialDepreciationService, taxDepreciationService, additionService, deductionService);
   }
 
-  /**
-   * Ensures that assets with default acquisition date or missing pre-investment description are skipped.
-   */
   @Test
   @DisplayName("generate skips non-eligible assets")
   void generateSkipsNonEligibleAssets() {
@@ -136,11 +146,8 @@ class PermanentAdditionProjectionGeneratorTest {
     verifyNoInteractions(financialDepreciationService, taxDepreciationService, additionService, deductionService);
   }
 
-  /**
-   * Verifies that persistence services are invoked for a fully eligible asset.
-   */
   @Test
-  @DisplayName("generate invokes persistence on eligible asset")
+  @DisplayName("generate invokes persistence on eligible asset (find/delete/save)")
   void generateInvokesPersistenceOnEligibleAsset() {
     // Arrange: table with useful life
     String username = "katherine_gutierrez";
@@ -149,19 +156,37 @@ class PermanentAdditionProjectionGeneratorTest {
 
     FinancialFixedAsset asset = DataTest.getFinancialFixedAsset332ForPermanentAddition();
 
+    // Stub lecturas previas para forzar deleteAll -> saveAll
+    when(financialDepreciationService.findByFinancialFixedAssetIdService(eq(asset.getId())))
+        .thenReturn(List.of());
+    when(taxDepreciationService.findByFinancialFixedAssetIdService(eq(asset.getId())))
+        .thenReturn(List.of());
+    when(deductionService.findByTaxDepreciationInService(anyList()))
+        .thenReturn(List.of());
+    when(additionService.findByTaxDepreciationInService(anyList()))
+        .thenReturn(List.of());
+
     // Act
     generator.generate(username, LocalDate.now(), List.of(asset));
 
     // Assert: services called to persist projection lists
+    verify(financialDepreciationService, atLeastOnce()).findByFinancialFixedAssetIdService(eq(asset.getId()));
+    verify(financialDepreciationService, atLeastOnce()).deleteAllService(anyList());
     verify(financialDepreciationService, atLeastOnce()).saveAllService(anyList());
+
+    verify(taxDepreciationService, atLeastOnce()).findByFinancialFixedAssetIdService(eq(asset.getId()));
+    verify(taxDepreciationService, atLeastOnce()).deleteAllService(anyList());
     verify(taxDepreciationService, atLeastOnce()).saveAllService(anyList());
+
+    verify(deductionService, atLeastOnce()).findByTaxDepreciationInService(anyList());
+    verify(deductionService, atLeastOnce()).deleteAllService(anyList());
     verify(deductionService, atLeastOnce()).saveAllService(anyList());
+
+    verify(additionService, atLeastOnce()).findByTaxDepreciationInService(anyList());
+    verify(additionService, atLeastOnce()).deleteAllService(anyList());
     verify(additionService, atLeastOnce()).saveAllService(anyList());
   }
 
-  /**
-   * Ensures that an empty asset list causes no interactions.
-   */
   @Test
   @DisplayName("generate does nothing when fixedAssets list is empty")
   void generateDoesNothingWhenNoAssets() {
@@ -182,9 +207,6 @@ class PermanentAdditionProjectionGeneratorTest {
     );
   }
 
-  /**
-   * Verifies skipping of assets missing a pre-investment description.
-   */
   @Test
   @DisplayName("generate skips asset when description is null")
   void generateSkipsWhenDescriptionNull() {
@@ -213,9 +235,6 @@ class PermanentAdditionProjectionGeneratorTest {
     );
   }
 
-  /**
-   * Verifies skipping of assets whose description does not contain the required keyword.
-   */
   @Test
   @DisplayName("generate skips asset when description lacks keyword")
   void generateSkipsWhenDescriptionWrong() {
@@ -230,7 +249,7 @@ class PermanentAdditionProjectionGeneratorTest {
     asset.setHistoricalCost(BigDecimal.ONE);
     asset.setRevaluedAmount(BigDecimal.ONE);
     asset.setInitialBalance(BigDecimal.ONE);
-    asset.setWellAppraisedPreInvestmentStudyDry("sin término relevante");  // no contiene "tasacion"
+    asset.setWellAppraisedPreInvestmentStudyDry("sin término relevante");  // no contiene "tasacion" / "valor tasado" / "valortasado"
 
     // Act
     generator.generate(username, LocalDate.now(), List.of(asset));
@@ -244,9 +263,6 @@ class PermanentAdditionProjectionGeneratorTest {
     );
   }
 
-  /**
-   * Verifies skipping of assets with zero historical cost.
-   */
   @Test
   @DisplayName("generate skips asset when historicalCost is zero")
   void generateSkipsWhenHistoricalCostZero() {
@@ -275,9 +291,6 @@ class PermanentAdditionProjectionGeneratorTest {
     );
   }
 
-  /**
-   * Verifies skipping of assets with zero revalued amount.
-   */
   @Test
   @DisplayName("generate skips asset when revaluedAmount is zero")
   void generateSkipsWhenRevaluedAmountZero() {
@@ -306,9 +319,6 @@ class PermanentAdditionProjectionGeneratorTest {
     );
   }
 
-  /**
-   * Verifies skipping of assets with zero initial balance.
-   */
   @Test
   @DisplayName("generate skips asset when initialBalance is zero")
   void generateSkipsWhenInitialBalanceZero() {
@@ -323,7 +333,7 @@ class PermanentAdditionProjectionGeneratorTest {
     asset.setHistoricalCost(BigDecimal.ONE);
     asset.setRevaluedAmount(BigDecimal.ONE);
     asset.setInitialBalance(BigDecimal.ZERO);         // falla aquí
-    asset.setWellAppraisedPreInvestmentStudyDry("valor tasado");
+    asset.setWellAppraisedPreInvestmentStudyDry("valortasado");
 
     // Act
     generator.generate(username, LocalDate.now(), List.of(asset));

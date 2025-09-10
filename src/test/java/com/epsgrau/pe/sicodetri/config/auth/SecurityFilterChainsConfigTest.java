@@ -5,6 +5,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.verify;
@@ -15,6 +16,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configurers.AuthorizeHttpRequestsConfigurer;
@@ -23,43 +25,60 @@ import org.springframework.security.config.annotation.web.configurers.CsrfConfig
 import org.springframework.security.config.annotation.web.configurers.ExceptionHandlingConfigurer;
 import org.springframework.security.config.annotation.web.configurers.FormLoginConfigurer;
 import org.springframework.security.config.annotation.web.configurers.LogoutConfigurer;
-import org.springframework.security.config.annotation.web.configurers.oauth2.server.resource.OAuth2ResourceServerConfigurer;
 import org.springframework.security.oauth2.server.authorization.config.annotation.web.configuration.OAuth2AuthorizationServerConfiguration;
 import org.springframework.security.oauth2.server.authorization.config.annotation.web.configurers.OAuth2AuthorizationServerConfigurer;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.util.matcher.RequestMatcher;
 
 /**
  * Unit tests for {@link SecurityFilterChainsConfig}.
  *
- * <p>
- * Verifies that:
+ * <p>This suite verifies the wiring and key behaviors of the two security filter chains
+ * defined in {@link SecurityFilterChainsConfig}:</p>
  * <ul>
- *   <li>{@code authorizationServerSecurityFilterChain(HttpSecurity)} applies the default
- *       OAuth2 Authorization Server security via
- *       {@link OAuth2AuthorizationServerConfiguration#applyDefaultSecurity(HttpSecurity)},
- *       configures OIDC support, exception handling, and returns the built
- *       {@link org.springframework.security.web.SecurityFilterChain}.</li>
- *   <li>{@code defaultSecurityFilterChain(HttpSecurity)} configures CSRF protection,
- *       request authorization, and form login, then returns the built
- *       {@link org.springframework.security.web.SecurityFilterChain}.</li>
+ *   <li><b>Authorization Server chain</b> ({@code authorizationServerSecurityFilterChain(HttpSecurity)}):
+ *     <ul>
+ *       <li>Applies Spring Authorization Server defaults via
+ *           {@link OAuth2AuthorizationServerConfiguration#applyDefaultSecurity(HttpSecurity)}.</li>
+ *       <li>Enables OIDC 1.0 through {@link OAuth2AuthorizationServerConfigurer#oidc(Customizer)}.</li>
+ *       <li>Configures exception handling to redirect unauthenticated requests to {@code /login}.</li>
+ *       <li>Enables CORS with {@link Customizer#withDefaults()}.</li>
+ *       <li>Returns the built {@link SecurityFilterChain}.</li>
+ *     </ul>
+ *   </li>
+ *   <li><b>Public web chain</b> ({@code defaultSecurityFilterChain(HttpSecurity)}):
+ *     <ul>
+ *       <li>Restricts its scope using a {@code securityMatcher} to specific public routes
+ *           (home, login, callbacks, static assets, error, etc.).</li>
+ *       <li>Configures CORS with defaults and CSRF using a cookie repository readable by the SPA,
+ *           ignoring {@code /auth/token} and {@code /logout}.</li>
+ *       <li>Permits the listed public endpoints and requires authentication for any other request
+ *           that matches this chain.</li>
+ *       <li>Enables form login and configures logout (URL, success redirect, cookie deletion,
+ *           authentication clearing, and session invalidation).</li>
+ *       <li>Returns the built {@link SecurityFilterChain}.</li>
+ *     </ul>
+ *   </li>
  * </ul>
- * </p>
+ *
+ * <p><b>Note:</b> Tests intentionally focus on the two chains defined in this class; any Resource
+ * Server chain (e.g., for {@code /api/**}) is covered elsewhere.</p>
  *
  * <b>Class</b>: {@link SecurityFilterChainsConfigTest}<br/>
- * <b>Copyright</b>: &Copy; 2024 EPS Grau. <br/>
+ * <b>COPYRIGHT</b>: &copy; 2024 EPS Grau. <br/>
  * <b>Company</b>: EPS Grau. <br/>
  *
- * @author EPS Grau <br/>
+ * @author EPS Grau
  *     <u>Service Provider</u>: Consultor TI <br/>
- *     <u>Developed by</u>: <br/>
+ *     <u>Developed by</u>:
  *     <ul>
- *     <li>Carlos Augusto Nole Machaca</li>
+ *       <li>Carlos Augusto Nole Machaca</li>
  *     </ul>
- *     <u>Changes</u>:<br/>
+ *     <u>Changes</u>:
  *     <ul>
- *     <li>Jul 29, 2025 (JAR) Creation class.</li>
+ *       <li>Jul 29, 2025 (JAR) Initial version.</li>
  *     </ul>
- * @version 1.0
+ * @version 1.1
  */
 @ExtendWith(MockitoExtension.class)
 @DisplayName("SecurityFilterChainsConfig Tests")
@@ -74,21 +93,6 @@ class SecurityFilterChainsConfigTest {
   @Mock
   private SecurityFilterChain dummyChain;
 
-  /**
-   * Verifies the <em>authorization server</em> chain configuration.
-   *
-   * <p><b>Asserts</b> that the configuration method:</p>
-   * <ul>
-   *   <li>Invokes {@link OAuth2AuthorizationServerConfiguration#applyDefaultSecurity(HttpSecurity)}.</li>
-   *   <li>Enables OIDC via {@link OAuth2AuthorizationServerConfigurer#oidc(Customizer)}.</li>
-   *   <li>Customizes exception handling to set an authentication entry point
-   *       (e.g., a login URL entry point).</li>
-   *   <li>Enables CORS with {@link Customizer#withDefaults()}.</li>
-   *   <li>Returns the exact {@link SecurityFilterChain} produced by {@code http.build()}.</li>
-   * </ul>
-   *
-   * @throws Exception if the filter chain cannot be built
-   */
   @Test
   @DisplayName("Return authZ-server chain when configuring OAuth2 authorization server")
   void returnAuthServerChainWhenConfiguringAuthorizationServer() throws Exception {
@@ -99,6 +103,7 @@ class SecurityFilterChainsConfigTest {
       ExceptionHandlingConfigurer<HttpSecurity> exCfg = mock(ExceptionHandlingConfigurer.class);
       doReturn(exCfg).when(exCfg).authenticationEntryPoint(any());
       org.mockito.Mockito.when(http.exceptionHandling(any())).thenAnswer(inv -> {
+        @SuppressWarnings("unchecked")
         Customizer<ExceptionHandlingConfigurer<HttpSecurity>> customizer = inv.getArgument(0);
         customizer.customize(exCfg);
         return http;
@@ -107,6 +112,7 @@ class SecurityFilterChainsConfigTest {
       // cors(Customizer.withDefaults())
       CorsConfigurer<HttpSecurity> corsCfg = mock(CorsConfigurer.class);
       org.mockito.Mockito.when(http.cors(any())).thenAnswer(inv -> {
+        @SuppressWarnings("unchecked")
         Customizer<CorsConfigurer<HttpSecurity>> customizer = inv.getArgument(0);
         customizer.customize(corsCfg);
         return http;
@@ -136,27 +142,19 @@ class SecurityFilterChainsConfigTest {
     }
   }
 
-  /**
-   * Verifies the <em>default</em> (catch-all) web chain configuration.
-   *
-   * <p><b>Asserts</b> that the configuration method:</p>
-   * <ul>
-   *   <li>Enables CORS with {@link Customizer#withDefaults()}.</li>
-   *   <li>Configures CSRF to ignore specific request matchers and sets a CSRF token repository.</li>
-   *   <li>Configures authorization rules by permitting selected paths and requiring
-   *       authentication for any other request.</li>
-   *   <li>Enables form login with defaults.</li>
-   *   <li>Enables OAuth2 Resource Server (JWT) with defaults.</li>
-   *   <li>Configures logout (URL, success URL, cookie deletion, clear authentication,
-   *       session invalidation).</li>
-   *   <li>Returns the exact {@link SecurityFilterChain} produced by {@code http.build()}.</li>
-   * </ul>
-   *
-   * @throws Exception if the filter chain cannot be built
-   */
   @Test
   @DisplayName("Return default chain when configuring general security")
+  @SuppressWarnings({"rawtypes", "unchecked"})
   void returnDefaultChainWhenConfiguringDefaultSecurity() throws Exception {
+    // ---- securityMatcher(request -> OrRequestMatcher(...).matches(request)) ----
+    org.mockito.Mockito.when(http.securityMatcher(any(RequestMatcher.class))).thenAnswer(inv -> {
+      RequestMatcher matcher = inv.getArgument(0, RequestMatcher.class);
+      // Ejecutamos la lambda para cubrir su cuerpo
+      MockHttpServletRequest req = new MockHttpServletRequest("GET", "/");
+      matcher.matches(req);
+      return http;
+    });
+
     // ---- cors(Customizer.withDefaults()) ----
     CorsConfigurer<HttpSecurity> corsCfg = mock(CorsConfigurer.class);
     org.mockito.Mockito.when(http.cors(any())).thenAnswer(inv -> {
@@ -204,29 +202,13 @@ class SecurityFilterChainsConfigTest {
       return http;
     });
 
-    // ---- oauth2ResourceServer(o -> o.jwt(Customizer.withDefaults())) ----
-    OAuth2ResourceServerConfigurer<HttpSecurity> o2 = mock(OAuth2ResourceServerConfigurer.class);
-    OAuth2ResourceServerConfigurer<HttpSecurity>.JwtConfigurer jwtCfg =
-        mock(OAuth2ResourceServerConfigurer.JwtConfigurer.class);
-
-    org.mockito.Mockito.when(http.oauth2ResourceServer(any())).thenAnswer(inv -> {
-      Customizer<OAuth2ResourceServerConfigurer<HttpSecurity>> customizer = inv.getArgument(0);
-      org.mockito.Mockito.when(o2.jwt(any())).thenAnswer(inv2 -> {
-        Customizer<OAuth2ResourceServerConfigurer<HttpSecurity>.JwtConfigurer> jwtCustomizer = inv2.getArgument(0);
-        jwtCustomizer.customize(jwtCfg);
-        return o2;
-      });
-      customizer.customize(o2);
-      return http;
-    });
-
     // ---- logout(logout -> ...) ----
     LogoutConfigurer<HttpSecurity> logoutCfg = mock(LogoutConfigurer.class);
     doReturn(logoutCfg).when(logoutCfg).logoutUrl(anyString());
     doReturn(logoutCfg).when(logoutCfg).logoutSuccessUrl(anyString());
-    doReturn(logoutCfg).when(logoutCfg).deleteCookies(any(String[].class)); // varargs String...
-    doReturn(logoutCfg).when(logoutCfg).clearAuthentication(anyBoolean());   // boolean primitive
-    doReturn(logoutCfg).when(logoutCfg).invalidateHttpSession(anyBoolean()); // boolean primitive
+    doReturn(logoutCfg).when(logoutCfg).deleteCookies(any(String[].class));
+    doReturn(logoutCfg).when(logoutCfg).clearAuthentication(anyBoolean());
+    doReturn(logoutCfg).when(logoutCfg).invalidateHttpSession(anyBoolean());
 
     org.mockito.Mockito.when(http.logout(any())).thenAnswer(inv -> {
       Customizer<LogoutConfigurer<HttpSecurity>> customizer = inv.getArgument(0);
@@ -244,7 +226,8 @@ class SecurityFilterChainsConfigTest {
     // Assertions + verifies
     assertSame(dummyChain, result);
 
-    // cors
+    // securityMatcher + cors
+    verify(http).securityMatcher(any(RequestMatcher.class));
     verify(http).cors(any());
 
     // csrf
@@ -262,17 +245,13 @@ class SecurityFilterChainsConfigTest {
     // formLogin
     verify(http).formLogin(any());
 
-    // oauth2 resource server + jwt
-    verify(http).oauth2ResourceServer(any());
-    verify(o2).jwt(any());
-
     // logout chain steps
     verify(http).logout(any());
-    verify(logoutCfg).logoutUrl(anyString());
-    verify(logoutCfg).logoutSuccessUrl(anyString());
+    verify(logoutCfg).logoutUrl(eq("/logout"));
+    verify(logoutCfg).logoutSuccessUrl(eq("/login?logout"));
     verify(logoutCfg).deleteCookies(any(String[].class));
-    verify(logoutCfg).clearAuthentication(anyBoolean());
-    verify(logoutCfg).invalidateHttpSession(anyBoolean());
+    verify(logoutCfg).clearAuthentication(eq(true));
+    verify(logoutCfg).invalidateHttpSession(eq(true));
 
     // build
     verify(http).build();

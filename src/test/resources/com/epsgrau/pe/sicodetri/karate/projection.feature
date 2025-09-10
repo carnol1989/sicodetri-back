@@ -27,7 +27,7 @@ Feature: Integración del endpoint /projection
     And param period = '2022-01-01'
     And param account = '332'
     When method post
-    Then status 200
+    Then status 201
     And match response.code == '00'
     And match response.response == 2
 
@@ -50,7 +50,7 @@ Feature: Integración del endpoint /projection
     And param period = '2022-01-01'
     And param account = 'ALL'
     When method post
-    Then status 200
+    Then status 201
     And match response.code == '00'
     And match response.response == 2
 
@@ -60,7 +60,7 @@ Feature: Integración del endpoint /projection
     And param period = '2022-01-02'
     And param account = '332'
     When method post
-    Then status 417
+    Then status 404
     And match response.code == '01'
     And match response.message contains 'Error al generar proyección. No se encontraron registros.'
 
@@ -93,7 +93,7 @@ Feature: Integración del endpoint /projection
     And param period = '2023-12-01'
     And param account = 'ALL'
     When method post
-    Then status 200
+    Then status 201
     And match response.code == '00'
     And match response.response == 1
 
@@ -116,7 +116,7 @@ Feature: Integración del endpoint /projection
     And param period = '2022-01-01'
     And param account = '332'
     When method post
-    Then status 200
+    Then status 201
     And match response.code == '00'
     And match response.response == 2
 
@@ -126,6 +126,6 @@ Feature: Integración del endpoint /projection
     And param period = '2025-01-01'
     And param account = '332'
     When method post
-    Then status 417
+    Then status 404
     And match response.code == '01'
     And match response.message contains 'Error al generar proyección. No se encontraron registros.'

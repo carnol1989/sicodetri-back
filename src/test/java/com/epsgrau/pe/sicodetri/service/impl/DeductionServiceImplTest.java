@@ -28,35 +28,43 @@ import org.mockito.MockitoAnnotations;
 /**
  * Unit tests for {@link DeductionServiceImpl}.
  *
- * <p>
- * Verifies CRUD operations and query methods provided by the DeductionServiceImpl:
+ * <p><b>Objective</b>: Validate the service layer behavior around {@link Deduction}
+ * management by isolating the repository using Mockito. These tests assert that
+ * the service delegates correctly, honors transactional semantics (including
+ * explicit {@code flush()} on deletes), and returns expected values for both
+ * positive and empty-result scenarios.</p>
+ *
+ * <p><b>Coverage</b>:</p>
  * <ul>
- *   <li>Saving a single deduction and returning the persisted instance</li>
- *   <li>Saving a list of deductions</li>
- *   <li>Updating and deleting by ID</li>
- *   <li>Retrieving by ID—existing and non-existing cases</li>
- *   <li>Retrieving all deductions</li>
- *   <li>Deleting all deductions in a list</li>
- *   <li>Finding deductions by a list of TaxDepreciation entities</li>
- *   <li>All-args constructor correctness</li>
+ *   <li>Persisting a single entity and returning the saved instance</li>
+ *   <li>Batch save of multiple entities</li>
+ *   <li>Update flow (delegates to repository save)</li>
+ *   <li>Delete by ID with explicit {@code flush()}</li>
+ *   <li>Delete all with explicit {@code flush()}</li>
+ *   <li>Find by ID (present and absent paths)</li>
+ *   <li>Find all (non-empty and delegation verification)</li>
+ *   <li>Query by list of {@link TaxDepreciation} (non-empty and empty paths)</li>
+ *   <li>All-args constructor field assignment integrity</li>
  * </ul>
- * </p>
+ *
+ * <p><b>Scope</b>: Pure unit tests; no Spring context is started. All collaborators are mocked.</p>
  *
  * <b>Class</b>: {@link DeductionServiceImplTest}<br/>
- * <b>Copyright</b>: &Copy; 2024 EPS Grau. <br/>
+ * <b>Copyright</b>: &copy; 2024 EPS Grau. <br/>
  * <b>Company</b>: EPS Grau. <br/>
  *
- * @author EPS Grau <br/>
- *     <u>Service Provider</u>: Consultor TI <br/>
- *     <u>Developed by</u>: <br/>
+ * @author EPS Grau
+ *     <br/><u>Service Provider</u>: Consultor TI
+ *     <br/><u>Developed by</u>:
  *     <ul>
- *     <li>Carlos Augusto Nole Machaca</li>
+ *       <li>Carlos Augusto Nole Machaca</li>
  *     </ul>
- *     <u>Changes</u>:<br/>
- *     <ul>
- *     <li>Jun 06, 2025 (JAR) Creation class.</li>
- *     </ul>
+ * <u>Changes</u>:
+ * <ul>
+ *   <li>Jun 06, 2025 (JAR) Class creation.</li>
+ * </ul>
  * @version 1.0
+ * @since 1.0
  */
 class DeductionServiceImplTest {
 
@@ -66,18 +74,11 @@ class DeductionServiceImplTest {
     @InjectMocks
     private DeductionServiceImpl deductionService;
 
-    /**
-     * Initializes Mockito annotations before each test.
-     */
     @BeforeEach
     void setup() {
         MockitoAnnotations.openMocks(this);
     }
 
-    /**
-     * Verifies that {@link DeductionServiceImpl#saveService(Deduction)}
-     * returns the exact instance provided by the repository.
-     */
     @Test
     @DisplayName("SaveService returns the saved instance")
     void saveServiceReturnsSavedInstance() {
@@ -94,10 +95,6 @@ class DeductionServiceImplTest {
         assertSame(saved, result, "Debe devolver el objeto retornado por el repositorio");
     }
 
-    /**
-     * Verifies that {@link DeductionServiceImpl#saveAllService(List)}
-     * calls {@code repository.saveAll} exactly once with the provided list.
-     */
     @Test
     @DisplayName("Save all deductions when list is provided")
     void saveAllDeductionsWhenListIsProvided() {
@@ -111,10 +108,6 @@ class DeductionServiceImplTest {
         verify(repository).saveAll(list);
     }
 
-    /**
-     * Verifies that {@link DeductionServiceImpl#saveService(Deduction)}
-     * delegates to {@code repository.save} when saving a valid deduction.
-     */
     @Test
     @DisplayName("Save deduction when valid deduction is provided")
     void saveDeductionWhenValidDeductionIsProvided() {
@@ -128,10 +121,6 @@ class DeductionServiceImplTest {
         verify(repository, times(1)).save(deduction);
     }
 
-    /**
-     * Verifies that {@link DeductionServiceImpl#updateService(Deduction)}
-     * delegates to {@code repository.save} when updating a valid deduction.
-     */
     @Test
     @DisplayName("Update deduction when valid deduction is provided")
     void updateDeductionWhenValidDeductionIsProvided() {
@@ -145,12 +134,8 @@ class DeductionServiceImplTest {
         verify(repository, times(1)).save(deduction);
     }
 
-    /**
-     * Verifies that {@link DeductionServiceImpl#deleteByIdService(Long)}
-     * calls {@code repository.deleteById} for the given ID.
-     */
     @Test
-    @DisplayName("Delete deduction when valid id is provided")
+    @DisplayName("Delete deduction when valid id is provided (incluye flush)")
     void deleteDeductionWhenValidIdIsProvided() {
         // Arrange
         Long id = 1L;
@@ -160,12 +145,9 @@ class DeductionServiceImplTest {
 
         // Assert
         verify(repository, times(1)).deleteById(id);
+        verify(repository, times(1)).flush(); // cubrir flush()
     }
 
-    /**
-     * Verifies that {@link DeductionServiceImpl#findByIdService(Long)}
-     * returns the entity found by {@code repository.findById}.
-     */
     @Test
     @DisplayName("Return deduction when it exists for given id")
     void returnDeductionWhenItExistsForGivenId() {
@@ -183,17 +165,13 @@ class DeductionServiceImplTest {
         assertEquals(deduction.getId(),                  result.getId());
         assertEquals(deduction.getAccountingPeriod(),    result.getAccountingPeriod());
         assertEquals(deduction.getValueDeduction(),      result.getValueDeduction());
-        assertSame  (deduction.getTaxDepreciation(),    result.getTaxDepreciation());
-        assertEquals(deduction.getAddedBy(),            result.getAddedBy());
-        assertEquals(deduction.getAdditionDate(),       result.getAdditionDate());
-        assertEquals(deduction.getModifiedBy(),         result.getModifiedBy());
-        assertEquals(deduction.getModificationDate(),   result.getModificationDate());
+        assertSame  (deduction.getTaxDepreciation(),     result.getTaxDepreciation());
+        assertEquals(deduction.getAddedBy(),             result.getAddedBy());
+        assertEquals(deduction.getAdditionDate(),        result.getAdditionDate());
+        assertEquals(deduction.getModifiedBy(),          result.getModifiedBy());
+        assertEquals(deduction.getModificationDate(),    result.getModificationDate());
     }
 
-    /**
-     * Verifies that {@link DeductionServiceImpl#findByIdService(Long)}
-     * returns a new, mutable {@link Deduction} when none exists in the repository.
-     */
     @Test
     @DisplayName("Return new deduction when none exists for given id")
     void returnNewDeductionWhenNoneExistsForGivenId() {
@@ -230,10 +208,6 @@ class DeductionServiceImplTest {
         assertEquals(dt2, result.getModificationDate());
     }
 
-    /**
-     * Verifies that {@link DeductionServiceImpl#findAllService()}
-     * calls {@code repository.findAll} and returns a non-null list.
-     */
     @Test
     @DisplayName("Return all deductions when findAllService is called")
     void returnAllDeductionsWhenFindAllServiceIsCalled() {
@@ -249,12 +223,23 @@ class DeductionServiceImplTest {
         assertNotNull(result);
     }
 
-    /**
-     * Verifies that {@link DeductionServiceImpl#deleteAllService(List)}
-     * calls {@code repository.deleteAll} for the provided list.
-     */
     @Test
-    @DisplayName("Delete all deductions when list is provided")
+    @DisplayName("findAllService retorna exactamente la lista del repositorio")
+    void findAllServiceReturnsRepositoryList() {
+        // Arrange
+        List<Deduction> expected = List.of(getDeduction());
+        when(repository.findAll()).thenReturn(expected);
+
+        // Act
+        List<Deduction> out = deductionService.findAllService();
+
+        // Assert
+        verify(repository, times(1)).findAll();
+        assertSame(expected, out);
+    }
+
+    @Test
+    @DisplayName("Delete all deductions when list is provided (incluye flush)")
     void deleteAllDeductionsWhenListIsProvided() {
         // Arrange
         List<Deduction> list = List.of(getDeduction(), new Deduction());
@@ -264,12 +249,9 @@ class DeductionServiceImplTest {
 
         // Assert
         verify(repository, times(1)).deleteAll(list);
+        verify(repository, times(1)).flush(); // cubrir flush()
     }
 
-    /**
-     * Verifies that {@link DeductionServiceImpl#findByTaxDepreciationInService(List)}
-     * returns the exact list provided by {@code repository.findByTaxDepreciationIn}.
-     */
     @Test
     @DisplayName("Find deductions by TaxDepreciation list returns repository result")
     void findByTaxDepreciationInServiceReturnsList() {
@@ -287,10 +269,6 @@ class DeductionServiceImplTest {
         assertEquals(expected.get(0).getValueDeduction(), result.get(0).getValueDeduction());
     }
 
-    /**
-     * Verifies that {@link DeductionServiceImpl#findByTaxDepreciationInService(List)}
-     * returns an empty list when the repository yields no results.
-     */
     @Test
     @DisplayName("Find deductions by TaxDepreciation returns empty list when none found")
     void findByTaxDepreciationInServiceReturnsEmptyList() {
@@ -306,10 +284,6 @@ class DeductionServiceImplTest {
         assertTrue(result.isEmpty(), "Cuando el repositorio devuelve vacío, el servicio también debe devolver lista vacía");
     }
 
-    /**
-     * Verifies that the Lombok-generated all-args constructor on {@link Deduction}
-     * assigns all fields correctly.
-     */
     @Test
     @DisplayName("Deduction AllArgsConstructor sets all fields correctly")
     void deductionAllArgsConstructorSetsAllFields() {

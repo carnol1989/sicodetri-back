@@ -17,56 +17,67 @@ import org.springframework.security.oauth2.server.authorization.settings.ClientS
 import org.springframework.security.oauth2.server.authorization.settings.TokenSettings;
 
 /**
- * Configuration class responsible for registering OAuth2 clients and persisting
- * their definitions in a PostgreSQL database via JDBC.
- * This class binds the {@link AuthorizationServerProperties} to read the
- * client registration details from application configuration, and then
- * creates or updates a {@link RegisteredClient} in the {@link RegisteredClientRepository}.
+ * Registers OAuth2/OIDC clients and persists their definitions via JDBC (PostgreSQL).
+ * <p>
+ * Binds {@link AuthorizationServerProperties} to build/update {@link RegisteredClient} entries,
+ * then stores them in a {@link JdbcRegisteredClientRepository}. Two client profiles are handled:
+ * </p>
+ * <ul>
+ *   <li><b>Interactive (SPA)</b>: {@code authorization_code} + PKCE + {@code refresh_token}.</li>
+ *   <li><b>Technical/Perf</b>: {@code client_credentials} (machine-to-machine).</li>
+ * </ul>
+ *
+ * <p><b>Notes</b>:</p>
+ * <ul>
+ *   <li>Client authentication methods registered: {@code client_secret_basic} and
+ *       {@code client_secret_post}.</li>
+ *   <li>Token lifetimes and refresh-token reuse are sourced from {@link AuthorizationServerProperties#token()}.</li>
+ *   <li>If a client configuration is missing (id/secret), it is skipped (no NPE).</li>
+ *   <li>Persist uses an upsert-like behavior: an existing client is loaded
+ *   and updated; otherwise a new one is created.</li>
+ * </ul>
+ *
  * <b>Class</b>: {@link ClientRegistrationConfig}<br/>
  * <b>Copyright</b>: &copy; 2024 EPS Grau. <br/>
  * <b>Company</b>: EPS Grau. <br/>
  *
- * @author EPS Grau <br/>
+ * @author EPS Grau
  *     <u>Service Provider</u>: Consultor TI <br/>
- *     <u>Developed by</u>: <br/>
+ *     <u>Developed by</u>:
  *     <ul>
- *     <li>Carlos Augusto Nole Machaca</li>
+ *       <li>Carlos Augusto Nole Machaca</li>
  *     </ul>
- *     <u>Changes</u>:<br/>
+ *     <u>Changes</u>:
  *     <ul>
- *     <li>Jul 21, 2025 (JAR) Creation class.</li>
+ *       <li>Jul 21, 2025 (JAR) Initial version.</li>
+ *       <li>Sep 10, 2025 (Docs) Clarify dual-client setup, PKCE, grant types, and upsert semantics.</li>
  *     </ul>
- * @version 1.0
+ * @version 1.1
  */
 @Configuration
 @EnableConfigurationProperties(AuthorizationServerProperties.class)
 public class ClientRegistrationConfig {
 
     /**
-     * Creates a {@link RegisteredClientRepository} bean that persists OAuth2 clients
-     * to the database. It will load an existing client by ID if present, or create
-     * a new one otherwise. Client properties (ID, secret, redirect URIs, scopes,
-     * grant types, and token lifetimes) are sourced from the bound
-     * {@link AuthorizationServerProperties}.
-     * Steps performed:
+     * Creates a {@link RegisteredClientRepository} backed by JDBC and performs client registration/update.
+     * <p>Actions:</p>
      * <ol>
-     *   <li>Instantiate a {@link JdbcRegisteredClientRepository} using the provided
-     *   {@link JdbcTemplate}.</li>
-     *   <li>Attempt to load an existing {@link RegisteredClient} by client ID; if not found,
-     *       initialize a new builder with a random UUID.</li>
-     *   <li>Configure the builder with properties: client ID, encoded client secret,
-     *       authentication methods, authorization grant types, redirect URIs, scopes,
-     *       {@link ClientSettings}, and {@link TokenSettings}.</li>
-     *   <li>Build the final {@link RegisteredClient} and save (insert or update) it
-     *   in the repository.</li>
+     *   <li>Instantiate {@link JdbcRegisteredClientRepository} with the provided {@link JdbcTemplate}.</li>
+     *   <li>Upsert the <b>interactive</b> client (SPA): grants {@code authorization_code} + {@code refresh_token},
+     *       PKCE required, consent configurable, redirect URIs from properties, scopes from properties.</li>
+     *   <li>Upsert the <b>technical/perf</b> client: grant {@code client_credentials},
+     *       no consent, PKCE disabled, redirect URIs cleared, scopes cleared (service permissions
+     *       are typically conveyed by resource server config).</li>
      * </ol>
      *
-     * @param jdbcTemplate the {@link JdbcTemplate} used for JDBC operations
-     * @param encoder      the {@link PasswordEncoder} used to encode client secrets
-     * @param props        the bound {@link AuthorizationServerProperties} containing
-     *                     the client and token configuration sections
-     * @return a {@link RegisteredClientRepository} backed by JDBC
-    */
+     * <p><b>Token settings</b>: access token TTL, refresh token TTL, and reuse policy are taken from
+     * {@link AuthorizationServerProperties#token()}.</p>
+     *
+     * @param jdbcTemplate JDBC access for the underlying repository
+     * @param encoder password encoder for client secrets
+     * @param props bound properties (client ids, secrets, redirect URIs, scopes, token lifetimes)
+     * @return a configured {@link RegisteredClientRepository}
+     */
     @Bean
     public RegisteredClientRepository registeredClientRepository(
         JdbcTemplate jdbcTemplate,
@@ -84,6 +95,44 @@ public class ClientRegistrationConfig {
         return repo;
     }
 
+    /**
+     * Inserts or updates a single {@link RegisteredClient} according to the supplied profile.
+     *
+     * <p><b>Common settings</b> (both profiles):</p>
+     * <ul>
+     *   <li>{@code clientId} and <i>encoded</i> {@code clientSecret}.</li>
+     *   <li>Client authentication: {@link ClientAuthenticationMethod#CLIENT_SECRET_BASIC} and
+     *       {@link ClientAuthenticationMethod#CLIENT_SECRET_POST}.</li>
+     *   <li>Token settings from {@link AuthorizationServerProperties#token()}.</li>
+     *   <li>Scopes set to the values from properties (interactive) or cleared (technical).</li>
+     * </ul>
+     *
+     * <p><b>Interactive profile</b> ({@code interactive=true}):</p>
+     * <ul>
+     *   <li>Grants: {@link AuthorizationGrantType#AUTHORIZATION_CODE},
+     *   {@link AuthorizationGrantType#REFRESH_TOKEN}.</li>
+     *   <li>Client settings: {@code requireAuthorizationConsent} from properties;
+     *   {@code requireProofKey=true} (PKCE).</li>
+     *   <li>Redirect URIs taken from properties.</li>
+     * </ul>
+     *
+     * <p><b>Technical profile</b> ({@code interactive=false}):</p>
+     * <ul>
+     *   <li>Grant: {@link AuthorizationGrantType#CLIENT_CREDENTIALS}.</li>
+     *   <li>Client settings: {@code requireAuthorizationConsent=false}, {@code requireProofKey=false}.</li>
+     *   <li>Redirect URIs cleared; scopes cleared.</li>
+     * </ul>
+     *
+     * <p>If a client with the same {@code clientId} exists, it is loaded and updated; otherwise a new
+     * client is created with a random UUID as internal id.</p>
+     *
+     * @param repo target repository
+     * @param encoder password encoder for the client secret
+     * @param c client section from properties (may be {@code null}); skipped if id/secret missing
+     * @param props global properties (token settings)
+     * @param interactive {@code true} for SPA/authorization-code client; {@code false}
+     *                                for perf/client-credentials client
+     */
     private void upsertClient(JdbcRegisteredClientRepository repo,
                               PasswordEncoder encoder,
                               AuthorizationServerProperties.Client c,
