@@ -13,19 +13,18 @@ import static com.epsgrau.pe.sicodetri.util.Constants.RUC_VALUE;
 
 import com.epsgrau.pe.sicodetri.dto.FinancialFixedAssetDto;
 import com.epsgrau.pe.sicodetri.dto.ParamReportDto;
-import com.epsgrau.pe.sicodetri.entity.FinancialDepreciation;
+import com.epsgrau.pe.sicodetri.dto.mapper.FinancialFixedAssetMapper;
 import com.epsgrau.pe.sicodetri.entity.FinancialFixedAsset;
 import com.epsgrau.pe.sicodetri.exception.ExceptionResponse;
 import com.epsgrau.pe.sicodetri.exception.ResourceNotFoundException;
 import com.epsgrau.pe.sicodetri.model.InputData;
 import com.epsgrau.pe.sicodetri.model.ResponseData;
-import com.epsgrau.pe.sicodetri.service.FinancialDepreciationService;
 import com.epsgrau.pe.sicodetri.service.FinancialFixedAssetService;
 import com.epsgrau.pe.sicodetri.service.ReportJasperService;
-import com.epsgrau.pe.sicodetri.util.enums.ProjectionType;
 import com.epsgrau.pe.sicodetri.service.report.ReportStrategy;
 import com.epsgrau.pe.sicodetri.service.report.ReportStrategyFactory;
 import com.epsgrau.pe.sicodetri.util.Constants;
+import com.epsgrau.pe.sicodetri.util.enums.ProjectionType;
 import com.epsgrau.pe.sicodetri.util.enums.ReportTypeEnum;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -98,6 +97,9 @@ public class FinancialFixedAssetController {
 
     @Autowired
     private ReportStrategyFactory reportStrategyFactory;
+
+    @Autowired
+    private FinancialFixedAssetMapper mapper;
 
     /**
      * Handles internal exceptions and builds a standardized JSON error response.
@@ -481,10 +483,11 @@ public class FinancialFixedAssetController {
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern(Constants.FORMATTER_YYYY_MM_DD);
         LocalDate periodDate = LocalDate.parse(period, formatter);
         List<FinancialFixedAsset> listFinancialFixedAsset = service.findByPeriodAndAddedByService(periodDate, username);
-
         if (listFinancialFixedAsset != null && !listFinancialFixedAsset.isEmpty()) {
+            List<FinancialFixedAssetDto> listDtos = mapper.listFinancialFixedAssetToListFinancialFixedAssetDto(
+                listFinancialFixedAsset);
             return buildResponse("Se obtuvo informacion para el periodo: "
-                + period, listFinancialFixedAsset, HttpStatus.OK);
+                + period, listDtos, HttpStatus.OK);
         } else {
             return buildResponseWithError("Error al obtener informacion para el periodo: "
                 + period, HttpStatus.NOT_FOUND, "");
@@ -500,10 +503,11 @@ public class FinancialFixedAssetController {
     private ResponseEntity<ResponseData> handleFindByMainFixedAssetCode(String mainFixedAssetCode, String username) {
         List<FinancialFixedAsset> listFinancialFixedAsset =
             service.findByMainFixedAssetCodeAndAddedByService(mainFixedAssetCode, username);
-
         if (listFinancialFixedAsset != null && !listFinancialFixedAsset.isEmpty()) {
+            List<FinancialFixedAssetDto> listDtos = mapper.listFinancialFixedAssetToListFinancialFixedAssetDto(
+                listFinancialFixedAsset);
             return buildResponse("Se obtuvo informacion para el código de activo fijo principal: "
-                + mainFixedAssetCode, listFinancialFixedAsset, HttpStatus.OK);
+                + mainFixedAssetCode, listDtos, HttpStatus.OK);
         } else {
             return buildResponseWithError("Error al obtener informacion para el código de "
                 + "activo fijo principal: " + mainFixedAssetCode, HttpStatus.NOT_FOUND, "");
@@ -519,10 +523,11 @@ public class FinancialFixedAssetController {
     private ResponseEntity<ResponseData> handleFindByAccountingAccount(String accountingAccount, String username) {
         List<FinancialFixedAsset> listFinancialFixedAsset =
             service.findByFixedAssetAccountingAccountAndAddedByService(accountingAccount, username);
-
         if (listFinancialFixedAsset != null && !listFinancialFixedAsset.isEmpty()) {
+            List<FinancialFixedAssetDto> listDtos = mapper.listFinancialFixedAssetToListFinancialFixedAssetDto(
+                listFinancialFixedAsset);
             return buildResponse("Se obtuvo informacion para la cuenta contable: "
-                + accountingAccount, listFinancialFixedAsset, HttpStatus.OK);
+                + accountingAccount, listDtos, HttpStatus.OK);
         } else {
             return buildResponseWithError("Error al obtener informacion para la cuenta contable: "
                 + accountingAccount, HttpStatus.NOT_FOUND, "");
