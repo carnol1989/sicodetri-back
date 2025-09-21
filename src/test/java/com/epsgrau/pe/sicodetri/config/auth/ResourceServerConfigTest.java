@@ -3,8 +3,10 @@ package com.epsgrau.pe.sicodetri.config.auth;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.eq;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -18,11 +20,13 @@ import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
-import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.annotation.web.configurers.AuthorizeHttpRequestsConfigurer;
 import org.springframework.security.config.annotation.web.configurers.CorsConfigurer;
+import org.springframework.security.config.annotation.web.configurers.CsrfConfigurer;
+import org.springframework.security.config.annotation.web.configurers.ExceptionHandlingConfigurer;
 import org.springframework.security.config.annotation.web.configurers.SessionManagementConfigurer;
 import org.springframework.security.config.annotation.web.configurers.oauth2.server.resource.OAuth2ResourceServerConfigurer;
+import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
@@ -30,104 +34,49 @@ import org.springframework.security.web.SecurityFilterChain;
 
 /**
  * Unit tests for {@link ResourceServerConfig}.
- * Covers two areas:
+ * <p>
+ * This suite covers two areas:
+ * </p>
  * <ul>
- *   <li><b>JWT → GrantedAuthority mapping</b>: verifies that the custom
- *       {@link org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter}
- *       produced by {@code jwtAuthenticationConverter()} correctly maps:
- *       <ul>
- *         <li><code>scope</code> (space-delimited) → {@code SCOPE_<scope>} authorities,</li>
- *         <li><code>roles</code> (array) → {@code ROLE_<role>} authorities,</li>
- *         <li>combined, single-claim, and no-claim scenarios.</li>
- *       </ul>
- *   </li>
- *   <li><b>Security chain wiring</b>: verifies that
- *       {@code resourceServerSecurityFilterChain(HttpSecurity)} invokes the expected
- *       {@link org.springframework.security.config.annotation.web.builders.HttpSecurity} fluent
- *       configuration steps and returns the built {@link org.springframework.security.web.SecurityFilterChain}.</li>
+ *   <li><b>JWT → GrantedAuthority mapping</b>:
+ *     verifies that the custom
+ *     {@link org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter}
+ *     produced by {@code jwtAuthenticationConverter()} maps <i>only</i> the {@code roles}
+ *     claim to Spring authorities (prefixed with {@code ROLE_}). It also validates the
+ *     behavior when the JWT has no role-related claims.</li>
+ *   <li><b>Security chain wiring</b>:
+ *     verifies that {@code resourceServerSecurityFilterChain(HttpSecurity)}
+ *     invokes the expected {@link org.springframework.security.config.annotation.web.builders.HttpSecurity}
+ *     fluent configuration steps and returns the built {@link org.springframework.security.web.SecurityFilterChain}.</li>
+ * </ul>
+ *
+ * <b>Notes:</b>
+ * <ul>
+ *   <li>Scope-based authorities are <b>not</b> mapped by the current converter; tests intentionally
+ *       focus on role mapping from the {@code roles} claim.</li>
  * </ul>
  *
  * <b>Class</b>: {@link ResourceServerConfigTest}<br/>
- * <b>Copyright</b>: &Copy; 2024 EPS Grau. <br/>
+ * <b>Copyright</b>: &copy; 2024 EPS Grau. <br/>
  * <b>Company</b>: EPS Grau. <br/>
  *
- * @author EPS Grau <br/>
+ * @author EPS Grau
  *     <u>Service Provider</u>: Consultor TI <br/>
  *     <u>Developed by</u>: <br/>
  *     <ul>
- *     <li>Carlos Augusto Nole Machaca</li>
+ *       <li>Carlos Augusto Nole Machaca</li>
  *     </ul>
  *     <u>Changes</u>:<br/>
  *     <ul>
- *     <li>Jul 29, 2025 (JAR) Creation class.</li>
+ *       <li>Jul 29, 2025 (JAR) Initial version.</li>
  *     </ul>
- * @version 1.0
+ * @version 1.1
  */
 @DisplayName("ResourceServerConfig Tests")
 class ResourceServerConfigTest {
 
   private final ResourceServerConfig config = new ResourceServerConfig();
 
-  /**
-   * Ensures that when a JWT contains both {@code scope} and {@code roles} claims, the converter
-   * aggregates them into authorities with the expected prefixes:
-   * {@code SCOPE_read}, {@code SCOPE_write}, {@code ROLE_ADMIN}, {@code ROLE_USER}.
-   */
-  @Test
-  @DisplayName("Combine scope and roles into authorities when JWT has both claims")
-  void combineScopeAndRolesIntoAuthoritiesWhenJwtHasBothClaims() {
-    JwtAuthenticationConverter converter = config.jwtAuthenticationConverter();
-
-    Jwt jwt = new Jwt(
-        "token-value",
-        Instant.now(),
-        Instant.now().plusSeconds(3600),
-        Map.of("alg", "none"),
-        Map.of("scope", "read write", "roles", List.of("ADMIN", "USER"))
-    );
-
-    List<String> authorities = converter.convert(jwt)
-        .getAuthorities()
-        .stream()
-        .map(GrantedAuthority::getAuthority)
-        .collect(Collectors.toList());
-
-    assertThat(authorities)
-        .containsExactlyInAnyOrder("SCOPE_read", "SCOPE_write", "ROLE_ADMIN", "ROLE_USER");
-  }
-
-  /**
-   * Verifies that when a JWT contains only a space-delimited {@code scope} claim (e.g.,
-   * {@code "alpha beta"}), the converter produces {@code SCOPE_alpha} and {@code SCOPE_beta}
-   * authorities and no role authorities.
-   */
-  @Test
-  @DisplayName("Return only scope authorities when JWT has only scope claim")
-  void returnOnlyScopeAuthoritiesWhenJwtHasOnlyScopeClaim() {
-    JwtAuthenticationConverter converter = config.jwtAuthenticationConverter();
-
-    Jwt jwt = new Jwt(
-        "token-value",
-        Instant.now(),
-        Instant.now().plusSeconds(3600),
-        Map.of("alg", "none"),
-        Map.of("scope", "alpha beta")
-    );
-
-    List<String> authorities = converter.convert(jwt)
-        .getAuthorities()
-        .stream()
-        .map(GrantedAuthority::getAuthority)
-        .collect(Collectors.toList());
-
-    assertThat(authorities)
-        .containsExactlyInAnyOrder("SCOPE_alpha", "SCOPE_beta");
-  }
-
-  /**
-   * Verifies that when a JWT contains only a {@code roles} array (e.g., {@code ["MANAGER","OPERATOR"]}),
-   * the converter produces {@code ROLE_MANAGER} and {@code ROLE_OPERATOR} authorities.
-   */
   @Test
   @DisplayName("Return only role authorities when JWT has only roles claim")
   void returnOnlyRoleAuthoritiesWhenJwtHasOnlyRolesClaim() {
@@ -138,7 +87,7 @@ class ResourceServerConfigTest {
         Instant.now(),
         Instant.now().plusSeconds(3600),
         Map.of("alg", "none"),
-        Map.of("roles", List.of("MANAGER", "OPERATOR"))
+        Map.of("roles", List.of("AssetUploader", "TaxTableViewer", "DepreciationProcessor", "ReportGenerator"))
     );
 
     List<String> authorities = converter.convert(jwt)
@@ -148,13 +97,10 @@ class ResourceServerConfigTest {
         .collect(Collectors.toList());
 
     assertThat(authorities)
-        .containsExactlyInAnyOrder("ROLE_MANAGER", "ROLE_OPERATOR");
+        .containsExactlyInAnyOrder("ROLE_AssetUploader", "ROLE_TaxTableViewer", "ROLE_DepreciationProcessor",
+            "ROLE_ReportGenerator");
   }
 
-  /**
-   * Verifies that when neither {@code scope} nor {@code roles} are present in the JWT,
-   * the converter returns an empty authorities collection.
-   */
   @Test
   @DisplayName("Return empty authorities when JWT has no roles or scope claims")
   void returnEmptyAuthoritiesWhenJwtHasNoRolesOrScopeClaims() {
@@ -173,11 +119,6 @@ class ResourceServerConfigTest {
     assertThat(authorities).isEmpty();
   }
 
-  /**
-   * Ensures that role values are normalized to {@code ROLE_}-prefixed authorities regardless of
-   * how they are provided. In this test, unprefixed roles {@code ["ADMIN","USER"]} become
-   * {@code ROLE_ADMIN} and {@code ROLE_USER}.
-   */
   @Test
   @DisplayName("Return role authorities correctly when roles claim contains prefixed and unprefixed values")
   void returnRoleAuthoritiesWhenJwtRolesClaimContainsPrefixedAndUnprefixedValues() {
@@ -188,7 +129,7 @@ class ResourceServerConfigTest {
         Instant.now(),
         Instant.now().plusSeconds(3600),
         Map.of("alg", "none"),
-        Map.of("roles", List.of("ADMIN", "USER"))
+        Map.of("roles", List.of("AssetUploader", "TaxTableViewer"))
     );
 
     List<String> authorities = converter.convert(jwt)
@@ -198,37 +139,36 @@ class ResourceServerConfigTest {
         .collect(Collectors.toList());
 
     assertThat(authorities)
-        .containsExactlyInAnyOrder("ROLE_ADMIN", "ROLE_USER");
+        .containsExactlyInAnyOrder("ROLE_AssetUploader", "ROLE_TaxTableViewer");
   }
 
-  /**
-   * Verifies that {@code resourceServerSecurityFilterChain(HttpSecurity)} drives the
-   * {@link HttpSecurity} fluent API as expected—configuring request matching, session management,
-   * CSRF, CORS, request authorization, and the OAuth2 Resource Server—and returns the same
-   * {@link SecurityFilterChain} instance produced by {@code http.build()}.
-   *
-   * @throws Exception if the filter chain cannot be built
-   */
   @Test
   @DisplayName("Build SecurityFilterChain by invoking the fluent HttpSecurity API")
   void resourceServerSecurityFilterChainBuildsWhenConfiguringHttpSecurity() throws Exception {
     HttpSecurity http = mock(HttpSecurity.class);
     SecurityFilterChain expectedChain = mock(SecurityFilterChain.class);
 
+    // sessionManagement(sm -> sm.sessionCreationPolicy(IF_REQUIRED))
     when(http.sessionManagement(any())).thenAnswer(inv -> {
-      @SuppressWarnings("rawtypes")
       Customizer<SessionManagementConfigurer> customizer = inv.getArgument(0);
+      SessionManagementConfigurer sm = mock(SessionManagementConfigurer.class);
+      when(sm.sessionCreationPolicy(any())).thenReturn(sm);
+      customizer.customize(sm);
+      verify(sm).sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED);
       return http;
     });
 
+    // csrf(AbstractHttpConfigurer::disable)  ==> Customizer<CsrfConfigurer<HttpSecurity>>
     when(http.csrf(any())).thenAnswer(inv -> {
-      @SuppressWarnings("rawtypes")
-      Customizer<AbstractHttpConfigurer> customizer = inv.getArgument(0);
+      Customizer<CsrfConfigurer<HttpSecurity>> customizer = inv.getArgument(0);
+      CsrfConfigurer<HttpSecurity> csrf = mock(CsrfConfigurer.class);
+      when(csrf.disable()).thenReturn(null); // retorno ignorado por el Customizer
+      customizer.customize(csrf);            // aquí se invoca disable()
       return http;
     });
 
+    // cors(Customizer.withDefaults())
     when(http.cors(any())).thenAnswer(inv -> {
-      @SuppressWarnings("rawtypes")
       Customizer<CorsConfigurer> customizer = inv.getArgument(0);
       customizer.customize(mock(CorsConfigurer.class));
       return http;
@@ -236,18 +176,17 @@ class ResourceServerConfigTest {
 
     when(http.securityMatcher("/api/**")).thenReturn(http);
 
+    // authorizeHttpRequests(...)
     when(http.authorizeHttpRequests(any())).thenAnswer(inv -> {
-      @SuppressWarnings("rawtypes")
       var consumer = (Customizer) inv.getArgument(0);
 
-      @SuppressWarnings("rawtypes")
       AuthorizeHttpRequestsConfigurer.AuthorizationManagerRequestMatcherRegistry registry =
           mock(AuthorizeHttpRequestsConfigurer.AuthorizationManagerRequestMatcherRegistry.class);
 
       AuthorizeHttpRequestsConfigurer.AuthorizedUrl authorizedUrl =
           mock(AuthorizeHttpRequestsConfigurer.AuthorizedUrl.class);
 
-      // Stubs para los encadenamientos en tu configuración
+      // Stubs de encadenamiento
       when(registry.requestMatchers(any(String.class))).thenReturn(authorizedUrl);
       when(registry.requestMatchers(any(String[].class))).thenReturn(authorizedUrl);
       when(registry.requestMatchers(any(HttpMethod.class), anyString())).thenReturn(authorizedUrl);
@@ -256,32 +195,64 @@ class ResourceServerConfigTest {
       when(authorizedUrl.hasRole(anyString())).thenReturn(registry);
       when(authorizedUrl.authenticated()).thenReturn(registry);
 
-      // Ejecutamos el lambda de tu config
+      // Ejecutamos el lambda de la configuración
       consumer.customize(registry);
+
+      // Verificaciones finas de reglas (rutas, métodos y roles)
+      verify(registry).requestMatchers("/api/v1/tax-tables/**");
+      verify(authorizedUrl).hasRole("TaxTableViewer");
+
+      verify(registry).requestMatchers(eq(HttpMethod.POST), eq("/api/v1/financial-fixed-assets/upload"));
+      verify(registry).requestMatchers(eq(HttpMethod.POST), eq("/api/v1/financial-fixed-assets"));
+      verify(authorizedUrl, times(2)).hasRole("AssetUploader");
+
+      verify(registry).requestMatchers(eq(HttpMethod.POST), eq("/api/v1/financial-fixed-assets/projection"));
+      verify(authorizedUrl).hasRole("DepreciationProcessor");
+
+      verify(registry).requestMatchers(eq(HttpMethod.GET), eq("/api/v1/financial-fixed-assets/report"));
+      verify(authorizedUrl).hasRole("ReportGenerator");
+
+      verify(registry).requestMatchers("/api/v1/financial-fixed-assets/**");
+
+      // authenticated() se llama para la ruta específica y para anyRequest()
+      verify(registry).anyRequest();
+      verify(authorizedUrl, times(2)).authenticated();
+
       return http;
     });
 
+    // exceptionHandling(ex -> ex.authenticationEntryPoint(...).accessDeniedHandler(...))
+    when(http.exceptionHandling(any())).thenAnswer(inv -> {
+      Customizer<ExceptionHandlingConfigurer> customizer = inv.getArgument(0);
+      ExceptionHandlingConfigurer exc = mock(ExceptionHandlingConfigurer.class);
+      when(exc.authenticationEntryPoint(any())).thenReturn(exc);
+      when(exc.accessDeniedHandler(any())).thenReturn(exc);
+      customizer.customize(exc);
+      verify(exc).authenticationEntryPoint(any());
+      verify(exc).accessDeniedHandler(any());
+      return http;
+    });
+
+    // oauth2ResourceServer(oauth2 -> oauth2.jwt(jwt -> jwt.jwtAuthenticationConverter(...)))
     when(http.oauth2ResourceServer(any())).thenAnswer(inv -> {
-      @SuppressWarnings("rawtypes")
       Customizer<OAuth2ResourceServerConfigurer> customizer = inv.getArgument(0);
 
-      @SuppressWarnings({"rawtypes", "unchecked"})
       OAuth2ResourceServerConfigurer o2 = mock(OAuth2ResourceServerConfigurer.class);
-
-      @SuppressWarnings({"rawtypes"})
       OAuth2ResourceServerConfigurer.JwtConfigurer jwtConfigurer =
           mock(OAuth2ResourceServerConfigurer.JwtConfigurer.class);
 
+      when(jwtConfigurer.jwtAuthenticationConverter(any())).thenReturn(jwtConfigurer);
+
       when(o2.jwt(any())).thenAnswer(inv2 -> {
-        // Ejecutar el customizer de .jwt(...)
         Customizer<OAuth2ResourceServerConfigurer.JwtConfigurer> jwtCustomizer = inv2.getArgument(0);
         jwtCustomizer.customize(jwtConfigurer);
         return o2;
       });
-      when(o2.authenticationEntryPoint(any())).thenReturn(o2);
-      when(o2.accessDeniedHandler(any())).thenReturn(o2);
 
       customizer.customize(o2);
+
+      // Asegura que se estableció el converter de JWT
+      verify(jwtConfigurer).jwtAuthenticationConverter(any());
       return http;
     });
 
@@ -296,6 +267,7 @@ class ResourceServerConfigTest {
     verify(http).csrf(any());
     verify(http).cors(any());
     verify(http).authorizeHttpRequests(any());
+    verify(http).exceptionHandling(any());
     verify(http).oauth2ResourceServer(any());
     verify(http).build();
   }

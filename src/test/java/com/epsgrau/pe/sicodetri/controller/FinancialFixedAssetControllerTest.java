@@ -11,6 +11,7 @@ import static com.epsgrau.pe.sicodetri.util.ConstantsTest.N_VAL_2;
 import static com.epsgrau.pe.sicodetri.util.ConstantsTest.N_VAL_3;
 import static com.epsgrau.pe.sicodetri.util.ConstantsTest.LIST_INPUT_DATA;
 import static com.epsgrau.pe.sicodetri.util.ConstantsTest.FORMATTER_YYYY_MM_DD;
+import static com.epsgrau.pe.sicodetri.util.DataTest.auth;
 import static com.epsgrau.pe.sicodetri.util.DataTest.getListFinancialFixedAsset;
 import static com.epsgrau.pe.sicodetri.util.DataTest.getListInputData;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -28,6 +29,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.anyMap;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -36,14 +38,16 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.epsgrau.pe.sicodetri.dto.FinancialFixedAssetDto;
 import com.epsgrau.pe.sicodetri.dto.ParamReportDto;
+import com.epsgrau.pe.sicodetri.dto.mapper.FinancialFixedAssetMapper;
 import com.epsgrau.pe.sicodetri.entity.FinancialFixedAsset;
 import com.epsgrau.pe.sicodetri.exception.ExceptionResponse;
 import com.epsgrau.pe.sicodetri.exception.GlobalExceptionHandler;
+import com.epsgrau.pe.sicodetri.exception.ResourceNotFoundException;
 import com.epsgrau.pe.sicodetri.model.InputData;
 import com.epsgrau.pe.sicodetri.model.ResponseData;
 import com.epsgrau.pe.sicodetri.service.FinancialFixedAssetService;
 import com.epsgrau.pe.sicodetri.service.ReportJasperService;
-import com.epsgrau.pe.sicodetri.service.projection.ProjectionType;
+import com.epsgrau.pe.sicodetri.util.enums.ProjectionType;
 import com.epsgrau.pe.sicodetri.service.report.ReportStrategy;
 import com.epsgrau.pe.sicodetri.service.report.ReportStrategyFactory;
 import com.epsgrau.pe.sicodetri.util.Constants;
@@ -73,6 +77,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.ContentDisposition;
 import org.springframework.mock.web.MockHttpSession;
 import org.springframework.mock.web.MockMultipartFile;
+import org.springframework.security.authentication.TestingAuthenticationToken;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
@@ -82,33 +87,50 @@ import org.springframework.web.multipart.MultipartFile;
 /**
  * Unit tests for {@link FinancialFixedAssetController}.
  *
- * <p>
- * Exercises all controller endpoints including:
+ * <p>This suite verifies all controller endpoints and helper flows using a mix of
+ * {@link org.springframework.test.web.servlet.MockMvc} (for HTTP-level assertions) and
+ * direct method invocations (for fine-grained response inspections). Covered areas include:</p>
+ *
  * <ul>
- *   <li>Excel upload and parsing</li>
- *   <li>Saving financial fixed assets</li>
- *   <li>Projection generation</li>
- *   <li>Retrieving fixed assets by period, code, or account</li>
- *   <li>Report generation via strategies and Jasper service</li>
- *   <li>Error handling and response content</li>
+ *   <li><b>Excel upload</b>: happy-path parsing and session storage, invalid format handling,
+ *       and exception paths with JSON error payloads.</li>
+ *   <li><b>Persisting assets</b>: saving session-backed data (201), empty/null session cases (400),
+ *       and unexpected errors (417).</li>
+ *   <li><b>Projections</b>: successful generation (201), ALL-prefix path, not-found (404),
+ *       invalid date (400), unsupported type (400), and unexpected failures (417).</li>
+ *   <li><b>Queries</b>: retrieval by period/code/account (200), not-found (404), invalid option (417)
+ *       with message and code checks.</li>
+ *   <li><b>Reports</b>: strategy selection and Jasper integration—file download on success (200 with
+ *       <code>Content-Disposition: attachment</code>), no data (404), unsupported option (404),
+ *       and exceptional paths (NumberFormatException, JRException, runtime errors).</li>
+ *   <li><b>Error payloads</b>: validates {@link ResponseData} fields, nested
+ *       {@link com.epsgrau.pe.sicodetri.exception.ExceptionResponse}, timestamps, and details.</li>
  * </ul>
- * </p>
+ *
+ * <p><b>Notes:</b></p>
+ * <ul>
+ *   <li>A global stub of {@link com.epsgrau.pe.sicodetri.dto.mapper.FinancialFixedAssetMapper}
+ *       is applied in {@code @BeforeEach} to avoid NPEs in successful paths.</li>
+ *   <li>Tests focus on controller behavior (status codes, payload shape, headers);
+ *       service and strategy internals are mocked.</li>
+ * </ul>
  *
  * <b>Class</b>: {@link FinancialFixedAssetControllerTest}<br/>
- * <b>Copyright</b>: &Copy; 2024 EPS Grau. <br/>
+ * <b>COPYRIGHT</b>: &copy; 2024 EPS Grau. <br/>
  * <b>Company</b>: EPS Grau. <br/>
  *
- * @author EPS Grau <br/>
+ * @author EPS Grau
  *     <u>Service Provider</u>: Consultor TI <br/>
- *     <u>Developed by</u>: <br/>
+ *     <u>Developed by</u>:
  *     <ul>
- *     <li>Carlos Augusto Nole Machaca</li>
+ *       <li>Carlos Augusto Nole Machaca</li>
  *     </ul>
- *     <u>Changes</u>:<br/>
+ *     <u>Changes</u>:
  *     <ul>
- *     <li>Jun 06, 2025 (JAR) Creation class.</li>
+ *       <li>Jun 06, 2025 (JAR) Initial version.</li>
+ *       <li>Sep 10, 2025 (Docs) Align Javadoc with actual coverage, status codes, and MockMvc usage.</li>
  *     </ul>
- * @version 1.0
+ * @version 1.1
  */
 @Slf4j
 class FinancialFixedAssetControllerTest {
@@ -135,68 +157,54 @@ class FinancialFixedAssetControllerTest {
     @Mock
     private HttpSession session;
 
+    @Mock
+    private FinancialFixedAssetMapper mapper;
+
     @InjectMocks
     private FinancialFixedAssetController controller;
 
-    /**
-     * Initializes Mockito mocks and configures MockMvc with the controller
-     * and global exception handler before each test.
-     */
     @BeforeEach
     void setUp() {
         MockitoAnnotations.openMocks(this);
         mockMvc = MockMvcBuilders.standaloneSetup(controller)
-                .setControllerAdvice(new GlobalExceptionHandler())
-                .build();
+            .setControllerAdvice(new GlobalExceptionHandler())
+            .build();
+        // Stub global del mapper para evitar NPE en los casos OK
+        when(mapper.listFinancialFixedAssetToListFinancialFixedAssetDto(anyList()))
+            .thenReturn(List.of(new FinancialFixedAssetDto()));
     }
 
-    /**
-     * Verifies that uploading a valid Excel file returns HTTP 200
-     * with a success JSON payload indicating the file name and code.
-     *
-     * @throws Exception if MockMvc request fails
-     */
     @Test
     @DisplayName("Return success response when Excel file is uploaded and processed correctly")
     void returnSuccessResponseWhenExcelFileIsUploadedAndProcessedCorrectly() throws Exception {
         // Arrange
         String period = "2022-01-01";
         String fileName = "test.xlsx";
+        String username = "TEST";
         ByteArrayInputStream bais = createMockExcelInputStream();
 
         MultipartFile file = new MockMultipartFile("file", fileName, TYPE_XLSX, bais);
         List<InputData> inputDataList = getListInputData();
 
-        when(service.loadExcelFileToObjectService(file, period)).thenReturn(inputDataList);
+        when(service.loadExcelFileToObjectService(file, period, username)).thenReturn(inputDataList);
 
         MockHttpSession session = new MockHttpSession();
 
         MockHttpServletRequestBuilder requestBuilder = multipart(BASE_URI + "/upload")
-                .file((MockMultipartFile) file)
-                .param("period", period)
-                .session(session);
+            .file((MockMultipartFile) file)
+            .param("period", period)
+            .with(user(username))
+            .session(session);
 
-        // Act
-        MvcResult result = mockMvc.perform(requestBuilder).andReturn(); // Capturar el resultado
-
-        // Assert
+        // Act & Assert
         mockMvc.perform(requestBuilder)
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.code").value(S_VAL_00))
-                .andExpect(jsonPath("$.message").value("Archivo subido correctamente: test.xlsx"))
-                .andExpect(jsonPath("$.timestamp").exists()) // Validar que timestamp existe
-                .andExpect(jsonPath("$.exception").isEmpty()) // Validar que `exception` es un objeto
-                .andExpect(jsonPath("$.exception.timestamp").doesNotExist()) // Validar campo timestamp del objeto `ExceptionResponse` sean null
-                .andExpect(jsonPath("$.exception.message").doesNotExist()) // Validar campo message del objeto `ExceptionResponse` sean null
-                .andExpect(jsonPath("$.exception.details").doesNotExist()); // Validar campo details del objeto `ExceptionResponse` sean null
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.code").value(S_VAL_00))
+            .andExpect(jsonPath("$.message").value("Archivo subido correctamente: test.xlsx"))
+            .andExpect(jsonPath("$.timestamp").exists())
+            .andExpect(jsonPath("$.exception").doesNotExist()); // no hay exception en OK
     }
 
-    /**
-     * Verifies that uploading a non-XLSX file returns HTTP 417 (Expectation Failed)
-     * with an error code and appropriate error message.
-     *
-     * @throws Exception if MockMvc request fails
-     */
     @Test
     @DisplayName("Return failure response when uploaded file has invalid format")
     void returnFailureResponseWhenUploadedFileHasInvalidFormat() throws Exception {
@@ -208,70 +216,62 @@ class FinancialFixedAssetControllerTest {
         // Act
         MockMultipartFile file = new MockMultipartFile("file", fileName, invalidContentType, new byte[0]);
         MockHttpServletRequestBuilder requestBuilder = multipart(BASE_URI + "/upload")
-                .file(file)
-                .param("period", period);
+            .file(file)
+            .param("period", period);
 
         // Assert
         mockMvc.perform(requestBuilder)
-                .andExpect(status().isExpectationFailed())
-                .andExpect(jsonPath("$.code").value(S_VAL_01))
-                .andExpect(jsonPath("$.message").value("Formato no permitido. Debe ser .xlsx"))
-                .andExpect(jsonPath("$.exception").exists());
+            .andExpect(status().isExpectationFailed())
+            .andExpect(jsonPath("$.code").value(S_VAL_01))
+            .andExpect(jsonPath("$.message").value("Formato no permitido. Debe ser .xlsx"))
+            .andExpect(jsonPath("$.exception").exists());
     }
 
-    /**
-     * Verifies that an exception during upload processing triggers HTTP 417
-     * and returns JSON with exception details.
-     *
-     * @throws Exception if MockMvc request fails
-     */
     @Test
     @DisplayName("Return failure response when exception is thrown during file upload")
     void returnFailureResponseWhenExceptionIsThrownDuringFileUpload() throws Exception {
         // Arrange
         String fileName = "test.xlsx";
         String period = "2022-01-01";
+        String username = "katherine_gutierrez";
         ByteArrayInputStream errorInputStream  = createMockExcelInputStreamFailed();
         MultipartFile file = new MockMultipartFile("file", fileName, TYPE_XLSX, errorInputStream);
 
-        when(service.loadExcelFileToObjectService(file, period))
-                .thenThrow(new RuntimeException("Error al procesar archivo: test.xlsx"));
+        when(service.loadExcelFileToObjectService(file, period, username))
+            .thenThrow(new RuntimeException("Error al procesar archivo: test.xlsx"));
+
+        TestingAuthenticationToken auth = new TestingAuthenticationToken(username, "pwd", "ROLE_AssetUploader");
+        auth.setAuthenticated(true);
 
         MockHttpServletRequestBuilder requestBuilder = multipart(BASE_URI + "/upload")
-                .file((MockMultipartFile) file)
-                .param("period", period);
+            .file((MockMultipartFile) file)
+            .param("period", period)
+            .with(req -> { req.setUserPrincipal(auth); return req; });
 
-        // Act
-        MvcResult result = mockMvc.perform(requestBuilder)
-                .andReturn();
-
-        // Assert
+        // Act & Assert
         mockMvc.perform(requestBuilder)
-                .andExpect(status().isExpectationFailed())
-                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-                .andExpect(jsonPath("$.code").value(S_VAL_01))
-                .andExpect(jsonPath("$.message").value("Error al subir archivo."))
-                .andExpect(jsonPath("$.timestamp").exists())
-                .andExpect(jsonPath("$.exception").exists())
-                .andExpect(jsonPath("$.exception.timestamp").exists())
-                .andExpect(jsonPath("$.exception.message").exists())
-                .andExpect(jsonPath("$.exception.details").exists());
+            .andExpect(status().isBadRequest()) // El controlador devuelve BAD_REQUEST en el catch
+            .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+            .andExpect(jsonPath("$.code").value(S_VAL_01))
+            .andExpect(jsonPath("$.message").value("Error al subir archivo."))
+            .andExpect(jsonPath("$.timestamp").exists())
+            .andExpect(jsonPath("$.exception").exists())
+            .andExpect(jsonPath("$.exception.timestamp").exists())
+            .andExpect(jsonPath("$.exception.message").exists())
+            .andExpect(jsonPath("$.exception.details").exists());
     }
 
-    /**
-     * Tests saving the previously uploaded data from session into the database,
-     * expecting HTTP 201 Created and a success code/message.
-     */
     @Test
     @DisplayName("Return created response when input data is stored successfully from session")
     void returnCreatedResponseWhenInputDataIsStoredSuccessfullyFromSession() {
         // Arrange
         String period = "2022-01-01";
+
         List<InputData> inputDataList = getListInputData();
         when(session.getAttribute(LIST_INPUT_DATA)).thenReturn(inputDataList);
 
         // Act
-        ResponseEntity<ResponseData> response = controller.saveFinancialFixedAssetController(period, session);
+        ResponseEntity<ResponseData> response = controller.saveFinancialFixedAssetController(period, session, null);
 
         // Assert
         assertEquals(HttpStatus.CREATED, response.getStatusCode());
@@ -279,21 +279,17 @@ class FinancialFixedAssetControllerTest {
         assertTrue(response.getBody().getMessage().contains("Información guardada correctamente"));
     }
 
-    /**
-     * Verifies that an exception during saving input data returns HTTP 417
-     * and JSON containing the exception details.
-     */
     @Test
     @DisplayName("Return expectation failed when exception is thrown while saving input data")
     void returnExpectationFailedWhenExceptionIsThrownWhileSavingInputData() {
         // Arrange
         String period = "2024-08-01";
-        List<InputData> listInputData = Collections.singletonList(new InputData()); // Simula datos de entrada
+        List<InputData> listInputData = Collections.singletonList(new InputData());
         when(session.getAttribute(LIST_INPUT_DATA)).thenReturn(listInputData);
-        doThrow(new RuntimeException("Test Exception")).when(service).saveAllService(anyString(), anyList());
+        doThrow(new RuntimeException("Test Exception")).when(service).saveAllService(anyString(), anyList(), anyString());
 
         // Act
-        ResponseEntity<ResponseData> response = controller.saveFinancialFixedAssetController(period, session);
+        ResponseEntity<ResponseData> response = controller.saveFinancialFixedAssetController(period, session, null);
 
         // Assert
         assertEquals(HttpStatus.EXPECTATION_FAILED, response.getStatusCode());
@@ -305,84 +301,103 @@ class FinancialFixedAssetControllerTest {
         assertEquals("Mensaje: Test Exception\nCausa: null", responseData.getException().getDetails());
     }
 
-    /**
-     * Verifies that empty session data for save returns HTTP 417
-     * with an appropriate error message.
-     */
     @Test
-    @DisplayName("Return expectation failed when session input data is empty")
+    @DisplayName("Return BAD_REQUEST when session input data is empty")
     void returnExpectationFailedWhenSessionInputDataIsEmpty() {
         // Arrange
         when(session.getAttribute(LIST_INPUT_DATA)).thenReturn(new ArrayList<>());
 
         // Act
-        ResponseEntity<ResponseData> response = controller.saveFinancialFixedAssetController("2024-08", session);
+        ResponseEntity<ResponseData> response = controller.saveFinancialFixedAssetController("2024-08", session, null);
 
         // Assert
-        assertEquals(HttpStatus.EXPECTATION_FAILED, response.getStatusCode());
+        assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
         assertEquals(S_VAL_01, response.getBody().getCode());
         assertTrue(response.getBody().getMessage().contains("Error al obtener información de entrada"));
     }
 
-    /**
-     * Tests successful temporary additions projection generation,
-     * expecting HTTP 200 and a success code.
-     */
     @Test
-    @DisplayName("Return OK when financial projection is generated successfully")
+    @DisplayName("Return BAD_REQUEST when session input data is null")
+    void returnExpectationFailedWhenSessionInputDataIsNull() {
+        // Arrange
+        when(session.getAttribute(LIST_INPUT_DATA)).thenReturn(null);
+
+        // Act
+        ResponseEntity<ResponseData> response = controller.saveFinancialFixedAssetController("2022-01-01", session, null);
+
+        // Assert
+        assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
+        assertEquals("01", response.getBody().getCode());
+        assertTrue(response.getBody().getMessage().contains("Error al obtener información"));
+    }
+
+    @Test
+    @DisplayName("Return CREATED when financial projection is generated successfully")
     void returnOkWhenFinancialProjectionIsGeneratedSuccessfully() {
         // Arrange
         String period = "2022-01-01";
-        when(service.findByPeriodAndAccountStartingWithService(any(LocalDate.class), anyString()))
-                .thenReturn(getListFinancialFixedAsset());
+        when(service.findByPeriodAndAddedByAndAccountStartingWithService(any(LocalDate.class), anyString(), anyString()))
+            .thenReturn(getListFinancialFixedAsset());
 
         // Act
         ProjectionType projectionType = ProjectionType.TEMPORARY_ADDITIONS;
-        ResponseEntity<ResponseData> response = controller.generateProjectionController(projectionType, period, S_VAL_332);
+        ResponseEntity<ResponseData> response = controller.generateProjectionController(projectionType, period, S_VAL_332, null);
 
         // Assert
-        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertEquals(HttpStatus.CREATED, response.getStatusCode());
         assertEquals(S_VAL_00, response.getBody().getCode());
         assertTrue(response.getBody().getMessage().contains("Proyección generada correctamente"));
     }
 
-    /**
-     * Verifies that projection generation with no data returns HTTP 417
-     * and an error code/message.
-     */
     @Test
-    @DisplayName("Return expectation failed when no data is found for projection generation")
+    @DisplayName("Return CREATED when generating projection with account=ALL (prefixes)")
+    void returnCreatedWhenGeneratingProjectionForAllAccountsPrefixes() {
+        // Arrange
+        String period = "2022-01-01";
+        when(service.findByAddedByAndAccountingAccountPrefixesService(anyString(), anyList()))
+            .thenReturn(getListFinancialFixedAsset());
+
+        // Act
+        ResponseEntity<ResponseData> response = controller.generateProjectionController(
+            ProjectionType.TEMPORARY_ADDITIONS, period, Constants.ALL, null);
+
+        // Assert
+        assertEquals(HttpStatus.CREATED, response.getStatusCode());
+        assertEquals(S_VAL_00, response.getBody().getCode());
+        assertTrue(response.getBody().getMessage().contains("Proyección generada correctamente"));
+    }
+
+    @Test
+    @DisplayName("Return NOT_FOUND when no data is found for projection generation")
     void returnExpectationFailedWhenNoDataIsFoundForProjectionGeneration() {
         // Arrange
-        when(service.findByPeriodAndAccountStartingWithService(any(LocalDate.class), anyString())).thenReturn(new ArrayList<>());
+        when(service.findByPeriodAndAddedByAndAccountStartingWithService(any(LocalDate.class), anyString(), anyString()))
+            .thenReturn(new ArrayList<>());
 
         // Act
         ProjectionType projectionType = ProjectionType.TEMPORARY_ADDITIONS;
-        ResponseEntity<ResponseData> response = controller.generateProjectionController(projectionType, "2024-08-01", "account");
+        ResponseEntity<ResponseData> response = controller.generateProjectionController(
+            projectionType, "2024-08-01", "account", null);
 
         // Assert
-        assertEquals(HttpStatus.EXPECTATION_FAILED, response.getStatusCode());
+        assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
         assertEquals(S_VAL_01, response.getBody().getCode());
         assertTrue(response.getBody().getMessage().contains("Error al generar proyección"));
     }
 
-    /**
-     * Verifies that an exception during projection generation returns HTTP 417
-     * and JSON with exception details.
-     */
     @Test
-    @DisplayName("Return expectation failed when exception is thrown during projection generation")
+    @DisplayName("Return EXPECTATION_FAILED when exception is thrown during projection generation")
     void returnExpectationFailedWhenExceptionIsThrownDuringProjectionGeneration() {
         // Arrange
         String period = "2024-08-01";
         String account = "account";
         HttpServletRequest request = mock(HttpServletRequest.class);
-        when(service.findByPeriodAndAccountStartingWithService(any(LocalDate.class), anyString()))
-                .thenThrow(new RuntimeException("Simulated exception"));
+        when(service.findByPeriodAndAddedByAndAccountStartingWithService(any(LocalDate.class), anyString(), anyString()))
+            .thenThrow(new RuntimeException("Simulated exception"));
 
         // Act
         ProjectionType projectionType = ProjectionType.TEMPORARY_ADDITIONS;
-        ResponseEntity<ResponseData> response = controller.generateProjectionController(projectionType, period, account);
+        ResponseEntity<ResponseData> response = controller.generateProjectionController(projectionType, period, account, null);
 
         // Assert
         assertEquals(HttpStatus.EXPECTATION_FAILED, response.getStatusCode());
@@ -395,57 +410,68 @@ class FinancialFixedAssetControllerTest {
         assertNotNull(responseData.getException().getTimestamp());
     }
 
-    /**
-     * Parameterized test covering retrieval by option:
-     * period, main asset code, or account number.
-     * Verifies correct HTTP status, code, and message for each scenario.
-     *
-     * @param option          retrieval option (1=period,2=mainCode,3=account)
-     * @param period          date period string
-     * @param mainFixedAssetCode  asset code when option=2
-     * @param accountingAccount   account when option=3
-     * @param expectedStatus  expected HTTP status
-     * @param expectedCode    expected response code
-     * @param expectedMessage expected substring in response message
-     */
+    @Test
+    @DisplayName("Return BAD_REQUEST when projection service throws IllegalArgumentException")
+    void returnBadRequestWhenProjectionServiceThrowsIllegalArgumentException() {
+        // Arrange
+        String period = "2022-01-01";
+        when(service.findByPeriodAndAddedByAndAccountStartingWithService(any(LocalDate.class), anyString(), anyString()))
+            .thenReturn(getListFinancialFixedAsset());
+        doThrow(new IllegalArgumentException("unsupported"))
+            .when(service).generateProjectionService(any(), any(LocalDate.class), anyList(), anyString(), anyString());
+
+        // Act
+        ResponseEntity<ResponseData> response = controller.generateProjectionController(
+            ProjectionType.TEMPORARY_ADDITIONS, period, "332", null);
+
+        // Assert
+        assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
+        assertEquals(S_VAL_01, response.getBody().getCode());
+        assertTrue(response.getBody().getMessage().contains("Tipo de proyección no soportado: unsupported"));
+    }
+
     @ParameterizedTest
     @CsvSource({
-            "1, 2022-01-01, , , OK, 00, Se obtuvo informacion para el periodo",       // Caso éxito para N_VAL_1
-            "1, 2022-02-01, , , NOT_FOUND, 01, Error al obtener informacion para el periodo", // Caso fallo para N_VAL_1
-            "2, , 22.01.010862, , OK, 00, Se obtuvo informacion para el código de activo fijo principal", // Caso éxito para N_VAL_2
-            "2, , 22.01.010773, , NOT_FOUND, 01, Error al obtener informacion para el código de activo fijo principal", // Caso fallo para N_VAL_2
-            "3, , , 3321161001, OK, 00, Se obtuvo informacion para la cuenta contable", // Caso éxito para N_VAL_3
-            "3, , , 3321161002, NOT_FOUND, 01, Error al obtener informacion para la cuenta contable", // Caso fallo para N_VAL_3
-            "999, 2024-08-01, , , EXPECTATION_FAILED, 01, Error al obtener informacion del activo fijo" // Caso opción inválida
+        "1,'2022-01-01','','','katherine_gutierrez',OK,00,'Se obtuvo informacion para el periodo'",
+        "1,'2022-02-01','','','katherine_gutierrez',NOT_FOUND,01,'Error al obtener informacion para el periodo'",
+        "2,'','22.01.010862','','katherine_gutierrez',OK,00,'Se obtuvo informacion para el código de activo fijo principal'",
+        "2,'','22.01.010773','','katherine_gutierrez',NOT_FOUND,01,'Error al obtener informacion para el código de activo fijo principal'",
+        "3,'','','3321161001','katherine_gutierrez',OK,00,'Se obtuvo informacion para la cuenta contable'",
+        "3,'','','3321161002','katherine_gutierrez',NOT_FOUND,01,'Error al obtener informacion para la cuenta contable'",
+        "999,'2024-08-01','','','katherine_gutierrez',EXPECTATION_FAILED,01,'Error al obtener informacion del activo fijo'"
     })
     @DisplayName("Return appropriate response for getFinancialFixedAssetController based on option and input")
-    void returnAppropriateResponseForGetFinancialFixedAssetControllerBasedOnOptionAndInput(int option, String period, String mainFixedAssetCode, String accountingAccount,
-                                              HttpStatus expectedStatus, String expectedCode, String expectedMessage) {
+    void returnAppropriateResponseForGetFinancialFixedAssetControllerBasedOnOptionAndInput(int option, String period,
+                                                                                           String mainFixedAssetCode, String accountingAccount, String username, HttpStatus expectedStatus, String expectedCode,
+                                                                                           String expectedMessage) {
         // Arrange
         List<FinancialFixedAsset> financialFixedAssets = getListFinancialFixedAsset();
 
         if (option == N_VAL_1) {
             if (expectedStatus == HttpStatus.OK) {
-                when(service.findByPeriodService(any(LocalDate.class))).thenReturn(financialFixedAssets);
+                when(service.findByPeriodAndAddedByService(any(LocalDate.class), anyString())).thenReturn(financialFixedAssets);
             } else {
-                when(service.findByPeriodService(any(LocalDate.class))).thenReturn(null);
+                when(service.findByPeriodAndAddedByService(any(LocalDate.class), anyString())).thenReturn(null);
             }
         } else if (option == N_VAL_2) {
             if (expectedStatus == HttpStatus.OK) {
-                when(service.findByMainFixedAssetCodeService(mainFixedAssetCode)).thenReturn(financialFixedAssets);
+                when(service.findByMainFixedAssetCodeAndAddedByService(mainFixedAssetCode, username)).thenReturn(financialFixedAssets);
             } else {
-                when(service.findByMainFixedAssetCodeService(mainFixedAssetCode)).thenReturn(null);
+                when(service.findByMainFixedAssetCodeAndAddedByService(mainFixedAssetCode, username)).thenReturn(null);
             }
         } else if (option == N_VAL_3) {
             if (expectedStatus == HttpStatus.OK) {
-                when(service.findByFixedAssetAccountingAccountService(accountingAccount)).thenReturn(financialFixedAssets);
+                when(service.findByFixedAssetAccountingAccountAndAddedByService(accountingAccount, username))
+                    .thenReturn(financialFixedAssets);
             } else {
-                when(service.findByFixedAssetAccountingAccountService(accountingAccount)).thenReturn(null);
+                when(service.findByFixedAssetAccountingAccountAndAddedByService(accountingAccount, username))
+                    .thenReturn(null);
             }
         }
 
         // Act
-        ResponseEntity<ResponseData> response = controller.getFinancialFixedAssetController(option, period, mainFixedAssetCode, accountingAccount);
+        ResponseEntity<ResponseData> response = controller.getFinancialFixedAssetController(option, period, mainFixedAssetCode,
+            accountingAccount, auth(username, "ROLE_DepreciationProcessor"));
 
         // Assert
         assertEquals(expectedStatus, response.getStatusCode());
@@ -453,10 +479,6 @@ class FinancialFixedAssetControllerTest {
         assertTrue(response.getBody().getMessage().contains(expectedMessage));
     }
 
-    /**
-     * Verifies that an exception in service.findByPeriodService results in HTTP 417
-     * with exception details in JSON.
-     */
     @Test
     @DisplayName("Return expectation failed when exception is thrown while getting fixed asset info")
     void returnExpectationFailedWhenExceptionIsThrownWhileGettingFixedAssetInfo() {
@@ -466,17 +488,15 @@ class FinancialFixedAssetControllerTest {
         String mainFixedAssetCode = "someCode";
         String accountingAccount = "someAccount";
 
-        // Simulate the service to throw an exception
-        when(service.findByPeriodService(any(LocalDate.class)))
-                .thenThrow(new RuntimeException("Simulated exception"));
+        when(service.findByPeriodAndAddedByService(any(LocalDate.class), anyString()))
+            .thenThrow(new RuntimeException("Simulated exception"));
 
         // Act
         ResponseEntity<ResponseData> response = controller.getFinancialFixedAssetController(
-                option, period, mainFixedAssetCode, accountingAccount);
+            option, period, mainFixedAssetCode, accountingAccount, null);
 
         // Assert
         assertEquals(HttpStatus.EXPECTATION_FAILED, response.getStatusCode());
-
         ResponseData responseData = response.getBody();
         assertNotNull(responseData);
         assertEquals("01", responseData.getCode());
@@ -486,11 +506,6 @@ class FinancialFixedAssetControllerTest {
         assertNotNull(responseData.getException().getTimestamp());
     }
 
-    /**
-     * Tests successful report download when strategy and Jasper service return bytes.
-     *
-     * @throws Exception if MockMvc request fails
-     */
     @Test
     @DisplayName("Return file download when reportList non-empty and strategy + Jasper devuelven bytes")
     void returnFileDownloadWhenReportListNonEmptyAndJasperDevuelvenBytes() throws Exception {
@@ -505,19 +520,16 @@ class FinancialFixedAssetControllerTest {
         String useStart = "2022-02-01";
         String useEnd = "2022-11-30";
 
-        // 1) fábrica → estrategia
         when(reportStrategyFactory.getStrategy(eq(option))).thenReturn(reportStrategy);
         when(reportStrategy.getTemplate()).thenReturn("rpt_tax_book.jrxml");
         when(reportStrategy.getBaseFileName()).thenReturn("Libro_Tributario_Activo_Fijo_");
 
-        // 2) estrategia → lista no vacía
         List<FinancialFixedAssetDto> reportList = List.of(
             new FinancialFixedAssetDto(), new FinancialFixedAssetDto()
         );
         when(reportStrategy.generateReport(any(ParamReportDto.class)))
             .thenReturn(reportList);
 
-        // 3) Jasper → fake XLSX
         byte[] fakeXlsx = "FAKE XLSX DATA".getBytes();
         when(reportJasperService.getJasperReportInBytes(
             eq(option),
@@ -542,7 +554,6 @@ class FinancialFixedAssetControllerTest {
             .andExpect(status().isOk())
             .andReturn();
 
-        // Parse Content-Disposition
         String headerValue = mvcResult.getResponse().getHeader(HttpHeaders.CONTENT_DISPOSITION);
         assertNotNull(headerValue);
         ContentDisposition cd = ContentDisposition.parse(headerValue);
@@ -550,11 +561,9 @@ class FinancialFixedAssetControllerTest {
         assertTrue(cd.getFilename().startsWith("Libro_Tributario_Activo_Fijo_"));
         assertTrue(cd.getFilename().endsWith(".xlsx"));
 
-        // Body
         byte[] body = mvcResult.getResponse().getContentAsByteArray();
         assertArrayEquals(fakeXlsx, body);
 
-        // Verificaciones
         verify(reportStrategyFactory).getStrategy(eq(option));
         verify(reportStrategy).generateReport(any(ParamReportDto.class));
         verify(reportJasperService).getJasperReportInBytes(
@@ -566,13 +575,8 @@ class FinancialFixedAssetControllerTest {
         );
     }
 
-    /**
-     * Verifies that an empty report list yields HTTP 404 Not Found with JSON error.
-     *
-     * @throws Exception if MockMvc request fails
-     */
     @Test
-    @DisplayName("Throw ResourceNotFoundException when reportList is empty")
+    @DisplayName("Return NOT_FOUND when reportList is empty (MockMvc)")
     void throwResourceNotFoundExceptionWhenReportListIsEmpty() throws Exception {
         // Arrange
         String option = "1";
@@ -596,22 +600,14 @@ class FinancialFixedAssetControllerTest {
             )
             .andExpect(status().isNotFound())
             .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-            // ahora ya sí podemos leer $.message
             .andExpect(jsonPath("$.message")
                 .value("No hay información para el periodo."));
 
-        // y por si acaso:
         verify(reportStrategyFactory).getStrategy(eq(option));
         verify(reportStrategy).generateReport(any(ParamReportDto.class));
         verifyNoMoreInteractions(reportJasperService);
     }
 
-    /**
-     * Verifies that a null byte array from Jasper triggers HTTP 404
-     * with detailed JSON error.
-     *
-     * @throws Exception if MockMvc request fails
-     */
     @Test
     @DisplayName("Throw ResourceNotFoundException when Jasper return null")
     void throwResourceNotFoundExceptionWhenJasperReturnNull() throws Exception {
@@ -641,17 +637,12 @@ class FinancialFixedAssetControllerTest {
             )
             .andExpect(status().isNotFound())
             .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-            // Si tu ResponseData incluye timestamp:
             .andExpect(jsonPath("$.timestamp").exists())
-            // Nuevo: comprobamos el código que tu DTO monta
-            .andExpect(jsonPath("$.code").value(1))
-            .andExpect(jsonPath("$.message")
-                .value("Error al generar el reporte."))
-            // Ahora sí comprobamos el campo details
+            .andExpect(jsonPath("$.code").value("01")) // code es String
+            .andExpect(jsonPath("$.message").value("Error al generar el reporte."))
             .andExpect(jsonPath("$.exception.details")
                 .value("Periodo: 2022, Opción: 1, Tipo de archivo: PDF"));
 
-        // Verificaciones de invocaciones
         verify(reportStrategyFactory).getStrategy(option);
         verify(reportStrategy).generateReport(any(ParamReportDto.class));
         verify(reportJasperService).getJasperReportInBytes(
@@ -663,20 +654,40 @@ class FinancialFixedAssetControllerTest {
         );
     }
 
-    /**
-     * Verifies that an unexpected exception in report strategy
-     * bubbles through as RuntimeException from the controller.
-     *
-     * @throws SQLException if underlying JDBC error is simulated
-     */
+    @Test
+    @DisplayName("Return NOT_FOUND when strategy not supported (factory throws ResourceNotFoundException)")
+    void returnNotFoundWhenStrategyNotSupported() throws Exception {
+        // Arrange
+        String option = "999";
+        when(reportStrategyFactory.getStrategy(option))
+            .thenThrow(new ResourceNotFoundException("Unsupported option"));
+
+        // Act & Assert
+        mockMvc.perform(get(BASE_URI + "/report")
+                .param("option",               option)
+                .param("fileType",             "xlsx")
+                .param("year",                 "2022")
+                .param("mainCode",             "X")
+                .param("accountingAccount",    "Y")
+                .param("startAcquisitionDate", "2022-01-01")
+                .param("endAcquisitionDate",   "2022-12-31")
+                .param("startDateUse",         "2022-02-01")
+                .param("endDateUse",           "2022-11-30")
+                .accept(MediaType.APPLICATION_JSON)
+            )
+            .andExpect(status().isNotFound())
+            .andExpect(jsonPath("$.message")
+                .value("Tipo de reporte no soportado para opción: " + option))
+            .andExpect(jsonPath("$.code").value("01"))
+            .andExpect(jsonPath("$.exception.details").value("Unsupported option"));
+    }
+
     @Test
     @DisplayName("Throw ResourceNotFoundException when exception inesperada en Jasper o servicio")
     void throwResourceNotFoundExceptionWhenExceptionInReportGeneration() throws SQLException {
         // Arrange
-        String option            = "1";
-        // 1) Stub de la fábrica para devolver tu estrategia mockeada
+        String option = "1";
         when(reportStrategyFactory.getStrategy(option)).thenReturn(reportStrategy);
-        // 2) Stub de la estrategia para que su generateReport lance RuntimeException
         when(reportStrategy.generateReport(any(ParamReportDto.class)))
             .thenThrow(new RuntimeException("Simulated failure"));
 
@@ -693,31 +704,25 @@ class FinancialFixedAssetControllerTest {
                 "2022-02-01",
                 "2022-11-30"
             );
-        }, "Si la estrategia falla, debe lanzarse RuntimeException desde el wrapper del controlador");
+        });
 
-        // El wrapper en el controlador usa exactamente este mensaje:
         assertEquals("Simulated failure", ex.getMessage());
-
-        // Verificamos que realmente se invocó la estrategia
         verify(reportStrategyFactory).getStrategy(option);
         verify(reportStrategy).generateReport(any(ParamReportDto.class));
     }
 
-    /**
-     * Tests getFinancialFixedAssetController: OK when data exists, NOT_FOUND when none.
-     */
     @Test
     @DisplayName("Return OK when period exists and return NOT_FOUND when period has no data")
     void returnOkWhenPeriodExistsAndReturnNotFoundWhenPeriodHasNoData() {
         // Arrange: caso OK
         LocalDate fechaValida = LocalDate.now();
-        when(service.findByPeriodService(any(LocalDate.class))).thenReturn(List.of(new FinancialFixedAsset()));
+        when(service.findByPeriodAndAddedByService(any(LocalDate.class), anyString())).thenReturn(List.of(new FinancialFixedAsset()));
 
         // Act
         ResponseEntity<ResponseData> respOk = controller.getFinancialFixedAssetController(
-                N_VAL_1,
-                fechaValida.format(DateTimeFormatter.ofPattern(FORMATTER_YYYY_MM_DD)),
-                "", "");
+            N_VAL_1,
+            fechaValida.format(DateTimeFormatter.ofPattern(FORMATTER_YYYY_MM_DD)),
+            "", "", null);
 
         // Assert OK
         assertEquals(HttpStatus.OK, respOk.getStatusCode());
@@ -725,13 +730,14 @@ class FinancialFixedAssetControllerTest {
         assertTrue(respOk.getBody().getMessage().contains("Se obtuvo informacion para el periodo"));
 
         // Arrange: caso NOT_FOUND
-        when(service.findByPeriodService(any(LocalDate.class))).thenReturn(Collections.emptyList());
+        when(service.findByPeriodAndAddedByService(any(LocalDate.class), anyString())).thenReturn(Collections.emptyList());
 
         // Act
         ResponseEntity<ResponseData> respNotFound = controller.getFinancialFixedAssetController(
-                N_VAL_1,
-                fechaValida.format(DateTimeFormatter.ofPattern(FORMATTER_YYYY_MM_DD)),
-                "", "");
+            N_VAL_1,
+            fechaValida.format(DateTimeFormatter.ofPattern(FORMATTER_YYYY_MM_DD)),
+            "", "",
+            null);
 
         // Assert NOT_FOUND
         assertEquals(HttpStatus.NOT_FOUND, respNotFound.getStatusCode());
@@ -739,19 +745,16 @@ class FinancialFixedAssetControllerTest {
         assertTrue(respNotFound.getBody().getMessage().contains("Error al obtener informacion para el periodo"));
     }
 
-    /**
-     * Tests getFinancialFixedAssetController: OK when mainFixedAssetCode exists, NOT_FOUND when none.
-     */
     @Test
     @DisplayName("Return OK when mainFixedAssetCode exists and return NOT_FOUND when none")
     void returnOkWhenMainFixedAssetCodeExistsAndReturnNotFoundWhenNone() {
         // Arrange: caso OK
-        when(service.findByMainFixedAssetCodeService(anyString()))
-                .thenReturn(List.of(new FinancialFixedAsset()));
+        when(service.findByMainFixedAssetCodeAndAddedByService(anyString(), anyString()))
+            .thenReturn(List.of(new FinancialFixedAsset()));
 
         // Act
         ResponseEntity<ResponseData> respOk = controller.getFinancialFixedAssetController(
-                N_VAL_2, "", "ABC123", "");
+            N_VAL_2, "", "ABC123", "", null);
 
         // Assert OK
         assertEquals(HttpStatus.OK, respOk.getStatusCode());
@@ -759,11 +762,11 @@ class FinancialFixedAssetControllerTest {
         assertTrue(respOk.getBody().getMessage().contains("Se obtuvo informacion para el código de activo fijo principal"));
 
         // Arrange: caso NOT_FOUND
-        when(service.findByMainFixedAssetCodeService(anyString())).thenReturn(Collections.emptyList());
+        when(service.findByMainFixedAssetCodeAndAddedByService(anyString(), anyString())).thenReturn(Collections.emptyList());
 
         // Act
         ResponseEntity<ResponseData> respNotFound = controller.getFinancialFixedAssetController(
-                N_VAL_2, "", "ABC123", "");
+            N_VAL_2, "", "ABC123", "", null);
 
         // Assert NOT_FOUND
         assertEquals(HttpStatus.NOT_FOUND, respNotFound.getStatusCode());
@@ -771,19 +774,16 @@ class FinancialFixedAssetControllerTest {
         assertTrue(respNotFound.getBody().getMessage().contains("Error al obtener informacion para el código de activo fijo principal"));
     }
 
-    /**
-     * Tests getFinancialFixedAssetController: OK when accountingAccount exists, NOT_FOUND when none.
-     */
     @Test
     @DisplayName("Return OK when accountingAccount exists and return NOT_FOUND when none")
     void returnOkWhenAccountingAccountExistsAndReturnNotFoundWhenNone() {
         // Arrange: caso OK
-        when(service.findByFixedAssetAccountingAccountService(anyString()))
-                .thenReturn(List.of(new FinancialFixedAsset()));
+        when(service.findByFixedAssetAccountingAccountAndAddedByService(anyString(), anyString()))
+            .thenReturn(List.of(new FinancialFixedAsset()));
 
         // Act
         ResponseEntity<ResponseData> respOk = controller.getFinancialFixedAssetController(
-                N_VAL_3, "", "", "ACC-001");
+            N_VAL_3, "", "", "ACC-001", null);
 
         // Assert OK
         assertEquals(HttpStatus.OK, respOk.getStatusCode());
@@ -791,12 +791,12 @@ class FinancialFixedAssetControllerTest {
         assertTrue(respOk.getBody().getMessage().contains("Se obtuvo informacion para la cuenta contable"));
 
         // Arrange: caso NOT_FOUND
-        when(service.findByFixedAssetAccountingAccountService(anyString()))
-                .thenReturn(Collections.emptyList());
+        when(service.findByFixedAssetAccountingAccountAndAddedByService(anyString(), anyString()))
+            .thenReturn(Collections.emptyList());
 
         // Act
         ResponseEntity<ResponseData> respNotFound = controller.getFinancialFixedAssetController(
-                N_VAL_3, "", "", "ACC-001");
+            N_VAL_3, "", "", "ACC-001", null);
 
         // Assert NOT_FOUND
         assertEquals(HttpStatus.NOT_FOUND, respNotFound.getStatusCode());
@@ -804,14 +804,11 @@ class FinancialFixedAssetControllerTest {
         assertTrue(respNotFound.getBody().getMessage().contains("Error al obtener informacion para la cuenta contable"));
     }
 
-    /**
-     * Verifies that an invalid option returns HTTP 417 with an error message.
-     */
     @Test
     @DisplayName("Return EXPECTATION_FAILED when option is invalid")
     void returnExpectationFailedWhenOptionIsInvalid() {
         ResponseEntity<ResponseData> resp = controller.getFinancialFixedAssetController(
-                999, "2022-01-01", "X", "Y"
+            999, "2022-01-01", "X", "Y", null
         );
 
         assertEquals(HttpStatus.EXPECTATION_FAILED, resp.getStatusCode());
@@ -819,12 +816,6 @@ class FinancialFixedAssetControllerTest {
         assertTrue(resp.getBody().getMessage().contains("Error al obtener informacion del activo fijo"));
     }
 
-    /**
-     * Verifies that an empty report list in JSON mode returns HTTP 404
-     * with JSON error and exception details.
-     *
-     * @throws Exception if MockMvc request fails
-     */
     @Test
     @DisplayName("Throw 404 JSON when reportList is empty")
     void throw404WhenReportListIsEmpty() throws Exception {
@@ -854,34 +845,12 @@ class FinancialFixedAssetControllerTest {
         verifyNoMoreInteractions(reportJasperService);
     }
 
-    /**
-     * Verifies that null session data returns HTTP 417 and error code/message.
-     */
-    @Test
-    @DisplayName("Return EXPECTATION_FAILED when session input data is null")
-    void returnExpectationFailedWhenSessionInputDataIsNull() {
-        // Arrange
-        when(session.getAttribute(LIST_INPUT_DATA)).thenReturn(null);
-
-        // Act
-        ResponseEntity<ResponseData> response = controller.saveFinancialFixedAssetController("2022-01-01", session);
-
-        // Assert
-        assertEquals(HttpStatus.EXPECTATION_FAILED, response.getStatusCode());
-        assertEquals("01", response.getBody().getCode());
-        assertTrue(response.getBody().getMessage().contains("Error al obtener información"));
-    }
-
-    /**
-     * Verifies that invalid date format for projection returns HTTP 400
-     * with a bad-request code/message.
-     */
     @Test
     @DisplayName("Return BAD_REQUEST when generating projection with invalid date format")
     void returnBadRequestWhenGeneratingProjectionWithInvalidDateFormat() {
         // Act
         ResponseEntity<ResponseData> response = controller.generateProjectionController(
-            ProjectionType.TEMPORARY_ADDITIONS, "2022/01/01", "332");
+            ProjectionType.TEMPORARY_ADDITIONS, "2022/01/01", "332", null);
 
         // Assert
         assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
@@ -889,10 +858,6 @@ class FinancialFixedAssetControllerTest {
         assertTrue(response.getBody().getMessage().contains("Formato de fecha inválido"));
     }
 
-    /**
-     * Verifies that calling the controller’s direct-report method with empty data
-     * returns HTTP 404 and a proper error body.
-     */
     @Test
     @DisplayName("Throw ResourceNotFoundException when reportList empty in direct call")
     void throwResourceNotFoundExceptionWhenReportListEmptyDirectCall() throws Exception {
@@ -911,32 +876,23 @@ class FinancialFixedAssetControllerTest {
         // Assert HTTP status
         assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
 
-        // Cast correcto a ResponseData
         ResponseData body = (ResponseData) response.getBody();
-        assertNotNull(body, "El cuerpo no debe ser null");
+        assertNotNull(body);
         assertEquals("No hay información para el periodo.", body.getMessage());
         assertEquals("01", body.getCode());
     }
 
-    /**
-     * Verifies that a null Jasper byte array in the direct-call API returns HTTP 404
-     * and structured JSON error details.
-     */
     @Test
     @DisplayName("Throw ResourceNotFoundException when Jasper returns null in direct call")
     void throwResourceNotFoundExceptionWhenJasperReturnsNullDirectCall() throws Exception {
         // Arrange
         String option = "1";
-        // 1) Fábrica → estrategia mockeada
         when(reportStrategyFactory.getStrategy(option)).thenReturn(reportStrategy);
-        // 2) Estrategia → lista NO vacía
         List<FinancialFixedAssetDto> reportList = List.of(new FinancialFixedAssetDto());
         when(reportStrategy.generateReport(any(ParamReportDto.class)))
             .thenReturn(reportList);
-        // 3) Template y nombre base
         when(reportStrategy.getTemplate()).thenReturn("rpt_tax_book.jrxml");
         when(reportStrategy.getBaseFileName()).thenReturn("file_");
-        // 4) Jasper devuelve null → devolverá ResponseEntity de error
         when(reportJasperService.getJasperReportInBytes(
             eq(option), eq("rpt_tax_book.jrxml"), eq("xlsx"), anyMap(), eq(reportList)
         )).thenReturn(null);
@@ -947,28 +903,16 @@ class FinancialFixedAssetControllerTest {
             "2022-01-01", "2022-12-31", "2022-02-01", "2022-11-30"
         );
 
-        // Assert HTTP status
-        assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode(),
-            "Cuando Jasper devuelve null, debe devolver 404");
-
-        // Assert body is ResponseData
+        // Assert
+        assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
         ResponseData body = response.getBody();
-        assertNotNull(body, "El cuerpo no debe ser null");
-
-        // Comprueba el código interno (Constants.S_VAL_01)
-        assertEquals(Constants.S_VAL_01, body.getCode(),
-            "Debe usar el código de error de la constante");
-
-        // Mensaje de error según buildResponseWithError
+        assertNotNull(body);
+        assertEquals(Constants.S_VAL_01, body.getCode());
         assertEquals("Error al generar el reporte.", body.getMessage());
-
-        // Y el detalle dentro del objeto exception
         ExceptionResponse ex = body.getException();
-        assertNotNull(ex, "ExceptionResponse no debe ser null");
-        assertEquals("Periodo: 2022, Opción: 1, Tipo de archivo: xlsx",
-            ex.getDetails());
+        assertNotNull(ex);
+        assertEquals("Periodo: 2022, Opción: 1, Tipo de archivo: xlsx", ex.getDetails());
 
-        // Verifica que se invocaron correctamente los mocks
         verify(reportStrategyFactory).getStrategy(option);
         verify(reportStrategy).generateReport(any(ParamReportDto.class));
         verify(reportJasperService).getJasperReportInBytes(
@@ -980,11 +924,6 @@ class FinancialFixedAssetControllerTest {
         );
     }
 
-    /**
-     * Verifies that a non-numeric year parameter triggers NumberFormatException.
-     *
-     * @throws Exception for controller invocation
-     */
     @Test
     @DisplayName("Throw NumberFormatException when year is not a number")
     void throwNumberFormatExceptionWhenYearNotANumber() throws Exception {
@@ -997,12 +936,6 @@ class FinancialFixedAssetControllerTest {
         );
     }
 
-    /**
-     * Verifies that when the Jasper service throws a JRException,
-     * the controller rethrows it.
-     *
-     * @throws Exception for controller invocation
-     */
     @Test
     @DisplayName("Throw JRException when Jasper service throws JRException")
     void throwJRExceptionWhenJasperServiceThrowsJRException() throws Exception {

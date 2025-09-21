@@ -1,6 +1,7 @@
 package com.epsgrau.pe.sicodetri.service.projection;
 
 import com.epsgrau.pe.sicodetri.entity.FinancialFixedAsset;
+import com.epsgrau.pe.sicodetri.util.enums.ProjectionType;
 import java.time.LocalDate;
 import java.util.List;
 
@@ -44,6 +45,6 @@ public interface ProjectionGenerator {
      * @param accountingPeriod the starting period for projection (e.g., month/year)
      * @param fixedAssets      the list of {@link FinancialFixedAsset} entities to process
      */
-    void generate(LocalDate accountingPeriod, List<FinancialFixedAsset> fixedAssets);
+    void generate(String username, LocalDate accountingPeriod, List<FinancialFixedAsset> fixedAssets);
 
 }

@@ -5,7 +5,6 @@ import java.util.Collection;
 import java.util.List;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.config.Customizer;
@@ -20,42 +19,59 @@ import org.springframework.security.oauth2.server.resource.web.access.BearerToke
 import org.springframework.security.web.SecurityFilterChain;
 
 /**
- * Security configuration for the Resource Server.
- * Defines how incoming requests to protected API endpoints under <code>/api/**</code>
- * are authenticated and authorized using JWTs. Configures stateless session management,
- * CSRF disabling, role- and scope-based access rules, and custom JWT authority mapping.
+ * Resource Server security configuration for API endpoints under {@code /api/**}.
+ * <p>
+ * Configures:
+ * </p>
+ * <ul>
+ *   <li><b>Path scope:</b> applies only to requests matching {@code /api/**}.</li>
+ *   <li><b>Sessions:</b> {@link SessionCreationPolicy#IF_REQUIRED}.</li>
+ *   <li><b>CSRF:</b> disabled.</li>
+ *   <li><b>CORS:</b> enabled with {@link Customizer#withDefaults()}.</li>
+ *   <li><b>Authorization rules:</b> role-based access for specific endpoints, plus authenticated
+ *       access for the remaining API routes.</li>
+ *   <li><b>OAuth2 Resource Server (JWT):</b> uses a custom {@link #jwtAuthenticationConverter()}
+ *       that maps a custom {@code roles} claim to Spring authorities prefixed with {@code ROLE_}.</li>
+ *   <li><b>Error handling:</b> {@link BearerTokenAuthenticationEntryPoint} for unauthenticated
+ *       requests and {@link BearerTokenAccessDeniedHandler} for access denials.</li>
+ * </ul>
+ *
+ * <p><b>Note:</b> The current JWT converter maps <i>only</i> roles from the {@code roles}
+ * claim. If scope-based authorization is required, extend the converter accordingly.</p>
+ *
  * <b>Class</b>: {@link ResourceServerConfig}<br/>
  * <b>Copyright</b>: &copy; 2024 EPS Grau. <br/>
  * <b>Company</b>: EPS Grau. <br/>
  *
- * @author EPS Grau <br/>
+ * @author EPS Grau
  *     <u>Service Provider</u>: Consultor TI <br/>
  *     <u>Developed by</u>: <br/>
  *     <ul>
- *     <li>Carlos Augusto Nole Machaca</li>
+ *       <li>Carlos Augusto Nole Machaca</li>
  *     </ul>
  *     <u>Changes</u>:<br/>
  *     <ul>
- *     <li>Jul 21, 2025 (JAR) Creation class.</li>
+ *       <li>Jul 21, 2025 (JAR) Initial version.</li>
  *     </ul>
- * @version 1.0
+ * @version 1.1
  */
 @Configuration
 public class ResourceServerConfig {
 
     /**
-     * Creates a {@link JwtAuthenticationConverter} that extracts authorities from both
-     * the standard <code>scope</code> claim and a custom <code>roles</code> claim.
-     * The converter applies a prefix of <code>ROLE_</code> to each role found in the
-     * <code>roles</code> claim, combines these with any scopes, and returns the full
-     * authority list for use in authorization decisions.
+     * Creates a {@link JwtAuthenticationConverter} that extracts authorities from a custom
+     * {@code roles} claim and prefixes each value with {@code ROLE_}.
+     * <p>
+     * <b>Important:</b> This converter, as currently configured, does <i>not</i> merge scopes;
+     * it solely maps authorities derived from the {@code roles} claim. To include scopes,
+     * compose an additional {@link JwtGrantedAuthoritiesConverter} for the {@code scope}/{@code scopes}
+     * claims and merge the results.
+     * </p>
      *
-     * @return a configured {@link JwtAuthenticationConverter}
-    */
+     * @return a configured {@link JwtAuthenticationConverter} that maps {@code roles} -> {@code ROLE_*}
+     */
     @Bean
     public JwtAuthenticationConverter jwtAuthenticationConverter() {
-        JwtGrantedAuthoritiesConverter scopesConverter = new JwtGrantedAuthoritiesConverter();
-
         JwtGrantedAuthoritiesConverter rolesConverter = new JwtGrantedAuthoritiesConverter();
         rolesConverter.setAuthorityPrefix("ROLE_");
         rolesConverter.setAuthoritiesClaimName("roles");
@@ -65,12 +81,6 @@ public class ResourceServerConfig {
         converter.setJwtGrantedAuthoritiesConverter(jwt -> {
             // 1) Creamos siempre una lista nueva
             List<GrantedAuthority> authorities = new ArrayList<>();
-
-            // 2) Si convert(jwt) no es null, la copiamos
-            Collection<GrantedAuthority> scopeAuths = scopesConverter.convert(jwt);
-            if (scopeAuths != null) {
-                authorities.addAll(scopeAuths);
-            }
 
             Collection<GrantedAuthority> roleAuths = rolesConverter.convert(jwt);
             if (roleAuths != null) {
@@ -83,73 +93,48 @@ public class ResourceServerConfig {
     }
 
     /**
-     * Builds the resource-server {@link org.springframework.security.web.SecurityFilterChain}
-     * for API endpoints.
+     * Builds the {@link SecurityFilterChain} for the Resource Server API endpoints.
+     * <p><b>Applies to:</b> requests matching {@code /api/**}.</p>
      *
-     * <p><b>Scope</b>: applies only to requests that match {@code "/api/**"}.</p>
-     *
-     * <p><b>Configuration</b>:</p>
+     * <p><b>Configuration summary:</b></p>
      * <ul>
-     *   <li>Session management: {@link org.springframework.security.config.http
-     *   .SessionCreationPolicy#STATELESS}.</li>
-     *   <li>CSRF: disabled via {@link org.springframework.security.config.annotation.web
-     *   .configurers.AbstractHttpConfigurer#disable}.</li>
-     *   <li>CORS: enabled with {@link org.springframework.security.config.Customizer
-     *   #withDefaults()}.</li>
-     *   <li>Authorization rules:
+     *   <li>Session management: {@link SessionCreationPolicy#IF_REQUIRED}.</li>
+     *   <li>CSRF: disabled.</li>
+     *   <li>CORS: defaults.</li>
+     *   <li>Authorization:
      *     <ul>
-     *       <li><code>/api/v1/tax-tables/**</code> → requires role <code>TaxTableViewer</code>
-     *       .</li>
-     *       <li><code>POST /api/v1/financial-fixed-assets/upload</code> → requires role
-     *       <code>AssetUploader</code>.</li>
-     *       <li><code>POST /api/v1/financial-fixed-assets</code> → requires role
-     *       <code>AssetUploader</code>.</li>
-     *       <li><code>POST /api/v1/financial-fixed-assets/projection</code> → requires role
-     *       <code>DepreciationProcessor</code>.</li>
-     *       <li><code>GET /api/v1/financial-fixed-assets/report</code> → requires role
-     *       <code>ReportGenerator</code>.</li>
-     *       <li><code>/api/v1/financial-fixed-assets/**</code> → any method
-     *       requires authentication.</li>
-     *       <li>Any other request (under <code>/api/**</code>) → requires authentication.</li>
+     *       <li>{@code /api/v1/tax-tables/**} &rarr; role {@code TaxTableViewer}</li>
+     *       <li>{@code POST /api/v1/financial-fixed-assets/upload} &rarr; role {@code AssetUploader}</li>
+     *       <li>{@code POST /api/v1/financial-fixed-assets} &rarr; role {@code AssetUploader}</li>
+     *       <li>{@code POST /api/v1/financial-fixed-assets/projection} &rarr; role {@code DepreciationProcessor}</li>
+     *       <li>{@code GET /api/v1/financial-fixed-assets/report} &rarr; role {@code ReportGenerator}</li>
+     *       <li>{@code /api/v1/financial-fixed-assets/**} &rarr; authenticated</li>
+     *       <li>Any other {@code /api/**} &rarr; authenticated</li>
      *     </ul>
      *   </li>
-     *   <li>OAuth2 Resource Server (JWT):
-     *     <ul>
-     *       <li>Uses a custom {@link #jwtAuthenticationConverter()} to map JWT claims
-     *       to authorities.</li>
-     *       <li>Handles unauthenticated access with {@link org.springframework.security
-     *       .oauth2.server.resource.web.BearerTokenAuthenticationEntryPoint}.</li>
-     *       <li>Handles access denials with {@link org.springframework.security.oauth2.server
-     *       .resource.web.access.BearerTokenAccessDeniedHandler}.</li>
-     *     </ul>
-     *   </li>
+     *   <li>OAuth2 Resource Server (JWT): custom {@link #jwtAuthenticationConverter()}.</li>
+     *   <li>Error handling: {@link BearerTokenAuthenticationEntryPoint} and
+     *       {@link BearerTokenAccessDeniedHandler}.</li>
      * </ul>
      *
-     * <p><b>Order</b>: annotated with {@link org.springframework.core.annotation.Order @Order}
-     * at {@code Ordered.LOWEST_PRECEDENCE - 1} so it runs after higher-priority chains
-     * (e.g., the authorization-server chain) but before a generic catch-all chain.</p>
+     * <p><b>Order:</b> {@code @Order(2)} — evaluated after higher-priority chains, before any generic catch-all.</p>
      *
-     * @param http the {@link org.springframework.security.config.annotation.web.builders
-     *             .HttpSecurity} to configure
-     * @return the built {@link org.springframework.security.web.SecurityFilterChain} for
-     *         resource-server endpoints
-     * @throws Exception if the security filter chain cannot be built
-     * @see org.springframework.security.oauth2.server.resource.authentication
-     *      .JwtAuthenticationConverter
-     * @see org.springframework.security.oauth2.server.resource.web
-     *      .BearerTokenAuthenticationEntryPoint
-     * @see org.springframework.security.oauth2.server.resource.web.access
-     *      .BearerTokenAccessDeniedHandler
-     * @see org.springframework.security.config.Customizer#withDefaults()
+     * @param http the {@link HttpSecurity} to configure
+     * @return the configured {@link SecurityFilterChain}
+     * @throws Exception if the chain cannot be built
+     * @see JwtAuthenticationConverter
+     * @see BearerTokenAuthenticationEntryPoint
+     * @see BearerTokenAccessDeniedHandler
+     * @see Customizer#withDefaults()
      */
     @Bean
-    @Order(Ordered.LOWEST_PRECEDENCE - 1)
+    @Order(2)
     public SecurityFilterChain resourceServerSecurityFilterChain(HttpSecurity http)
         throws Exception {
         http
             .securityMatcher("/api/**")
             .sessionManagement(sm -> sm
-                .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED))
             .csrf(AbstractHttpConfigurer::disable)
             .cors(Customizer.withDefaults())
             .authorizeHttpRequests(auth -> auth
@@ -166,11 +151,12 @@ public class ResourceServerConfig {
                     .authenticated()
                 .anyRequest().authenticated()
             )
-            .oauth2ResourceServer(oauth2 -> oauth2
-                .jwt(jwt -> jwt
-                    .jwtAuthenticationConverter(jwtAuthenticationConverter()))
+            .exceptionHandling(ex -> ex
                 .authenticationEntryPoint(new BearerTokenAuthenticationEntryPoint())
                 .accessDeniedHandler(new BearerTokenAccessDeniedHandler())
+            )
+            .oauth2ResourceServer(oauth2 -> oauth2
+                .jwt(jwt -> jwt.jwtAuthenticationConverter(jwtAuthenticationConverter()))
             );
         return http.build();
     }

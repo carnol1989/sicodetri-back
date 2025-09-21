@@ -8,39 +8,48 @@ import org.springframework.test.context.ActiveProfiles;
 
 /**
  * Integration test suite that executes all Karate feature files against
- * the running application in the "integration" profile.
+ * a running Spring Boot application using the {@code integration} profile.
  *
- * <p>
- * This test class uses a random port Spring Boot context configured with
- * {@link com.epsgrau.pe.sicodetri.config.IntegrationTestConfig} and
- * {@link com.epsgrau.pe.sicodetri.config.TestRegisteredClientConfig} to
- * stub external dependencies. It runs the following Karate scenarios:
+ * <p><b>Spring context</b>:</p>
  * <ul>
- *   <li>login.feature</li>
- *   <li>tax-table-sunat.feature</li>
- *   <li>upload.feature</li>
- *   <li>save-financial-fixed-assets.feature</li>
- *   <li>projection.feature</li>
- *   <li>get-financial-fixed-assets.feature</li>
- *   <li>report.feature</li>
+ *   <li>{@link org.springframework.boot.test.context.SpringBootTest} with {@code RANDOM_PORT}.</li>
+ *   <li>Configuration classes:
+ *     {@code SicodetriApplication},
+ *     {@code IntegrationTestConfig},
+ *     {@code TestRegisteredClientConfig} (stubs/external dependencies).</li>
+ *   <li>{@link org.springframework.test.context.ActiveProfiles @ActiveProfiles}({@code "integration"}).</li>
  * </ul>
- * </p>
+ *
+ * <p><b>Karate</b>:</p>
+ * <ul>
+ *   <li>Features executed (relative to this classpath location):
+ *     {@code login.feature},
+ *     {@code tax-table-sunat.feature},
+ *     {@code upload.feature},
+ *     {@code save-financial-fixed-assets.feature},
+ *     {@code projection.feature},
+ *     {@code get-financial-fixed-assets.feature},
+ *     {@code report.feature}.</li>
+ *   <li>Sets {@code baseUrl} system property to the random server port.</li>
+ *   <li>External config file resolved via {@code karate.config.location}
+ *       (default: {@code classpath:karate-config.js}).</li>
+ * </ul>
  *
  * <b>Class</b>: {@link AllKarateFeaturesIT}<br/>
- * <b>Copyright</b>: &Copy; 2024 EPS Grau. <br/>
+ * <b>Copyright</b>: &copy; 2024 EPS Grau. <br/>
  * <b>Company</b>: EPS Grau. <br/>
  *
- * @author EPS Grau <br/>
+ * @author EPS Grau
  *     <u>Service Provider</u>: Consultor TI <br/>
- *     <u>Developed by</u>: <br/>
+ *     <u>Developed by</u>:
  *     <ul>
- *     <li>Carlos Augusto Nole Machaca</li>
+ *       <li>Carlos Augusto Nole Machaca</li>
  *     </ul>
- *     <u>Changes</u>:<br/>
+ *     <u>Changes</u>:
  *     <ul>
- *     <li>Jul 07, 2025 (JAR) Creation class.</li>
+ *       <li>Jul 07, 2025 (JAR) Initial version.</li>
  *     </ul>
- * @version 1.0
+ * @version 1.1
  */
 @SpringBootTest(
     webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
@@ -59,16 +68,6 @@ public class AllKarateFeaturesIT {
     @Value("${karate.config.location:classpath:karate-config.js}")
     String karateConfigLocation;
 
-    /**
-     * Executes the full end-to-end integration test flow using Karate.
-     * <p>
-     * Sets the {@code baseUrl} to the local server port and runs the
-     * login, tax table, upload, save, projection, retrieval, and report
-     * feature files in sequence.
-     * </p>
-     *
-     * @return a configured {@link Karate} runner for the integration features
-     */
     @Karate.Test
     Karate testFlowIntegrationEndpoint() {
         return Karate

@@ -35,34 +35,35 @@ import org.mockito.MockitoAnnotations;
 /**
  * Unit tests for {@link FinancialDepreciationServiceImpl}.
  *
- * <p>
- * Verifies CRUD operations, custom queries, and depreciation calculation logic:
+ * <p>This suite verifies the service-layer behavior for financial depreciation
+ * operations, exercising CRUD flows, repository delegation, query semantics,
+ * and the domain-specific depreciation calculation logic.</p>
+ *
+ * <p><b>Test coverage</b>:</p>
  * <ul>
- *   <li>Saving single and multiple entities</li>
- *   <li>Updating and deleting by ID</li>
- *   <li>Retrieving by ID—existing and fallback cases</li>
- *   <li>Retrieving all entities</li>
- *   <li>Deleting all entities in a list</li>
- *   <li>Finding by FinancialFixedAsset ID</li>
- *   <li>Depreciation calculations for different depreciation types</li>
- *   <li>Lombok-generated all-args constructor and standard getters/setters</li>
+ *   <li>Persistence: save single entity, save batch, update, delete by ID (with explicit flush),
+ *       and delete batch (with explicit flush).</li>
+ *   <li>Retrieval: find by ID (present and absent → fallback object), find all,
+ *       and query by owning FinancialFixedAsset ID (results and empty).</li>
+ *   <li>Computation: validates depreciation amounts and annual/monthly rates under
+ *       multiple type codes (e.g., {@code S_VAL_01}, {@code S_VAL_02}, {@code S_VAL_03})
+ *       and boundary conditions (years within/beyond useful life).</li>
+ *   <li>Model integrity: all-args constructor, getters/setters, and basic state assertions.</li>
  * </ul>
- * </p>
+ *
+ * <p><b>Approach & tools</b>:</p>
+ * <ul>
+ *   <li>JUnit 5 (Jupiter) for the test framework</li>
+ *   <li>Mockito for repository mocking and interaction verification</li>
+ *   <li>AAA (Arrange–Act–Assert) structure; no external I/O</li>
+ * </ul>
  *
  * <b>Class</b>: {@link FinancialDepreciationServiceImplTest}<br/>
- * <b>Copyright</b>: &Copy; 2024 EPS Grau. <br/>
- * <b>Company</b>: EPS Grau. <br/>
+ * <b>Company</b>: EPS Grau<br/>
+ * <b>Copyright</b>: &copy; 2024 EPS Grau
  *
- * @author EPS Grau <br/>
- *     <u>Service Provider</u>: Consultor TI <br/>
- *     <u>Developed by</u>: <br/>
- *     <ul>
- *     <li>Carlos Augusto Nole Machaca</li>
- *     </ul>
- *     <u>Changes</u>:<br/>
- *     <ul>
- *     <li>Jun 06, 2025 (JAR) Creation class.</li>
- *     </ul>
+ * @author EPS Grau
+ * @since 1.0
  * @version 1.0
  */
 class FinancialDepreciationServiceImplTest {
@@ -73,18 +74,11 @@ class FinancialDepreciationServiceImplTest {
     @InjectMocks
     private FinancialDepreciationServiceImpl financialDepreciationService;
 
-    /**
-     * Initializes Mockito mocks before each test.
-     */
     @BeforeEach
     void setup() {
         MockitoAnnotations.openMocks(this);
     }
 
-    /**
-     * Verifies that {@link FinancialDepreciationServiceImpl#saveService(FinancialDepreciation)}
-     * returns the exact instance from the repository.
-     */
     @Test
     @DisplayName("SaveService returns the saved instance")
     void saveServiceReturnsSavedInstance() {
@@ -101,10 +95,6 @@ class FinancialDepreciationServiceImplTest {
         assertSame(saved, result, "Debe devolver exactamente el objeto retornado por el repositorio");
     }
 
-    /**
-     * Verifies that {@link FinancialDepreciationServiceImpl#saveAllService(List)}
-     * invokes {@code repository.saveAll} on the provided list.
-     */
     @Test
     @DisplayName("SaveAllService invokes repository.saveAll with given list")
     void saveAllServiceInvokesSaveAll() {
@@ -121,11 +111,8 @@ class FinancialDepreciationServiceImplTest {
         verify(repository).saveAll(list);
     }
 
-    /**
-     * Verifies that saving a valid FinancialDepreciation calls {@code repository.save}.
-     */
     @Test
-    @DisplayName("Save financial depreciation when valid object is provided")
+    @DisplayName("Save financial depreciation cuando se proporciona un objeto válido")
     void saveFinancialDepreciationWhenValidObjectIsProvided() {
         // Arrange
         FinancialDepreciation financialDepreciation = new FinancialDepreciation();
@@ -137,11 +124,8 @@ class FinancialDepreciationServiceImplTest {
         verify(repository, times(1)).save(financialDepreciation);
     }
 
-    /**
-     * Verifies that updating a FinancialDepreciation calls {@code repository.save}.
-     */
     @Test
-    @DisplayName("Update financial depreciation when valid object is provided")
+    @DisplayName("Update financial depreciation cuando se proporciona un objeto válido")
     void updateFinancialDepreciationWhenValidObjectIsProvided() {
         // Arrange
         FinancialDepreciation financialDepreciation = new FinancialDepreciation();
@@ -153,11 +137,8 @@ class FinancialDepreciationServiceImplTest {
         verify(repository, times(1)).save(financialDepreciation);
     }
 
-    /**
-     * Verifies that deleting by ID calls {@code repository.deleteById}.
-     */
     @Test
-    @DisplayName("Delete financial depreciation when valid id is provided")
+    @DisplayName("Delete financial depreciation cuando el id es válido (incluye flush)")
     void deleteFinancialDepreciationWhenValidIdIsProvided() {
         // Arrange
         Long id = 1L;
@@ -167,13 +148,11 @@ class FinancialDepreciationServiceImplTest {
 
         // Assert
         verify(repository, times(1)).deleteById(id);
+        verify(repository, times(1)).flush(); // cubrir la línea de flush
     }
 
-    /**
-     * Verifies retrieval by ID returns the existing entity when found.
-     */
     @Test
-    @DisplayName("Return financial depreciation when it exists for given id")
+    @DisplayName("Return financial depreciation cuando existe el id")
     void returnFinancialDepreciationWhenItExistsForGivenId() {
         // Arrange
         Long id = 1L;
@@ -196,11 +175,8 @@ class FinancialDepreciationServiceImplTest {
         assertEquals(fd.getModificationDate(), result.getModificationDate());
     }
 
-    /**
-     * Verifies retrieval by ID returns a new entity when none exists.
-     */
     @Test
-    @DisplayName("Return new financial depreciation when none exists for given id")
+    @DisplayName("Return new financial depreciation cuando no existe el id")
     void returnNewFinancialDepreciationWhenNoneExistsForGivenId() {
         // Arrange
         Long id = 1L;
@@ -235,12 +211,8 @@ class FinancialDepreciationServiceImplTest {
         assertEquals(dt2, result.getModificationDate());
     }
 
-    /**
-     * Verifies that {@link FinancialDepreciationServiceImpl#findAllService()}
-     * returns all entities from {@code repository.findAll}.
-     */
     @Test
-    @DisplayName("Return all financial depreciations when findAllService is called")
+    @DisplayName("Return all financial depreciations cuando se llama findAllService")
     void returnAllFinancialDepreciationsWhenFindAllServiceIsCalled() {
         // Arrange
         List<FinancialDepreciation> financialDepreciations = List.of(new FinancialDepreciation(), new FinancialDepreciation());
@@ -254,12 +226,8 @@ class FinancialDepreciationServiceImplTest {
         assertEquals(financialDepreciations, result);
     }
 
-    /**
-     * Verifies that {@link FinancialDepreciationServiceImpl#deleteAllService(List)}
-     * calls {@code repository.deleteAll} for the provided list.
-     */
     @Test
-    @DisplayName("Delete all financial depreciations when list is provided")
+    @DisplayName("Delete all financial depreciations cuando se proporciona una lista (incluye flush)")
     void deleteAllFinancialDepreciationsWhenListIsProvided() {
         // Arrange
         List<FinancialDepreciation> list = List.of(
@@ -272,13 +240,11 @@ class FinancialDepreciationServiceImplTest {
 
         // Assert
         verify(repository, times(1)).deleteAll(list);
+        verify(repository, times(1)).flush(); // cubrir la línea de flush
     }
 
-    /**
-     * Verifies that finding by FinancialFixedAsset ID returns the repository result.
-     */
     @Test
-    @DisplayName("Find by financialFixedAssetId returns repository result")
+    @DisplayName("Find by financialFixedAssetId retorna el resultado del repositorio")
     void findByFinancialFixedAssetIdServiceReturnsList() {
         // Arrange
         Long fixedAssetId = 123L;
@@ -294,11 +260,8 @@ class FinancialDepreciationServiceImplTest {
         assertSame(expected, result, "Debe devolver exactamente la lista que retorna el repositorio");
     }
 
-    /**
-     * Verifies that finding by FinancialFixedAsset ID returns an empty list when none found.
-     */
     @Test
-    @DisplayName("Find by financialFixedAssetId returns empty list when none found")
+    @DisplayName("Find by financialFixedAssetId retorna lista vacía cuando no hay resultados")
     void findByFinancialFixedAssetIdServiceReturnsEmptyList() {
         // Arrange
         Long fixedAssetId = 456L;
@@ -314,11 +277,8 @@ class FinancialDepreciationServiceImplTest {
         assertTrue(result.isEmpty(), "Cuando no hay depreciaciones, debe devolver lista vacía");
     }
 
-    /**
-     * Verifies depreciation calculation for types S_VAL_01 and S_VAL_03 produces correct values.
-     */
     @Test
-    @DisplayName("calculateDepreciation with S_VAL_01 or S_VAL_03 computes correct value")
+    @DisplayName("calculateDepreciation con S_VAL_01 o S_VAL_03 calcula el valor correcto")
     void calculateDepreciationType01Or03() {
         FinancialFixedAsset asset = new FinancialFixedAsset();
         asset.setInitialBalance(new BigDecimal("1200.00"));
@@ -334,7 +294,7 @@ class FinancialDepreciationServiceImplTest {
         assertEquals(expectedAnnual.setScale(N_VAL_9, RoundingMode.HALF_UP), fd.getAnnualFinancialRate());
 
         // monthly rate = annual / 12 = ~0.006944444
-        // valueDepreciation = 1200 * monthly rate = 8.3333333 -> scaled down to 2 dec = 8.33
+        // valueDepreciation = 1200 * monthly rate = 8.3333333 -> 8.33
         assertEquals(new BigDecimal("8.33"), fd.getValueDepreciation());
 
         // idem para S_VAL_03
@@ -343,11 +303,8 @@ class FinancialDepreciationServiceImplTest {
         assertEquals(new BigDecimal("8.33"), fd.getValueDepreciation());
     }
 
-    /**
-     * Verifies depreciation calculation for type S_VAL_02 within useful life produces correct value.
-     */
     @Test
-    @DisplayName("calculateDepreciation with S_VAL_02 and years <= usefulLife computes same value")
+    @DisplayName("calculateDepreciation con S_VAL_02 y years <= usefulLife calcula el mismo valor")
     void calculateDepreciationType02WithinYears() {
         FinancialFixedAsset asset = new FinancialFixedAsset();
         asset.setInitialBalance(new BigDecimal("1000.00"));
@@ -359,11 +316,8 @@ class FinancialDepreciationServiceImplTest {
         assertEquals(new BigDecimal("8.33"), fd.getValueDepreciation());
     }
 
-    /**
-     * Verifies depreciation calculation for type S_VAL_02 beyond useful life yields zero.
-     */
     @Test
-    @DisplayName("calculateDepreciation with S_VAL_02 and years > usefulLife sets zero")
+    @DisplayName("calculateDepreciation con S_VAL_02 y years > usefulLife establece cero")
     void calculateDepreciationType02BeyondYears() {
         FinancialFixedAsset asset = new FinancialFixedAsset();
         asset.setInitialBalance(new BigDecimal("500.00"));
@@ -375,11 +329,8 @@ class FinancialDepreciationServiceImplTest {
         assertEquals(BigDecimal.ZERO.setScale(N_VAL_2, RoundingMode.DOWN), fd.getValueDepreciation());
     }
 
-    /**
-     * Verifies that the Lombok-generated all-args constructor assigns all fields correctly.
-     */
     @Test
-    @DisplayName("FinancialDepreciation AllArgsConstructor and getters")
+    @DisplayName("FinancialDepreciation AllArgsConstructor y getters")
     void financialDepreciationAllArgsConstructorAndGetters() {
         // Arrange
         Long id = 99L;
@@ -419,11 +370,8 @@ class FinancialDepreciationServiceImplTest {
         assertEquals(modDate,   fd.getModificationDate());
     }
 
-    /**
-     * Verifies setter methods and standard getters for FinancialDepreciation.
-     */
     @Test
-    @DisplayName("FinancialDepreciation setters and getters")
+    @DisplayName("FinancialDepreciation setters y getters")
     void financialDepreciationSettersAndGetters() {
         // Arrange
         FinancialDepreciation fd = new FinancialDepreciation();

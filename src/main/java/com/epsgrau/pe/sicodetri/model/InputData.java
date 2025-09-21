@@ -66,6 +66,7 @@ public class InputData implements Serializable {
     private String historicalCost; //31
     private String revaluedAmount; //32
     private String wellAppraisedPreInvestmentStudyDry; //33
+    private String username;
     private int rowNum;
     private int physicalNumberOfRows;
 
@@ -104,6 +105,7 @@ public class InputData implements Serializable {
             + accumulatedDepreciationAdjustedInflation + '\'' + ", netFixedAssets='"
             + netFixedAssets + '\'' + ", historicalCost='" + historicalCost + '\''
             + ", revaluedAmount='" + revaluedAmount + '\''
+            + ", username='" + username + '\''
             + ", rowNum=" + rowNum
             + ", physicalNumberOfRows=" + physicalNumberOfRows
             + '}';

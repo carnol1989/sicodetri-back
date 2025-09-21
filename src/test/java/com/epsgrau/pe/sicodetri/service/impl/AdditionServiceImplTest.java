@@ -23,28 +23,52 @@ import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
 /**
- * Unit tests for {@link AdditionServiceImpl}.
+ * Unit test suite for {@link AdditionServiceImpl}.
  *
- * <p>
- * Verifies saving, updating, deleting, and retrieval operations on additions,
- * as well as handling of empty results and use of the all-args constructor.
- * </p>
+ * <p><b>Purpose</b>:
+ * Validates the service's behavior for CRUD operations and repository delegation,
+ * including flush semantics where applicable. These tests focus on interaction
+ * verification and data mapping rather than database integration.</p>
+ *
+ * <p><b>Coverage</b>:</p>
+ * <ul>
+ *   <li><b>Create</b>: {@code saveService} returns the repository result and forwards the entity.</li>
+ *   <li><b>Bulk create</b>: {@code saveAllService} delegates to {@code saveAll}.</li>
+ *   <li><b>Update</b>: {@code updateService} delegates to {@code save} (merge semantics).</li>
+ *   <li><b>Delete</b>: {@code deleteByIdService} and {@code deleteAllService} delegate to repository and invoke {@code flush()}.</li>
+ *   <li><b>Read</b>: {@code findByIdService} returns the entity when present or a new empty instance when absent.</li>
+ *   <li><b>Read all</b>: {@code findAllService} returns exactly the list from the repository.</li>
+ *   <li><b>Query by relation</b>: {@code findByTaxDepreciationInService} delegates to the repository predicate.</li>
+ *   <li><b>DTO/Entity mapping sanity</b>: Exercises the {@code Addition} all-args constructor and getters.</li>
+ * </ul>
+ *
+ * <p><b>Test doubles & tools</b>:</p>
+ * <ul>
+ *   <li>Mockito for mocks and stubbing ({@link AdditionRepository}).</li>
+ *   <li>JUnit 5 (Jupiter) for test lifecycle and assertions.</li>
+ * </ul>
+ *
+ * <p><b>Notes</b>:
+ * Display names are provided (some in Spanish) to make intent explicit.
+ * The suite intentionally asserts that service methods do not return {@code null}
+ * unless explicitly documented to do so.</p>
  *
  * <b>Class</b>: {@link AdditionServiceImplTest}<br/>
- * <b>Copyright</b>: &Copy; 2024 EPS Grau. <br/>
+ * <b>Copyright</b>: &copy; 2024 EPS Grau. <br/>
  * <b>Company</b>: EPS Grau. <br/>
  *
- * @author EPS Grau <br/>
- *     <u>Service Provider</u>: Consultor TI <br/>
- *     <u>Developed by</u>: <br/>
+ * @author EPS Grau
+ *     <br/><u>Service Provider</u>: Consultor TI
+ *     <br/><u>Developed by</u>:
  *     <ul>
- *     <li>Carlos Augusto Nole Machaca</li>
+ *       <li>Carlos Augusto Nole Machaca</li>
  *     </ul>
- *     <u>Changes</u>:<br/>
+ *     <u>Changes</u>:
  *     <ul>
- *     <li>Jun 06, 2025 (JAR) Creation class.</li>
+ *       <li>Jun 06, 2025 (JAR) Class creation.</li>
  *     </ul>
  * @version 1.0
+ * @since 1.0
  */
 class AdditionServiceImplTest {
 
@@ -54,19 +78,12 @@ class AdditionServiceImplTest {
     @InjectMocks
     private AdditionServiceImpl additionService;
 
-    /**
-     * Constructs the test class and initializes Mockito mocks.
-     */
     public AdditionServiceImplTest() {
         MockitoAnnotations.openMocks(this);
     }
 
-    /**
-     * Verifies that {@link AdditionServiceImpl#saveService(Addition)} calls
-     * {@code repository.save} once when a valid addition is provided.
-     */
     @Test
-    @DisplayName("Save addition when valid addition is provided")
+    @DisplayName("Save addition cuando se provee una addition válida")
     void saveAdditionWhenValidAdditionIsProvided() {
         // Arrange
         Addition addition = new Addition();
@@ -78,12 +95,8 @@ class AdditionServiceImplTest {
         verify(repository, times(1)).save(addition);
     }
 
-    /**
-     * Verifies that {@link AdditionServiceImpl#saveService(Addition)} returns
-     * the exact instance returned by the repository and that all fields are non-null.
-     */
     @Test
-    @DisplayName("SaveService returns the saved instance")
+    @DisplayName("SaveService retorna la instancia guardada")
     void saveServiceReturnsSavedInstance() {
         // Arrange
         Addition input = new Addition();
@@ -106,12 +119,8 @@ class AdditionServiceImplTest {
         assertNotNull(result.getModificationDate());
     }
 
-    /**
-     * Verifies that {@link AdditionServiceImpl#saveAllService(List)} calls
-     * {@code repository.saveAll} once when a list of additions is provided.
-     */
     @Test
-    @DisplayName("Save all additions when list is provided")
+    @DisplayName("Save all additions cuando se provee una lista")
     void saveAllAdditionsWhenListIsProvided() {
         // Arrange
         List<Addition> list = List.of(new Addition(), new Addition());
@@ -123,12 +132,8 @@ class AdditionServiceImplTest {
         verify(repository, times(1)).saveAll(list);
     }
 
-    /**
-     * Verifies that {@link AdditionServiceImpl#updateService(Addition)} calls
-     * {@code repository.save} once when updating an existing addition.
-     */
     @Test
-    @DisplayName("Update addition when valid addition is provided")
+    @DisplayName("Update addition cuando se provee una addition válida")
     void updateAdditionWhenValidAdditionIsProvided() {
         // Arrange
         Addition addition = new Addition();
@@ -140,12 +145,8 @@ class AdditionServiceImplTest {
         verify(repository, times(1)).save(addition);
     }
 
-    /**
-     * Verifies that {@link AdditionServiceImpl#deleteByIdService(Long)} calls
-     * {@code repository.deleteById} once for the given ID.
-     */
     @Test
-    @DisplayName("Delete addition when valid id is provided")
+    @DisplayName("Delete addition cuando se provee un id válido (incluye flush)")
     void deleteAdditionWhenValidIdIsProvided() {
         // Arrange
         Long id = 1L;
@@ -155,14 +156,11 @@ class AdditionServiceImplTest {
 
         // Assert
         verify(repository, times(1)).deleteById(id);
+        verify(repository, times(1)).flush(); // cubrir flush()
     }
 
-    /**
-     * Verifies that {@link AdditionServiceImpl#findByIdService(Long)} returns
-     * the existing addition when found in the repository.
-     */
     @Test
-    @DisplayName("Return addition when it exists for given id")
+    @DisplayName("Retorna addition cuando existe para el id dado")
     void returnAdditionWhenItExistsForGivenId() {
         // Arrange
         Long id = 1L;
@@ -185,12 +183,8 @@ class AdditionServiceImplTest {
         assertEquals(addition.getModificationDate(), result.getModificationDate());
     }
 
-    /**
-     * Verifies that {@link AdditionServiceImpl#findByIdService(Long)} returns
-     * a new, mutable {@link Addition} when the repository returns empty.
-     */
     @Test
-    @DisplayName("Return new addition when none exists for given id")
+    @DisplayName("Retorna nueva addition cuando no existe para el id dado")
     void returnNewAdditionWhenNoneExistsForGivenId() {
         // Arrange
         Long id = 1L;
@@ -225,12 +219,8 @@ class AdditionServiceImplTest {
         assertEquals(dt2, result.getModificationDate());
     }
 
-    /**
-     * Verifies that {@link AdditionServiceImpl#findAllService()} calls
-     * {@code repository.findAll} once and returns all additions.
-     */
     @Test
-    @DisplayName("Return all additions when findAllService is called")
+    @DisplayName("Retorna todas las additions cuando se invoca findAllService")
     void returnAllAdditionsWhenFindAllServiceIsCalled() {
         // Act
         additionService.findAllService();
@@ -239,12 +229,23 @@ class AdditionServiceImplTest {
         verify(repository, times(1)).findAll();
     }
 
-    /**
-     * Verifies that {@link AdditionServiceImpl#deleteAllService(List)} calls
-     * {@code repository.deleteAll} once when a list of additions is provided.
-     */
     @Test
-    @DisplayName("Delete all additions when list is provided")
+    @DisplayName("findAllService retorna exactamente la lista del repositorio")
+    void findAllServiceReturnsRepositoryList() {
+        // Arrange
+        List<Addition> expected = List.of(getAddition());
+        when(repository.findAll()).thenReturn(expected);
+
+        // Act
+        List<Addition> out = additionService.findAllService();
+
+        // Assert
+        verify(repository, times(1)).findAll();
+        assertSame(expected, out);
+    }
+
+    @Test
+    @DisplayName("Delete all additions cuando se provee una lista (incluye flush)")
     void deleteAllAdditionsWhenListIsProvided() {
         // Arrange
         List<Addition> list = List.of(getAddition(), new Addition());
@@ -254,14 +255,11 @@ class AdditionServiceImplTest {
 
         // Assert
         verify(repository, times(1)).deleteAll(list);
+        verify(repository, times(1)).flush(); // cubrir flush()
     }
 
-    /**
-     * Verifies that {@link AdditionServiceImpl#findByTaxDepreciationInService(List)}
-     * returns the same list as the repository for a given list of tax depreciations.
-     */
     @Test
-    @DisplayName("Find additions by TaxDepreciation list returns repository result")
+    @DisplayName("Find by TaxDepreciation list retorna lo que devuelve el repositorio")
     void findByTaxDepreciationInServiceReturnsList() {
         // Arrange
         List<TaxDepreciation> tdList = List.of(new TaxDepreciation(), new TaxDepreciation());
@@ -277,12 +275,8 @@ class AdditionServiceImplTest {
         assertNotNull(result.get(0).getValueAddition());
     }
 
-    /**
-     * Verifies that the Lombok-generated all-args constructor on {@link Addition}
-     * correctly assigns all fields.
-     */
     @Test
-    @DisplayName("Addition AllArgsConstructor sets all fields correctly")
+    @DisplayName("Addition AllArgsConstructor setea todos los campos correctamente")
     void additionAllArgsConstructorSetsAllFields() {
         // Arrange: valores de prueba
         Long id = 99L;

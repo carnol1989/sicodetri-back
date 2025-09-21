@@ -11,24 +11,40 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * Service implementation for managing {@link Deduction} entities.
- * Provides transactional methods for creating, updating, deleting, and
- * retrieving deductions, as well as querying by related tax depreciation records.
+ * Concrete {@link DeductionService} implementation.
+ *
+ * <p><b>Purpose</b>:
+ * Orchestrates CRUD operations and lookups for {@link Deduction} entities,
+ * delegating persistence concerns to {@link DeductionRepository}. It also
+ * provides queries scoped by related {@link TaxDepreciation} records.</p>
+ *
+ * <p><b>Behavior &amp; transactionality</b>:</p>
+ * <ul>
+ *   <li>Write methods are wrapped in {@code @Transactional} to ensure atomicity.</li>
+ *   <li>Read-only methods use {@code @Transactional(readOnly = true)} for optimal performance.</li>
+ *   <li>Bulk delete operations call {@code flush()} to enforce immediate synchronization with the database.</li>
+ * </ul>
+ *
+ * <p><b>Thread-safety</b>:
+ * This service is stateless; Spring manages its lifecycle. Repository interactions are thread-safe
+ * under the default Spring Data JPA transaction model.</p>
+ *
  * <b>Class</b>: {@link DeductionServiceImpl}<br/>
  * <b>Copyright</b>: &copy; 2024 EPS Grau. <br/>
  * <b>Company</b>: EPS Grau. <br/>
  *
- * @author EPS Grau <br/>
- *     <u>Service Provider</u>: Consultor TI <br/>
- *     <u>Developed by</u>: <br/>
+ * @author EPS Grau
+ *     <br/><u>Service Provider</u>: Consultor TI
+ *     <br/><u>Developed by</u>:
  *     <ul>
  *     <li>Carlos Augusto Nole Machaca</li>
  *     </ul>
- *     <u>Changes</u>:<br/>
+ *     <u>Changes</u>:
  *     <ul>
- *     <li>Jun 06, 2025 (JAR) Creation class.</li>
+ *     <li>Jun 06, 2025 (JAR) Class creation.</li>
  *     </ul>
  * @version 1.0
+ * @since 1.0
  */
 @Service
 public class DeductionServiceImpl implements DeductionService {
@@ -37,10 +53,10 @@ public class DeductionServiceImpl implements DeductionService {
     private DeductionRepository repository;
 
     /**
-     * Saves a single {@link Deduction} entity.
+     * Persists the given {@link Deduction}.
      *
-     * @param obj the Deduction to save
-     * @return the saved Deduction instance
+     * @param obj the deduction to persist (must not be {@code null})
+     * @return the managed instance returned by the repository (never {@code null})
      */
     @Override
     @Transactional
@@ -50,9 +66,9 @@ public class DeductionServiceImpl implements DeductionService {
     }
 
     /**
-     * Saves a list of {@link Deduction} entities in batch.
+     * Persists a list of {@link Deduction} entities in batch.
      *
-     * @param listObj the list of Deductions to save
+     * @param listObj the list of deductions to persist (must not be {@code null})
      */
     @Override
     @Transactional
@@ -61,9 +77,11 @@ public class DeductionServiceImpl implements DeductionService {
     }
 
     /**
-     * Updates an existing {@link Deduction} entity.
+     * Updates an existing {@link Deduction}.
+     * <p>Semantically identical to {@link #saveService(Deduction)} for JPA; if the entity is
+     * detached, it will be merged.</p>
      *
-     * @param obj the Deduction to update
+     * @param obj the deduction to update (must not be {@code null})
      */
     @Override
     @Transactional
@@ -72,32 +90,35 @@ public class DeductionServiceImpl implements DeductionService {
     }
 
     /**
-     * Deletes the {@link Deduction} entity with the given identifier.
+     * Deletes a {@link Deduction} by its identifier and flushes the persistence context.
      *
-     * @param id the ID of the Deduction to delete
+     * @param id the identifier of the deduction to delete (must not be {@code null})
      */
     @Override
     @Transactional
     public void deleteByIdService(Long id) {
         repository.deleteById(id);
+        repository.flush();
     }
 
     /**
-     * Deletes all provided {@link Deduction} entities.
+     * Deletes all provided {@link Deduction} entities and flushes the persistence context.
      *
-     * @param listObj the list of Deductions to delete
+     * @param listObj the deductions to delete (must not be {@code null})
      */
     @Override
     @Transactional
     public void deleteAllService(List<Deduction> listObj) {
         repository.deleteAll(listObj);
+        repository.flush();
     }
 
     /**
      * Finds a {@link Deduction} by its identifier.
      *
-     * @param id the ID of the Deduction to find
-     * @return the found Deduction, or a new empty Deduction if not found
+     * @param id the identifier to search for (must not be {@code null})
+     * @return the found deduction; if none exists, a new empty {@link Deduction} instance
+     *         is returned (never {@code null})
      */
     @Override
     @Transactional(readOnly = true)
@@ -109,7 +130,7 @@ public class DeductionServiceImpl implements DeductionService {
     /**
      * Retrieves all {@link Deduction} entities.
      *
-     * @return a list of all Deductions
+     * @return a list of deductions (never {@code null}, may be empty)
      */
     @Override
     @Transactional(readOnly = true)
@@ -118,11 +139,10 @@ public class DeductionServiceImpl implements DeductionService {
     }
 
     /**
-     * Finds all {@link Deduction} entities associated with the given list of
-     * {@link TaxDepreciation} records.
+     * Retrieves deductions associated with any of the provided {@link TaxDepreciation} records.
      *
-     * @param taxDepreciations the list of TaxDepreciation entities to filter by
-     * @return a list of matching Deductions
+     * @param taxDepreciations the related tax depreciations to filter by (must not be {@code null})
+     * @return a list of matching deductions (never {@code null}, may be empty)
      */
     @Override
     public List<Deduction> findByTaxDepreciationInService(List<TaxDepreciation> taxDepreciations) {

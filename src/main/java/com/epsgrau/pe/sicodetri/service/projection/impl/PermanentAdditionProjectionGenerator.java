@@ -14,7 +14,7 @@ import com.epsgrau.pe.sicodetri.entity.TaxTableSunat;
 import com.epsgrau.pe.sicodetri.model.Projection;
 import com.epsgrau.pe.sicodetri.service.TaxTableSunatService;
 import com.epsgrau.pe.sicodetri.service.projection.ProjectionGenerator;
-import com.epsgrau.pe.sicodetri.service.projection.ProjectionType;
+import com.epsgrau.pe.sicodetri.util.enums.ProjectionType;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.Period;
@@ -25,26 +25,47 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 /**
- * {@link ProjectionGenerator} implementation for generating permanent additions projections.
- * Selects assets eligible for permanent additions based on SUNAT tax table code "332",
- * then iterates through the remaining useful life of each asset to calculate monthly
- * financial and tax depreciation, and finally determines additions or deductions.
- * After projection generation, existing records are removed and new projections are persisted.
- * <b>Class</b>: {@link PermanentAdditionProjectionGenerator}<br/>
- * <b>Copyright</b>: &copy; 2024 EPS Grau. <br/>
- * <b>Company</b>: EPS Grau. <br/>
+ * Generates projections for <em>permanent additions</em> based on SUNAT tax table
+ * account <strong>"332"</strong>. This component filters eligible fixed assets and, for each
+ * asset, iterates over the remaining useful life to build monthly financial depreciation,
+ * tax depreciation, and the corresponding additions/deductions. Once the projection is
+ * produced, existing persisted records for the asset are removed and the newly generated
+ * records are stored.
  *
- * @author EPS Grau <br/>
- *     <u>Service Provider</u>: Consultor TI <br/>
- *     <u>Developed by</u>: <br/>
- *     <ul>
- *     <li>Carlos Augusto Nole Machaca</li>
- *     </ul>
- *     <u>Changes</u>:<br/>
- *     <ul>
- *     <li>Jun 11, 2025 (JAR) Creation class.</li>
- *     </ul>
- * @version 1.0
+ * <p><strong>Responsibilities</strong></p>
+ * <ul>
+ *   <li>Identify eligible assets for permanent additions (SUNAT account {@code "332"}).</li>
+ *   <li>Compute monthly financial and tax depreciation for the remaining useful life.</li>
+ *   <li>Derive additions/deductions and persist the results atomically for the asset.</li>
+ * </ul>
+ *
+ * <p><strong>Operational notes</strong></p>
+ * <ul>
+ *   <li>This generator performs <strong>destructive updates</strong> for a given asset and period
+ *       (delete-then-insert of related records). It should be invoked inside a transactional
+ *       boundary provided by the service layer.</li>
+ *   <li>Given identical inputs (asset state, tax table, and accounting period), repeated runs are
+ *       effectively idempotent with respect to the resulting persisted data.</li>
+ *   <li>Thread-safety is delegated to the caller; instances are Spring-managed and stateless.</li>
+ * </ul>
+ *
+ * <p><strong>Class</strong>: {@link PermanentAdditionProjectionGenerator}<br/>
+ * <strong>Company</strong>: EPS Grau S.A.<br/>
+ * <strong>Copyright</strong>: &copy; 2025 EPS Grau S.A. All rights reserved.</p>
+ *
+ * <p><strong>Authors</strong>:</p>
+ * <ul>
+ *   <li>Carlos Augusto Nole Machaca</li>
+ * </ul>
+ *
+ * <p><strong>Change log</strong>:</p>
+ * <ul>
+ *   <li>Jun 11, 2025 — Initial version.</li>
+ * </ul>
+ *
+ * @since 1.0
+ * @see ProjectionGenerator
+ * @see TaxTableSunatService#findByAccountigAccountService(String)
  */
 @Component
 public class PermanentAdditionProjectionGenerator extends AbstractProjectionGenerator
@@ -56,7 +77,7 @@ public class PermanentAdditionProjectionGenerator extends AbstractProjectionGene
     /**
      * Returns the projection type handled by this generator.
      *
-     * @return {@link ProjectionType#PERMANENT_ADDITIONS}
+     * @return the {@link ProjectionType} constant for permanent additions
      */
     @Override
     public ProjectionType getType() {
@@ -64,40 +85,51 @@ public class PermanentAdditionProjectionGenerator extends AbstractProjectionGene
     }
 
     /**
-     * Generates permanent additions projections for each eligible fixed asset.
-     * Retrieves the SUNAT tax table entry for account "332". For each asset in
-     * {@code fixedAssets}, if it meets the eligibility criteria, processes the
-     * asset to create and persist depreciation, additions, and deductions.
+     * Generates permanent-additions projections for the provided assets and accounting period.
+     * The SUNAT tax table is queried for account {@code "332"}; if it is not available, the
+     * method exits without side effects. For each asset that passes the eligibility check,
+     * the asset is processed and its related financial/tax depreciation plus additions and
+     * deductions are (re)persisted.
      *
-     * @param accountingPeriod the starting accounting period for projection
-     * @param fixedAssets      the list of fixed assets to project
+     * <p><strong>Side effects</strong>: For each eligible asset this method deletes existing
+     * financial depreciation, tax depreciation, additions, and deductions and persists the
+     * newly computed ones.</p>
+     *
+     * @param username          application user performing the operation (used downstream for audit)
+     * @param accountingPeriod  period from which the projection starts (usually a month start date)
+     * @param fixedAssets       candidate assets to evaluate and project
+     *
+     * @apiNote This method should run within a {@code @Transactional} context at the service layer
+     *           to ensure atomicity of delete/insert operations per asset.
      */
     @Override
-    public void generate(LocalDate accountingPeriod, List<FinancialFixedAsset> fixedAssets) {
+    public void generate(String username, LocalDate accountingPeriod, List<FinancialFixedAsset> fixedAssets) {
         TaxTableSunat table = taxTableService.findByAccountigAccountService(S_VAL_332);
         if (table == null) {
             return;
         }
         for (FinancialFixedAsset f : fixedAssets) {
             if (isEligible(f)) {
-                processAsset(f, accountingPeriod, table);
+                processAsset(f, username, accountingPeriod, table);
             }
         }
     }
 
     /**
-     * Determines if a fixed asset is eligible for permanent additions projection.
-     * Eligibility criteria:
+     * Determines whether a fixed asset qualifies for permanent-additions projection.
+     *
+     * <p><strong>Eligibility criteria</strong>:</p>
      * <ul>
-     *   <li>Acquisition date is not the default placeholder</li>
-     *   <li>Accounting account prefix is "332"</li>
-     *   <li>Description contains "tasacion", "valor tasado", or "valortasado"
-     *   (case-insensitive)</li>
-     *   <li>Historical cost, revalued amount, and initial balance are all greater than zero</li>
+     *   <li>Acquisition date is not the default placeholder
+     *   ({@link com.epsgrau.pe.sicodetri.util.Constants#LOCAL_DATE_DEFAULT}).</li>
+     *   <li>Accounting account starts with {@code "332"} (SUNAT tax table account).</li>
+     *   <li>Description contains, case-insensitively, any of:
+     *       {@code "tasacion"}, {@code "valor tasado"}, or {@code "valortasado"}.</li>
+     *   <li>{@code historicalCost}, {@code revaluedAmount}, and {@code initialBalance} are all &gt; 0.</li>
      * </ul>
      *
-     * @param f the fixed asset to check
-     * @return {@code true} if the asset qualifies, {@code false} otherwise
+     * @param f the fixed asset under evaluation
+     * @return {@code true} if the asset meets all criteria; {@code false} otherwise
      */
     private boolean isEligible(FinancialFixedAsset f) {
         String desc = f.getWellAppraisedPreInvestmentStudyDry();
@@ -113,20 +145,31 @@ public class PermanentAdditionProjectionGenerator extends AbstractProjectionGene
     }
 
     /**
-     * Processes a single fixed asset by.:
+     * Processes a single eligible asset by.:
      * <ol>
-     *   <li>Initializing a first-period tax depreciation record</li>
-     *   <li>Building a {@link Projection} model for the given period</li>
-     *   <li>Iteratively generating monthly depreciation, additions, and deductions</li>
-     *   <li>Deleting existing database records for this asset</li>
-     *   <li>Persisting the newly generated records</li>
+     *   <li>Initializing a first-period {@link TaxDepreciation} record.</li>
+     *   <li>Creating a {@link Projection} model seeded with the requested period.</li>
+     *   <li>Iterating over the remaining useful life to append monthly financial/tax depreciation
+     *       and to derive additions/deductions.</li>
+     *   <li>Deleting any previously persisted records for the asset.</li>
+     *   <li>Persisting the newly generated financial/tax depreciation, additions, and deductions.</li>
      * </ol>
      *
+     * <p><strong>Parameters</strong>:</p>
+     * <ul>
+     *   <li><b>fixedAsset</b> — the asset being projected.</li>
+     *   <li><b>username</b> — propagated to downstream builders/services for auditing.</li>
+     *   <li><b>period</b> — accounting period that anchors the projection.</li>
+     *   <li><b>table</b> — SUNAT tax table entry resolved for account {@code "332"}.</li>
+     * </ul>
+     *
      * @param fixedAsset the fixed asset to project
-     * @param period     the accounting period to start projection
-     * @param table      the SUNAT tax table entry for code "332"
+     * @param username   the user performing the operation (for audit purposes)
+     * @param period     starting accounting period of the projection
+     * @param table      the resolved SUNAT tax table row (account {@code "332"})
      */
     private void processAsset(FinancialFixedAsset fixedAsset,
+                              String username,
                               LocalDate period,
                               TaxTableSunat table) {
         TaxDepreciation firstTax = new TaxDepreciation();
@@ -146,7 +189,7 @@ public class PermanentAdditionProjectionGenerator extends AbstractProjectionGene
         int yearsPassed = Period.between(fixedAsset.getAcquisitionDate(), period).getYears();
         int remaining = fixedAsset.getUsefulLifeYears().intValue() - yearsPassed;
         for (int i = 0; i < remaining; i++) {
-            proj = processYearDepreciation(fixedAsset, proj, table, S_VAL_03, -1);
+            proj = processYearDepreciation(fixedAsset, username, proj, table, S_VAL_03, -1);
         }
 
         List<FinancialDepreciation> listFinancialDepreciation =

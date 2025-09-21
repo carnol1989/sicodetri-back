@@ -5,6 +5,7 @@ import static com.epsgrau.pe.sicodetri.util.Constants.S_VAL_332;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.mockito.Mockito.anyList;
+import static org.mockito.Mockito.eq;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -12,13 +13,14 @@ import static org.mockito.Mockito.when;
 
 import com.epsgrau.pe.sicodetri.entity.FinancialDepreciation;
 import com.epsgrau.pe.sicodetri.entity.FinancialFixedAsset;
+import com.epsgrau.pe.sicodetri.entity.TaxDepreciation;
 import com.epsgrau.pe.sicodetri.entity.TaxTableSunat;
 import com.epsgrau.pe.sicodetri.service.AdditionService;
 import com.epsgrau.pe.sicodetri.service.DeductionService;
 import com.epsgrau.pe.sicodetri.service.FinancialDepreciationService;
 import com.epsgrau.pe.sicodetri.service.TaxDepreciationService;
 import com.epsgrau.pe.sicodetri.service.TaxTableSunatService;
-import com.epsgrau.pe.sicodetri.service.projection.ProjectionType;
+import com.epsgrau.pe.sicodetri.util.enums.ProjectionType;
 import com.epsgrau.pe.sicodetri.util.DataTest;
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -33,35 +35,50 @@ import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
 /**
- * Unit tests for {@link TemporaryDeductionProjectionGenerator}.
+ * Unit test suite for {@link TemporaryDeductionProjectionGenerator}.
  *
- * <p>Verifies that this generator:
+ * <p><strong>Scope</strong></p>
  * <ul>
- *   <li>Reports its correct projection type.</li>
- *   <li>Skips processing when the tax table is missing.</li>
- *   <li>Skips assets that fail eligibility criteria:
- *     default acquisition date, zero initial balance, non-zero revalued amount, incorrect prefixes.</li>
- *   <li>Processes eligible assets and invokes all persistence services exactly once.</li>
- *   <li>Handles empty asset lists without error.</li>
- *   <li>Handles multi-year projections correctly.</li>
+ *   <li>Declares the generator type as {@link ProjectionType#TEMPORARY_DEDUCTIONS}.</li>
+ *   <li>Verifies short-circuit behavior when SUNAT tax table lookup is absent.</li>
+ *   <li>Validates eligibility gating (default acquisition date, wrong account prefix,
+ *       zero initial balance, non-zero revalued amount) prevents persistence calls.</li>
+ *   <li>Verifies the happy path triggers <em>find → delete → save</em> exactly once
+ *       across all projection artifacts (financial/tax depreciation, deductions, additions).</li>
+ *   <li>Ensures empty inputs are handled gracefully.</li>
+ *   <li>Exercises multi-year projection behavior (remaining useful life loop).</li>
  * </ul>
- * </p>
  *
- * <b>Class</b>: {@link TemporaryDeductionProjectionGeneratorTest}<br/>
- * <b>Copyright</b>: &Copy; 2024 EPS Grau. <br/>
- * <b>Company</b>: EPS Grau. <br/>
+ * <p><strong>Test doubles</strong></p>
+ * <ul>
+ *   <li>{@link TaxTableSunatService}, {@link FinancialDepreciationService},
+ *       {@link TaxDepreciationService}, {@link DeductionService}, {@link AdditionService} are mocked.</li>
+ *   <li>Canonical fixtures are provided by {@link DataTest} where applicable.</li>
+ * </ul>
  *
- * @author EPS Grau <br/>
- *     <u>Service Provider</u>: Consultor TI <br/>
- *     <u>Developed by</u>: <br/>
- *     <ul>
- *     <li>Carlos Augusto Nole Machaca</li>
- *     </ul>
- *     <u>Changes</u>:<br/>
- *     <ul>
- *     <li>Jun 11, 2025 (JAR) Creation class.</li>
- *     </ul>
- * @version 1.0
+ * <p><strong>Operational notes</strong></p>
+ * <ul>
+ *   <li>Assertions focus on interactions (Mockito verifications) rather than domain values,
+ *       since the generator performs destructive updates and delegates calculations downstream.</li>
+ * </ul>
+ *
+ * <p><strong>Class</strong>: {@code TemporaryDeductionProjectionGeneratorTest}<br/>
+ * <strong>Company</strong>: EPS Grau S.A.<br/>
+ * <strong>Copyright</strong>: &copy; 2025 EPS Grau S.A. All rights reserved.</p>
+ *
+ * <p><strong>Authors</strong>:</p>
+ * <ul>
+ *   <li>Carlos Augusto Nole Machaca</li>
+ * </ul>
+ *
+ * <p><strong>Change log</strong>:</p>
+ * <ul>
+ *   <li>Jun 11, 2025 — Initial version.</li>
+ * </ul>
+ *
+ * @since 1.0
+ * @see TemporaryDeductionProjectionGenerator
+ * @see DataTest
  */
 @DisplayName("TemporaryDeductionProjectionGenerator Tests")
 class TemporaryDeductionProjectionGeneratorTest {
@@ -84,17 +101,11 @@ class TemporaryDeductionProjectionGeneratorTest {
   @InjectMocks
   private TemporaryDeductionProjectionGenerator generator;
 
-  /**
-   * Initializes Mockito annotations before each test.
-   */
   @BeforeEach
   void setUp() {
     MockitoAnnotations.openMocks(this);
   }
 
-  /**
-   * Verifies that {@code getType()} returns TEMPORARY_DEDUCTIONS.
-   */
   @Test
   @DisplayName("Return TEMPORARY_DEDUCTIONS when getType is called")
   void returnProjectionTypeWhenGetTypeCalled() {
@@ -106,13 +117,11 @@ class TemporaryDeductionProjectionGeneratorTest {
         "getType debe devolver TEMPORARY_DEDUCTIONS");
   }
 
-  /**
-   * Ensures that no processing occurs when the tax table service returns null.
-   */
   @Test
   @DisplayName("generate does nothing when tax table is null")
   void generateSkipsWhenTaxTableIsNull() {
     // Arrange
+    String username = "katherine_gutierrez";
     when(taxTableService.findByAccountigAccountService(S_VAL_332)).thenReturn(null);
     FinancialFixedAsset asset = new FinancialFixedAsset();
     asset.setAcquisitionDate(LocalDate.of(2020,1,1));
@@ -122,23 +131,20 @@ class TemporaryDeductionProjectionGeneratorTest {
     asset.setUsefulLifeYears(1.0);
 
     // Act
-    generator.generate(LocalDate.now(), List.of(asset));
+    generator.generate(username, LocalDate.now(), List.of(asset));
 
     // Assert: no service interactions
     verifyNoInteractions(financialDepreciationService, taxDepreciationService, deductionService, additionService);
   }
 
-  /**
-   * Verifies that assets with default acquisition date, zero balance, or non-zero revalued
-   * amount are skipped.
-   */
   @Test
   @DisplayName("generate skips non-eligible assets")
   void generateSkipsNonEligible() {
     // Arrange
+    String username = "katherine_gutierrez";
     when(taxTableService.findByAccountigAccountService(S_VAL_332))
         .thenReturn(new TaxTableSunat());
-    // asset with default date ⇒ not eligible
+    // asset con fecha por defecto ⇒ no elegible
     FinancialFixedAsset asset = new FinancialFixedAsset();
     asset.setAcquisitionDate(LOCAL_DATE_DEFAULT);
     asset.setFixedAssetAccountingAccount(S_VAL_332 + "XYZ");
@@ -147,24 +153,23 @@ class TemporaryDeductionProjectionGeneratorTest {
     asset.setUsefulLifeYears(1.0);
 
     // Act
-    generator.generate(LocalDate.now(), List.of(asset));
+    generator.generate(username, LocalDate.now(), List.of(asset));
 
     // Assert: still no interactions
     verifyNoInteractions(financialDepreciationService, taxDepreciationService, deductionService, additionService);
   }
 
-  /**
-   * Ensures that eligible assets trigger all four persistence service calls exactly once.
-   */
   @Test
-  @DisplayName("generate processes eligible assets and invokes all services")
+  @DisplayName("generate processes eligible assets and invokes all services (find/delete/save)")
   void generateProcessesEligible() {
     // Arrange
+    String username = "katherine_gutierrez";
     TaxTableSunat table = new TaxTableSunat();
     table.setUsefulLifeYears(1);
     when(taxTableService.findByAccountigAccountService(S_VAL_332)).thenReturn(table);
 
     FinancialFixedAsset asset = new FinancialFixedAsset();
+    asset.setId(100L);
     asset.setAcquisitionDate(LocalDate.of(2020,1,1));
     asset.setFixedAssetAccountingAccount(S_VAL_332 + "123");
     asset.setInitialBalance(BigDecimal.valueOf(100));
@@ -173,23 +178,42 @@ class TemporaryDeductionProjectionGeneratorTest {
 
     LocalDate period = LocalDate.of(2022,1,1);
 
-    // Act
-    generator.generate(period, List.of(asset));
+    // Stubs para cubrir el flujo completo de borrado y guardado
+    when(financialDepreciationService.findByFinancialFixedAssetIdService(eq(asset.getId())))
+        .thenReturn(List.of(new FinancialDepreciation()));
+    when(taxDepreciationService.findByFinancialFixedAssetIdService(eq(asset.getId())))
+        .thenReturn(List.of(new TaxDepreciation()));
+    when(deductionService.findByTaxDepreciationInService(anyList()))
+        .thenReturn(List.of());
+    when(additionService.findByTaxDepreciationInService(anyList()))
+        .thenReturn(List.of());
 
-    // Assert: each service should be invoked once
+    // Act
+    generator.generate(username, period, List.of(asset));
+
+    // Assert: cada servicio debe invocar find → deleteAll → saveAll
+    verify(financialDepreciationService, times(1)).findByFinancialFixedAssetIdService(eq(asset.getId()));
+    verify(financialDepreciationService, times(1)).deleteAllService(anyList());
     verify(financialDepreciationService, times(1)).saveAllService(anyList());
+
+    verify(taxDepreciationService, times(1)).findByFinancialFixedAssetIdService(eq(asset.getId()));
+    verify(taxDepreciationService, times(1)).deleteAllService(anyList());
     verify(taxDepreciationService, times(1)).saveAllService(anyList());
+
+    verify(deductionService, times(1)).findByTaxDepreciationInService(anyList());
+    verify(deductionService, times(1)).deleteAllService(anyList());
     verify(deductionService, times(1)).saveAllService(anyList());
+
+    verify(additionService, times(1)).findByTaxDepreciationInService(anyList());
+    verify(additionService, times(1)).deleteAllService(anyList());
     verify(additionService, times(1)).saveAllService(anyList());
   }
 
-  /**
-   * Verifies that assets with prefixes outside the eligible range are skipped.
-   */
   @Test
   @DisplayName("generate skips assets with wrong prefix")
   void generateSkipsWhenPrefixNotEligible() {
     // Arrange
+    String username = "katherine_gutierrez";
     TaxTableSunat table = new TaxTableSunat();
     when(taxTableService.findByAccountigAccountService(S_VAL_332)).thenReturn(table);
 
@@ -201,20 +225,17 @@ class TemporaryDeductionProjectionGeneratorTest {
     asset.setUsefulLifeYears(1.0);
 
     // Act
-    generator.generate(LocalDate.now(), List.of(asset));
+    generator.generate(username, LocalDate.now(), List.of(asset));
 
     // Assert
     verifyNoInteractions(financialDepreciationService, taxDepreciationService, deductionService, additionService);
   }
 
-  /**
-   * Verifies that assets with a zero initial balance are skipped,
-   * i.e., no projection services are invoked when initial balance is zero.
-   */
   @Test
   @DisplayName("generate skips assets with zero initial balance")
   void generateSkipsWhenInitialBalanceZero() {
     // Arrange
+    String username = "katherine_gutierrez";
     TaxTableSunat table = new TaxTableSunat();
     when(taxTableService.findByAccountigAccountService(S_VAL_332)).thenReturn(table);
 
@@ -226,20 +247,17 @@ class TemporaryDeductionProjectionGeneratorTest {
     asset.setUsefulLifeYears(1.0);
 
     // Act
-    generator.generate(LocalDate.now(), List.of(asset));
+    generator.generate(username, LocalDate.now(), List.of(asset));
 
     // Assert
     verifyNoInteractions(financialDepreciationService, taxDepreciationService, deductionService, additionService);
   }
 
-  /**
-   * Verifies that assets with a non-zero revalued amount are skipped,
-   * i.e., no projection services are invoked when revalued amount is greater than zero.
-   */
   @Test
   @DisplayName("generate skips assets with non-zero revalued amount")
   void generateSkipsWhenRevaluedAmountNonZero() {
     // Arrange
+    String username = "katherine_gutierrez";
     TaxTableSunat table = new TaxTableSunat();
     when(taxTableService.findByAccountigAccountService(S_VAL_332)).thenReturn(table);
 
@@ -251,37 +269,32 @@ class TemporaryDeductionProjectionGeneratorTest {
     asset.setUsefulLifeYears(1.0);
 
     // Act
-    generator.generate(LocalDate.now(), List.of(asset));
+    generator.generate(username, LocalDate.now(), List.of(asset));
 
     // Assert
     verifyNoInteractions(financialDepreciationService, taxDepreciationService, deductionService, additionService);
   }
 
-  /**
-   * Ensures that empty asset lists are handled gracefully with no service interactions.
-   */
   @Test
   @DisplayName("generate does nothing when no assets provided")
   void generateDoesNothingWhenNoAssets() {
     // Arrange
     // tabla existe
+    String username = "katherine_gutierrez";
     when(taxTableService.findByAccountigAccountService(S_VAL_332)).thenReturn(new TaxTableSunat());
 
     // Act
-    generator.generate(LocalDate.now(), Collections.emptyList());
+    generator.generate(username, LocalDate.now(), Collections.emptyList());
 
     // Assert
     verifyNoInteractions(financialDepreciationService, taxDepreciationService, deductionService, additionService);
   }
 
-  /**
-   * Verifies correct multi-year projection behavior: financial depreciation list is non-empty
-   * and each persistence service is invoked once.
-   */
   @Test
   @DisplayName("generate processes multiple years correctly")
   void generateProcessesMultipleYears() {
     // Arrange
+    String username = "katherine_gutierrez";
     TaxTableSunat table = DataTest.getTaxTable332();
     when(taxTableService.findByAccountigAccountService(S_VAL_332)).thenReturn(table);
 
@@ -290,7 +303,7 @@ class TemporaryDeductionProjectionGeneratorTest {
     FinancialFixedAsset asset = DataTest.getFinancialFixedAsset332();
 
     // Act
-    generator.generate(period, List.of(asset));
+    generator.generate(username, period, List.of(asset));
 
     // Assert: capturamos la lista que se guarda para asegurarnos de que fue poblada
     @SuppressWarnings("unchecked")
