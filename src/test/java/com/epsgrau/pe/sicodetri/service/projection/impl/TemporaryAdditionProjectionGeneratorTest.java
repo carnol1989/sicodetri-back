@@ -7,6 +7,7 @@ import static com.epsgrau.pe.sicodetri.util.DataTest.getTaxTable332;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.anyList;
 import static org.mockito.Mockito.atLeastOnce;
+import static org.mockito.Mockito.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
@@ -18,7 +19,7 @@ import com.epsgrau.pe.sicodetri.service.DeductionService;
 import com.epsgrau.pe.sicodetri.service.FinancialDepreciationService;
 import com.epsgrau.pe.sicodetri.service.TaxDepreciationService;
 import com.epsgrau.pe.sicodetri.service.TaxTableSunatService;
-import com.epsgrau.pe.sicodetri.service.projection.ProjectionType;
+import com.epsgrau.pe.sicodetri.util.enums.ProjectionType;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
@@ -32,28 +33,34 @@ import org.mockito.MockitoAnnotations;
 /**
  * Unit tests for {@link TemporaryAdditionProjectionGenerator}.
  *
- * <p>Validates that this generator:
+ * <p>These tests validate orchestration and service collaboration for the
+ * <em>Temporary Additions</em> projection flow. Specifically, they verify that the
+ * generator:</p>
  * <ul>
- *   <li>Reports its correct projection type.</li>
- *   <li>Skips processing when tax table is missing.</li>
- *   <li>Skips assets failing eligibility criteria (default dates, zero balances/costs, banned descriptions, wrong prefixes).</li>
- *   <li>Invokes persistence services for assets that meet all requirements.</li>
+ *   <li>Declares the correct projection type ({@link ProjectionType#TEMPORARY_ADDITIONS}).</li>
+ *   <li>Skips processing when the SUNAT tax table cannot be resolved for the account prefix.</li>
+ *   <li>Filters out non-eligible assets (default acquisition date, zero initial balance,
+ *       banned descriptors, or non-supported prefixes outside 332–337).</li>
+ *   <li>Invokes the expected read–delete–save sequence on financial/tax depreciation,
+ *       additions, and deductions for eligible assets.</li>
  * </ul>
- * </p>
+ *
+ * <p>The focus is on interaction contracts and control-flow decisions; numerical
+ * depreciation calculations are covered elsewhere.</p>
  *
  * <b>Class</b>: {@link TemporaryAdditionProjectionGeneratorTest}<br/>
- * <b>Copyright</b>: &Copy; 2024 EPS Grau. <br/>
+ * <b>Copyright</b>: &copy; 2024 EPS Grau. <br/>
  * <b>Company</b>: EPS Grau. <br/>
  *
- * @author EPS Grau <br/>
- *     <u>Service Provider</u>: Consultor TI <br/>
- *     <u>Developed by</u>: <br/>
+ * @author EPS Grau
+ *     <br/><u>Service Provider</u>: Consultor TI
+ *     <br/><u>Developed by</u>:
  *     <ul>
- *     <li>Carlos Augusto Nole Machaca</li>
+ *       <li>Carlos Augusto Nole Machaca</li>
  *     </ul>
- *     <u>Changes</u>:<br/>
+ *     <u>Changes</u>:
  *     <ul>
- *     <li>Jun 11, 2025 (JAR) Creation class.</li>
+ *       <li>Jun 11, 2025 (JAR) Creation class.</li>
  *     </ul>
  * @version 1.0
  */
@@ -74,26 +81,17 @@ class TemporaryAdditionProjectionGeneratorTest {
   @InjectMocks
   private TemporaryAdditionProjectionGenerator generator;
 
-  /**
-   * Initializes mocks before each test.
-   */
   @BeforeEach
   void setUp() {
     MockitoAnnotations.openMocks(this);
   }
 
-  /**
-   * Verifies that {@code getType()} returns TEMPORARY_ADDITIONS.
-   */
   @Test
   @DisplayName("Return TEMPORARY_ADDITIONS when getType is called")
   void returnTemporaryAdditionsWhenGetTypeCalled() {
     assertEquals(ProjectionType.TEMPORARY_ADDITIONS, generator.getType());
   }
 
-  /**
-   * Ensures generation is skipped when no tax table exists for the asset's account prefix.
-   */
   @Test
   @DisplayName("generate skips all when tax table is null")
   void generateSkipsWhenTaxTableNull() {
@@ -111,9 +109,6 @@ class TemporaryAdditionProjectionGeneratorTest {
     verifyNoInteractions(financialDepreciationService, taxDepreciationService, additionService, deductionService);
   }
 
-  /**
-   * Ensures assets with default acquisition date or zero balances/costs are not processed.
-   */
   @Test
   @DisplayName("generate skips non-eligible assets")
   void generateSkipsNonEligible() {
@@ -121,12 +116,11 @@ class TemporaryAdditionProjectionGeneratorTest {
     String username = "katherine_gutierrez";
     when(taxTableService.findByAccountigAccountService(S_VAL_332))
         .thenReturn(new TaxTableSunat());
-    // Asset not eligible: acquisitionDate == LOCAL_DATE_DEFAULT
+    // Asset not eligible: acquisitionDate == LOCAL_DATE_DEFAULT y saldo inicial 0
     FinancialFixedAsset asset = new FinancialFixedAsset();
     asset.setFixedAssetAccountingAccount(S_VAL_332 + "123");
     asset.setAcquisitionDate(LOCAL_DATE_DEFAULT);
     asset.setInitialBalance(BigDecimal.ZERO);
-    asset.setRevaluedAmount(BigDecimal.ZERO);
 
     // Act
     generator.generate(username, LocalDate.now(), List.of(asset));
@@ -135,33 +129,50 @@ class TemporaryAdditionProjectionGeneratorTest {
     verifyNoInteractions(financialDepreciationService, taxDepreciationService, additionService, deductionService);
   }
 
-  /**
-   * Verifies that all persistence services are invoked for a fully eligible asset.
-   */
   @Test
-  @DisplayName("generate invokes services on eligible asset")
+  @DisplayName("generate invokes services on eligible asset (incluye find/delete/save)")
   void generateInvokesServicesWhenEligible() {
-    // Arrange: tax table with usefulLifeYears = 2
+    // Arrange: tax table con usefulLifeYears = 2
     String username = "katherine_gutierrez";
     TaxTableSunat table = getTaxTable332();
     when(taxTableService.findByAccountigAccountService(S_VAL_332))
         .thenReturn(table);
 
     FinancialFixedAsset asset = getFinancialFixedAsset332ForTemporaryAddition();
+    // Fuerza rama desc == null en isEligible
+    asset.setWellAppraisedPreInvestmentStudyDry(null);
+
+    // Stubs de lecturas previas (para que deleteAll reciba una lista)
+    when(financialDepreciationService.findByFinancialFixedAssetIdService(eq(asset.getId())))
+        .thenReturn(List.of());
+    when(taxDepreciationService.findByFinancialFixedAssetIdService(eq(asset.getId())))
+        .thenReturn(List.of());
+    when(deductionService.findByTaxDepreciationInService(anyList()))
+        .thenReturn(List.of());
+    when(additionService.findByTaxDepreciationInService(anyList()))
+        .thenReturn(List.of());
 
     // Act
     generator.generate(username, LocalDate.now(), List.of(asset));
 
-    // Assert: each projection year produces lists to persist
+    // Assert: cada etapa (read->delete->save) es invocada
+    verify(financialDepreciationService, atLeastOnce()).findByFinancialFixedAssetIdService(eq(asset.getId()));
+    verify(financialDepreciationService, atLeastOnce()).deleteAllService(anyList());
     verify(financialDepreciationService, atLeastOnce()).saveAllService(anyList());
+
+    verify(taxDepreciationService, atLeastOnce()).findByFinancialFixedAssetIdService(eq(asset.getId()));
+    verify(taxDepreciationService, atLeastOnce()).deleteAllService(anyList());
     verify(taxDepreciationService, atLeastOnce()).saveAllService(anyList());
+
+    verify(deductionService, atLeastOnce()).findByTaxDepreciationInService(anyList());
+    verify(deductionService, atLeastOnce()).deleteAllService(anyList());
     verify(deductionService, atLeastOnce()).saveAllService(anyList());
+
+    verify(additionService, atLeastOnce()).findByTaxDepreciationInService(anyList());
+    verify(additionService, atLeastOnce()).deleteAllService(anyList());
     verify(additionService, atLeastOnce()).saveAllService(anyList());
   }
 
-  /**
-   * Ensures that assets whose descriptions contain a banned keyword are skipped.
-   */
   @Test
   @DisplayName("generate skips assets with banned description")
   void generateSkipsWhenDescriptionContainsBanned() {
@@ -174,7 +185,6 @@ class TemporaryAdditionProjectionGeneratorTest {
     asset.setFixedAssetAccountingAccount(S_VAL_332 + "123");
     asset.setAcquisitionDate(LocalDate.now().minusYears(1));
     asset.setInitialBalance(new BigDecimal("100"));
-    asset.setRevaluedAmount(BigDecimal.ZERO);
     asset.setWellAppraisedPreInvestmentStudyDry("Valor Tasado premium"); // banned
 
     // Act
@@ -184,9 +194,6 @@ class TemporaryAdditionProjectionGeneratorTest {
     verifyNoInteractions(financialDepreciationService, taxDepreciationService, additionService, deductionService);
   }
 
-  /**
-   * Ensures that assets with an invalid accounting-account prefix are not processed.
-   */
   @Test
   @DisplayName("generate skips assets with non-eligible accounting-account prefix")
   void generateSkipsWhenPrefixNotEligible() {

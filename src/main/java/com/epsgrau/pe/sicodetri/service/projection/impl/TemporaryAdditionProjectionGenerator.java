@@ -19,7 +19,7 @@ import com.epsgrau.pe.sicodetri.entity.TaxTableSunat;
 import com.epsgrau.pe.sicodetri.model.Projection;
 import com.epsgrau.pe.sicodetri.service.TaxTableSunatService;
 import com.epsgrau.pe.sicodetri.service.projection.ProjectionGenerator;
-import com.epsgrau.pe.sicodetri.service.projection.ProjectionType;
+import com.epsgrau.pe.sicodetri.util.enums.ProjectionType;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.ArrayList;
@@ -29,28 +29,31 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 /**
- * {@link ProjectionGenerator} implementation for generating temporary additions projections.
- * For each fixed asset, this generator selects the appropriate SUNAT tax table based on
- * the asset's accounting account prefix (332–337), checks eligibility criteria, and then
- * processes the asset over its full useful life to calculate monthly financial and tax
- * depreciation, determining additions or deductions accordingly.
- * After projection generation, existing depreciation, tax, addition, and deduction records
- * are removed and replaced with the newly computed entries.
- * <b>Class</b>: {@link TemporaryAdditionProjectionGenerator}<br/>
- * <b>Copyright</b>: &copy; 2024 EPS Grau. <br/>
- * <b>Company</b>: EPS Grau. <br/>
+ * Projection generator for <em>Temporary Additions</em>.
  *
- * @author EPS Grau <br/>
- *     <u>Service Provider</u>: Consultor TI <br/>
- *     <u>Developed by</u>: <br/>
- *     <ul>
- *     <li>Carlos Augusto Nole Machaca</li>
- *     </ul>
- *     <u>Changes</u>:<br/>
- *     <ul>
- *     <li>Jun 10, 2025 (JAR) Creation class.</li>
- *     </ul>
- * @version 1.0
+ * <p>This component drives the monthly projection of financial and tax depreciation
+ * for eligible fixed assets under the <strong>temporary additions</strong> regime.
+ * For each asset, it:</p>
+ * <ol>
+ *   <li>Selects the applicable SUNAT tax table based on the first three digits of
+ *       the accounting account (prefixes {@code 332} – {@code 337}).</li>
+ *   <li>Validates business eligibility rules (see {@link #isEligible(FinancialFixedAsset)}).</li>
+ *   <li>Iterates through the asset’s useful life, producing monthly financial and tax
+ *       depreciation entries and deriving additions/deductions as needed.</li>
+ *   <li>Replaces any existing persisted records (financial/tax depreciation, additions,
+ *       deductions) with the newly computed set for the asset.</li>
+ * </ol>
+ *
+ * <p><b>Important:</b> This generator performs a delete-and-insert refresh of the
+ * calculated records for each processed asset.</p>
+ *
+ * <b>Class</b>: {@link TemporaryAdditionProjectionGenerator}<br/>
+ * <b>Company</b>: EPS Grau<br/>
+ * <b>Copyright</b>: &copy; 2024 EPS Grau
+ *
+ * @see AbstractProjectionGenerator
+ * @see ProjectionGenerator
+ * @see ProjectionType#TEMPORARY_ADDITIONS
  */
 @Component
 public class TemporaryAdditionProjectionGenerator extends AbstractProjectionGenerator
@@ -60,9 +63,9 @@ public class TemporaryAdditionProjectionGenerator extends AbstractProjectionGene
     private TaxTableSunatService taxTableService;
 
     /**
-     * Returns the projection type handled by this generator.
+     * Identifies the projection type handled by this generator.
      *
-     * @return {@link ProjectionType#TEMPORARY_ADDITIONS}
+     * @return the {@link ProjectionType} value {@link ProjectionType#TEMPORARY_ADDITIONS}.
      */
     @Override
     public ProjectionType getType() {
@@ -70,14 +73,19 @@ public class TemporaryAdditionProjectionGenerator extends AbstractProjectionGene
     }
 
     /**
-     * Generates temporary additions projections for each eligible fixed asset.
-     * Iterates through the provided asset list; for each asset, determines the
-     * SUNAT tax table based on its accounting account prefix and, if the asset
-     * meets the eligibility criteria, processes the asset to compute and persist
-     * its depreciation, additions, and deductions over the asset’s useful life.
+     * Generates temporary-additions projections for the supplied assets and starting period.
      *
-     * @param accountingPeriod the starting accounting period for the projection
-     * @param fixedAssets      the list of fixed assets to project
+     * <p>For each asset, this method selects the SUNAT tax table using the accounting account
+     * prefix, verifies eligibility, and—if eligible—computes the monthly financial/tax
+     * depreciation, additions, and deductions across the asset’s useful life. Existing
+     * persisted calculation records for the asset are removed and replaced with the new ones.</p>
+     *
+     * @param username          user identifier used for auditing on generated records
+     * @param accountingPeriod  starting accounting period for the projection
+     * @param fixedAssets       list of fixed assets to evaluate and project
+     *
+     * @apiNote This method assumes each asset has a non-null accounting account with
+     *           at least three characters (for prefix resolution).
      */
     @Override
     public void generate(String username, LocalDate accountingPeriod, List<FinancialFixedAsset> fixedAssets) {
@@ -94,17 +102,22 @@ public class TemporaryAdditionProjectionGenerator extends AbstractProjectionGene
     }
 
     /**
-     * Determines if a fixed asset is eligible for temporary additions projection.
-     * Criteria:
+     * Determines whether a fixed asset qualifies for the temporary-additions projection.
+     *
+     * <p>An asset is considered <em>eligible</em> when all of the following are true:</p>
      * <ul>
-     *   <li>Acquisition date is not the default placeholder</li>
-     *   <li>Accounting account prefix is one of 332–337</li>
-     *   <li>Description does <em>not</em> contain "tasacion", "valor tasado", or "valortasado"</li>
-     *   <li>Initial balance is greater than zero</li>
+     *   <li>The acquisition date is not the default placeholder
+     *   ({@link com.epsgrau.pe.sicodetri.util.Constants#LOCAL_DATE_DEFAULT}).</li>
+     *   <li>The accounting account starts with one of the prefixes {@code 332}, {@code 333},
+     *       {@code 334}, {@code 335}, {@code 336}, or {@code 337}.</li>
+     *   <li>The “well appraised / pre-investment study” field does <strong>not</strong>
+     *       contain any of: {@code "tasacion"}, {@code "valor tasado"}, {@code "valortasado"}
+     *       (case-insensitive).</li>
+     *   <li>The initial balance is strictly greater than zero.</li>
      * </ul>
      *
-     * @param f the fixed asset to check
-     * @return {@code true} if the asset qualifies, {@code false} otherwise
+     * @param f the fixed asset under evaluation
+     * @return {@code true} if the asset meets all criteria; {@code false} otherwise
      */
     private boolean isEligible(FinancialFixedAsset f) {
         String desc = f.getWellAppraisedPreInvestmentStudyDry();
@@ -123,18 +136,25 @@ public class TemporaryAdditionProjectionGenerator extends AbstractProjectionGene
     }
 
     /**
-     * Processes a single fixed asset by.:
+     * Projects a single fixed asset for the temporary-additions scenario and persists results.
+     *
+     * <p>Processing steps:</p>
      * <ol>
-     *   <li>Initializing the first-period tax depreciation record</li>
-     *   <li>Building a {@link Projection} model for the given period</li>
-     *   <li>Iteratively generating monthly depreciation, additions, and deductions</li>
-     *   <li>Deleting existing database records for this asset</li>
-     *   <li>Persisting the newly generated records</li>
+     *   <li>Initialize the first tax-depreciation snapshot (first/last flags, zero net value).</li>
+     *   <li>Build a working {@link Projection} model anchored at the supplied period.</li>
+     *   <li>Iterate month-by-month across the asset’s useful life (as per SUNAT table),
+     *       invoking {@link AbstractProjectionGenerator#processYearDepreciation} with
+     *       {@code S_VAL_02} to populate financial/tax depreciation and additions/deductions.</li>
+     *   <li>Delete prior persisted calculations for this asset and save the newly computed sets.</li>
      * </ol>
      *
-     * @param fixedAsset the fixed asset to project
-     * @param period     the accounting period to start projection
-     * @param table      the SUNAT tax table entry for this asset’s account prefix
+     * <p><b>Side effects:</b> existing financial depreciation, tax depreciation, additions,
+     * and deductions tied to the asset are removed and replaced.</p>
+     *
+     * @param fixedAsset the asset to project
+     * @param username   user identifier used for auditing on generated rows
+     * @param period     starting accounting period for the projection
+     * @param table      SUNAT tax table entry resolved for the asset’s account prefix
      */
     private void processAsset(FinancialFixedAsset fixedAsset,
                               String username,

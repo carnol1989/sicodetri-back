@@ -1,22 +1,21 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+		 xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
 	<modelVersion>4.0.0</modelVersion>
+
 	<parent>
 		<groupId>org.springframework.boot</groupId>
 		<artifactId>spring-boot-starter-parent</artifactId>
 		<version>3.2.8</version>
 		<relativePath/> <!-- lookup parent from repository -->
 	</parent>
+
 	<groupId>com.epsgrau.pe</groupId>
 	<artifactId>sicodetri</artifactId>
 	<version>1.0.0-SNAPSHOT</version>
 	<name>sicodetri</name>
 	<description>Sismtema de conciliacion Tributaria vs Financiera de Activos Fijos</description>
-	<url/>
-	<licenses>
-		<license/>
-	</licenses>
+
 	<developers>
 		<developer>
 			<id>carlosnole</id>
@@ -29,14 +28,11 @@
 			</roles>
 		</developer>
 	</developers>
-	<scm>
-		<connection/>
-		<developerConnection/>
-		<tag/>
-		<url/>
-	</scm>
+
 	<properties>
 		<java.version>17</java.version>
+
+		<!-- Librerías -->
 		<apache.poi.version>5.3.0</apache.poi.version>
 		<mockito.core.version>5.3.1</mockito.core.version>
 		<mockito.inline.version>5.2.0</mockito.inline.version>
@@ -49,22 +45,28 @@
 		<spotbugs.annotations.version>4.0.0</spotbugs.annotations.version>
 		<karate.version>1.4.0</karate.version>
 		<spring-authorization-server.version>1.1.0</spring-authorization-server.version>
+		<mapstruct.version>1.5.5.Final</mapstruct.version>
+		<lombok.version>1.18.32</lombok.version>
+		<lombok.mapstruct.binding.version>0.2.0</lombok.mapstruct.binding.version>
+
+		<!-- Plugins de calidad -->
 		<plugin.maven.checkstyle.version>3.3.1</plugin.maven.checkstyle.version>
 		<plugin.maven.spotbugs.version>4.8.6.6</plugin.maven.spotbugs.version>
 		<plugin.maven.javadoc.version>3.4.1</plugin.maven.javadoc.version>
+
+		<!-- JMeter -->
+		<jmeter.maven.plugin.version>3.8.0</jmeter.maven.plugin.version>
+		<jmeter.version>5.6.3</jmeter.version>
+		<properties.maven.plugin.version>1.2.1</properties.maven.plugin.version>
+
+		<maven.compiler.plugin.version>3.11.0</maven.compiler.plugin.version>
+
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 	</properties>
 	<dependencies>
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-web</artifactId>
-		</dependency>
-
-		<dependency>
-			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-devtools</artifactId>
-			<scope>runtime</scope>
-			<optional>true</optional>
 		</dependency>
 
 		<dependency>
@@ -76,10 +78,6 @@
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-data-jpa</artifactId>
-		</dependency>
-		<dependency>
-			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-starter-data-jdbc</artifactId>
 		</dependency>
 		<dependency>
 			<groupId>org.postgresql</groupId>
@@ -193,6 +191,12 @@
 			<artifactId>spring-security-oauth2-authorization-server</artifactId>
 			<version>${spring-authorization-server.version}</version>
 		</dependency>
+
+		<dependency>
+			<groupId>org.mapstruct</groupId>
+			<artifactId>mapstruct</artifactId>
+			<version>${mapstruct.version}</version>
+		</dependency>
 	</dependencies>
 	<build>
 		<plugins>
@@ -216,7 +220,42 @@
 					</execution>
 				</executions>
 			</plugin>
-			<!-- Plugin de Javadoc -->
+
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-compiler-plugin</artifactId>
+				<version>${maven.compiler.plugin.version}</version>
+				<configuration>
+					<source>${java.version}</source>
+					<target>${java.version}</target>
+					<!-- Annotation Processors -->
+					<annotationProcessorPaths>
+						<path>
+							<groupId>org.mapstruct</groupId>
+							<artifactId>mapstruct-processor</artifactId>
+							<version>${mapstruct.version}</version>
+						</path>
+						<path>
+							<groupId>org.projectlombok</groupId>
+							<artifactId>lombok</artifactId>
+							<version>${lombok.version}</version>
+						</path>
+						<!-- Recomendado para que Lombok y MapStruct “jueguen” bien -->
+						<path>
+							<groupId>org.projectlombok</groupId>
+							<artifactId>lombok-mapstruct-binding</artifactId>
+							<version>${lombok.mapstruct.binding.version}</version>
+						</path>
+					</annotationProcessorPaths>
+					<!-- Opcional: defaults globales de MapStruct (evitas ponerlos en cada @Mapper) -->
+					<compilerArgs>
+						<arg>-Amapstruct.defaultComponentModel=spring</arg>
+						<arg>-Amapstruct.unmappedTargetPolicy=IGNORE</arg>
+					</compilerArgs>
+				</configuration>
+			</plugin>
+
+			<!-- Javadoc -->
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-javadoc-plugin</artifactId>
@@ -227,7 +266,6 @@
 						<goals>
 							<goal>javadoc</goal>
 						</goals>
-						<!-- Opcional: lo ata al ciclo de vida en verify -->
 						<phase>verify</phase>
 					</execution>
 					<execution>
@@ -238,15 +276,35 @@
 					</execution>
 				</executions>
 				<configuration>
-					<!-- Codificación para que reconozca acentos y símbolos -->
+					<!-- Garantiza versión de lenguaje/encoding -->
+					<source>${java.version}</source>
 					<encoding>${project.build.sourceEncoding}</encoding>
 					<docencoding>${project.build.sourceEncoding}</docencoding>
-					<charSet>UTF-8</charSet>
+					<charset>${project.build.sourceEncoding}</charset>
+					<!-- Registrar tags adicionales en formato explícito -->
+					<tags>
+						<tag>
+							<name>apiNote</name>
+							<placement>a</placement>
+							<head>API Note:</head>
+						</tag>
+						<tag>
+							<name>implSpec</name>
+							<placement>a</placement>
+							<head>Implementation Requirements:</head>
+						</tag>
+						<tag>
+							<name>implNote</name>
+							<placement>a</placement>
+							<head>Implementation Note:</head>
+						</tag>
+					</tags>
 					<!-- Genera todos los niveles de visibilidad si lo deseas -->
 					<show>private</show>
 				</configuration>
 			</plugin>
-			<!-- Plugin de JaCoCo para la cobertura del código -->
+
+			<!-- JaCoCo -->
 			<plugin>
 				<groupId>org.jacoco</groupId>
 				<artifactId>jacoco-maven-plugin</artifactId>
@@ -260,7 +318,8 @@
 					</execution>
 				</executions>
 			</plugin>
-			<!-- Plugin de Checkstyle -->
+
+			<!-- Checkstyle -->
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-checkstyle-plugin</artifactId>
@@ -286,7 +345,8 @@
 					</execution>
 				</executions>
 			</plugin>
-			<!-- Plugin de SpotBugs -->
+
+			<!-- SpotBugs -->
 			<plugin>
 				<groupId>com.github.spotbugs</groupId>
 				<artifactId>spotbugs-maven-plugin</artifactId>
@@ -304,6 +364,8 @@
 					</execution>
 				</executions>
 			</plugin>
+
+			<!-- Failsafe (ITs Karate) -->
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-failsafe-plugin</artifactId>
@@ -328,6 +390,169 @@
 			</plugin>
 		</plugins>
 	</build>
+	<profiles>
+		<!-- PERFIL dev con DevTools -->
+		<profile>
+			<id>dev</id>
+			<dependencies>
+				<dependency>
+					<groupId>org.springframework.boot</groupId>
+					<artifactId>spring-boot-devtools</artifactId>
+					<scope>runtime</scope>
+					<optional>true</optional>
+				</dependency>
+			</dependencies>
+		</profile>
+		<profile>
+			<id>performance</id>
+			<build>
+				<resources>
+					<resource>
+						<directory>${project.basedir}/src/test/jmeter/datasets</directory>
+						<includes>
+							<include>**/*.csv</include>
+						</includes>
+						<targetPath>${project.build.directory}/jmeter/testFiles</targetPath>
+					</resource>
+					<resource>
+						<directory>${project.basedir}/src/test/jmeter/files</directory>
+						<includes>
+							<include>**/*.xlsx</include>
+						</includes>
+						<targetPath>${project.build.directory}/jmeter/testFiles</targetPath>
+					</resource>
+				</resources>
+				<plugins>
+					<plugin>
+						<groupId>org.codehaus.mojo</groupId>
+						<artifactId>properties-maven-plugin</artifactId>
+						<version>${properties.maven.plugin.version}</version>
+						<executions>
+							<execution>
+								<phase>initialize</phase>
+								<goals>
+									<goal>read-project-properties</goal>
+								</goals>
+								<configuration>
+									<files>
+										<file>${project.basedir}/src/test/jmeter/perf-env.properties</file>
+									</files>
+								</configuration>
+							</execution>
+						</executions>
+					</plugin>
+					<plugin>
+						<groupId>com.lazerycode.jmeter</groupId>
+						<artifactId>jmeter-maven-plugin</artifactId>
+						<version>${jmeter.maven.plugin.version}</version>
+						<configuration>
+							<jmeterVersion>${jmeter.version}</jmeterVersion>
+							<propertiesUser>
+								<!-- Target -->
+								<host>${host}</host>
+								<port>${port}</port>
+								<protocol>${protocol}</protocol>
+								<base_api>${base_api}</base_api>
+								<!-- OAuth2 -->
+								<client_id>${client_id}</client_id>
+								<client_secret>${client_secret}</client_secret>
+								<token_path>${token_path}</token_path>
+								<scope>${scope}</scope>
+								<!-- Carga -->
+								<users>${users}</users>
+								<rampup>${rampup}</rampup>
+								<duration>${duration}</duration>
+								<!-- Asserts & Config -->
+								<max_resp_ms>${max_resp_ms}</max_resp_ms>
+								<testFiles>${testFiles}</testFiles>
+								<files_dir>${files_dir}</files_dir>
+								<!-- CSV y candado -->
+								<csv_recycle>${csv_recycle}</csv_recycle>
+								<csv_stop_on_eof>${csv_stop_on_eof}</csv_stop_on_eof>
+								<global_sequential>${global_sequential}</global_sequential>
+								<eof_idle_ms>${eof_idle_ms}</eof_idle_ms>
+								<!-- Retry 417 -->
+								<retry_417_max>${retry_417_max}</retry_417_max>
+								<retry_417_base_ms>${retry_417_base_ms}</retry_417_base_ms>
+								<!-- HTTP tuning -->
+								<httpclient4.use_expect_continue>false</httpclient4.use_expect_continue>
+								<http.connection.stalecheck>true</http.connection.stalecheck>
+								<httpclient4.use.keepalive>true</httpclient4.use.keepalive>
+								<httpclient4.retrycount>1</httpclient4.retrycount>
+							</propertiesUser>
+							<generateReports>true</generateReports>
+							<testResultsTimestamp>true</testResultsTimestamp>
+							<resultsFileNameDateFormat>yyyyMMdd-HHmmss</resultsFileNameDateFormat>
+							<propertiesFilesDirectory>${project.basedir}/src/test/jmeter</propertiesFilesDirectory>
+						</configuration>
+						<executions>
+							<execution>
+								<id>configuration</id>
+								<goals>
+									<goal>configure</goal>
+								</goals>
+							</execution>
+							<execution>
+								<id>jmeter-tests</id>
+								<goals>
+									<goal>jmeter</goal>
+								</goals>
+								<configuration>
+									<jMeterProcessJVMSettings>
+										<xms>1024</xms>
+										<xmx>2048</xmx>
+									</jMeterProcessJVMSettings>
+									<testFilesIncluded>
+										<jMeterTestFile>${testFiles}</jMeterTestFile>
+									</testFilesIncluded>
+								</configuration>
+							</execution>
+						</executions>
+					</plugin>
+					<plugin>
+						<groupId>org.apache.maven.plugins</groupId>
+						<artifactId>maven-checkstyle-plugin</artifactId>
+						<configuration>
+							<skip>true</skip>
+						</configuration>
+					</plugin>
+					<plugin>
+						<groupId>org.apache.maven.plugins</groupId>
+						<artifactId>maven-surefire-plugin</artifactId>
+						<configuration>
+							<skip>true</skip>
+						</configuration>
+					</plugin>
+					<plugin>
+						<groupId>org.apache.maven.plugins</groupId>
+						<artifactId>maven-failsafe-plugin</artifactId>
+						<configuration>
+							<skipITs>true</skipITs>
+							<skipTests>true</skipTests>
+						</configuration>
+					</plugin>
+					<plugin>
+						<groupId>com.github.spotbugs</groupId>
+						<artifactId>spotbugs-maven-plugin</artifactId>
+						<configuration>
+							<skip>true</skip>
+						</configuration>
+					</plugin>
+					<plugin>
+						<groupId>org.apache.maven.plugins</groupId>
+						<artifactId>maven-javadoc-plugin</artifactId>
+						<configuration>
+							<skip>true</skip>
+						</configuration>
+					</plugin>
+				</plugins>
+			</build>
+			<properties>
+				<testFiles>SICODETRI_LoadTest.jmx</testFiles>
+				<files_dir>${project.build.directory}/jmeter/testFiles</files_dir>
+			</properties>
+		</profile>
+	</profiles>
 	<reporting>
 		<plugins>
 			<plugin>

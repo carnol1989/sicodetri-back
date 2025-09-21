@@ -178,7 +178,7 @@ curl --location 'http://localhost:8082/oauth2/token' \
 curl --location 'http://localhost:8082/api/v1/financial-fixed-assets/upload' \
 --header 'Authorization: Bearer eyJraWQiOiIxZDk1NWY4OC1iYWJhLTQ5M2YtOWNmNC05MDQ3NGNiMGNmYWEiLCJhbGciOiJSUzI1NiJ9.eyJzdWIiOiJrYXRoZXJpbmVfZ3V0aWVycmV6IiwiYXVkIjoic2ljb2RldHJpYXBwIiwibmJmIjoxNzUzNzU0OTkzLCJzY29wZSI6WyJvcGVuaWQiLCJyb2xlcyJdLCJyb2xlcyI6WyJBc3NldFVwbG9hZGVyIiwiRGVwcmVjaWF0aW9uUHJvY2Vzc29yIiwiUmVwb3J0R2VuZXJhdG9yIiwiVGF4VGFibGVWaWV3ZXIiXSwiaXNzIjoiaHR0cDovL2xvY2FsaG9zdDo4MDgyIiwiZXhwIjoxNzUzNzU1ODkzLCJpYXQiOjE3NTM3NTQ5OTN9.JcASD9_OWRPH2S90Ip9gnl2vghFZL1wikCaZP-kaUkNB3bu4xjnuYsCCCrfQe_-txD9UC4foZHcBUu7e6SzKoxm34rZHgZHU0-h_wn9ub0cnLY4Gz0Rd26lFuzW0TGIeekLAvfUlpjtmCp7rDSiFr8jul082L5MLRD2WnXcizPc0Mn1HqJMTyzhy58nzYTyFVQy-SSl8oKbNbnJuE7Dl6ycjC3keXcCWfd1l07vOI93utkxY7kSQx_JSC2M_i6XDLci1Ie1ZvhPfWhZoqBad26OGSGPa4mhILIKMojMbiAFj3RcvzrX_6-2YnrG-7gubhpVDGhekFGbJZMExd4K5Vg' \
 --header 'Cookie: JSESSIONID=CECA7BA911523FA03FAE281971BCE844; XSRF-TOKEN=ec66bdd4-6b09-4e18-b7ac-8a0656d333b4' \
---form 'file=@"/C:/epsgrau/Formato 7 financiero 2022.xlsx"' \
+--form 'file=@"/C:/epsgrau/ActivosFijos2022.xlsx"' \
 --form 'period="2022-01-01"'
 ```  
 **Response:**  
@@ -186,7 +186,7 @@ curl --location 'http://localhost:8082/api/v1/financial-fixed-assets/upload' \
 {
   "timestamp": "2025-07-28T21:10:07.981097",
   "code": "00",
-  "message": "Archivo subido correctamente: Formato 7 financiero 2022.xlsx",
+  "message": "Archivo subido correctamente: ActivosFijos2022.xlsx",
   "response": 2,
   "exception": null
 }

@@ -28,7 +28,7 @@ Feature: Integración del endpoint saveFinancialFixedAssetController
     Given path '/api/v1/financial-fixed-assets'
     And param period = '2022-01-01'
     When method post
-    Then status 417
+    Then status 400
     And match response.code == '01'
     And match response.message contains 'Error al obtener información de entrada'
 

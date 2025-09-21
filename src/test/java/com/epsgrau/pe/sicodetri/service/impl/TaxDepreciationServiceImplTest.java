@@ -36,56 +36,51 @@ import org.mockito.MockitoAnnotations;
 /**
  * Unit tests for {@link TaxDepreciationServiceImpl}.
  *
- * <p>
- * Exercises the key service methods including:
+ * <p>These tests verify repository delegation and business behavior exposed by the
+ * service layer, using Mockito-based test doubles for the repository. The suite
+ * covers:</p>
  * <ul>
- *   <li>Saving single and multiple TaxDepreciation entities</li>
- *   <li>Updating and deleting by ID</li>
- *   <li>Retrieval by ID with fallbacks for missing entities</li>
- *   <li>Bulk retrieval and deletion operations</li>
- *   <li>Association lookups by financial fixed asset ID</li>
- *   <li>Validation of Lombok-generated all-args constructor and getters</li>
- *   <li>Calculation logic for different depreciation types (TEMPORARY_DEDUCTION,
- *       TEMPORARY_ADDITION, PERMANENT_ADDITIONS) against various asset and table conditions</li>
+ *   <li>Creation: saving single and multiple entities (batch)</li>
+ *   <li>Update: upsert semantics via {@code save}</li>
+ *   <li>Deletion: by identifier and in batch, including explicit {@code flush()}</li>
+ *   <li>Read operations:
+ *     <ul>
+ *       <li>Find by id (present and absent → returns a new empty instance)</li>
+ *       <li>Find all</li>
+ *       <li>Find by financial fixed asset id</li>
+ *     </ul>
+ *   </li>
+ *   <li>Entity model checks: all-args constructor and standard getters</li>
+ *   <li>Tax depreciation calculation paths for:
+ *     <ul>
+ *       <li>{@code S_VAL_01} (temporary deduction)</li>
+ *       <li>{@code S_VAL_02} (temporary addition)</li>
+ *       <li>{@code S_VAL_03} (permanent additions)</li>
+ *     </ul>
+ *     validating monthly rate application, accumulated amounts, and net tax value transitions</li>
  * </ul>
- * </p>
  *
  * <b>Class</b>: {@link TaxDepreciationServiceImplTest}<br/>
- * <b>Copyright</b>: &Copy; 2024 EPS Grau. <br/>
- * <b>Company</b>: EPS Grau. <br/>
+ * <b>Company</b>: EPS Grau<br/>
+ * <b>Copyright</b>: &copy; 2024 EPS Grau
  *
- * @author EPS Grau <br/>
- *     <u>Service Provider</u>: Consultor TI <br/>
- *     <u>Developed by</u>: <br/>
- *     <ul>
- *     <li>Carlos Augusto Nole Machaca</li>
- *     </ul>
- *     <u>Changes</u>:<br/>
- *     <ul>
- *     <li>Jun 06, 2025 (JAR) Creation class.</li>
- *     </ul>
+ * @author EPS Grau
  * @version 1.0
+ * @since 1.0
  */
 class TaxDepreciationServiceImplTest {
 
     @Mock
     private TaxDepreciationRepository repository;
 
-
     @InjectMocks
     private TaxDepreciationServiceImpl service;
 
-    /**
-     * Initializes mocks before each test.
-     */
     @BeforeEach
     void setUp() {
         MockitoAnnotations.openMocks(this);
     }
 
-    /**
-     * Verifies that saveService returns the same instance provided by the repository.
-     */
     @Test
     @DisplayName("saveService returns the saved instance")
     void saveServiceReturnsSavedInstance() {
@@ -102,9 +97,6 @@ class TaxDepreciationServiceImplTest {
         assertSame(saved, result, "Debe devolver exactamente el objeto retornado por el repositorio");
     }
 
-    /**
-     * Verifies that saveAllService delegates to repository.saveAll().
-     */
     @Test
     @DisplayName("saveAllService invokes repository.saveAll with given list")
     void saveAllServiceInvokesSaveAll() {
@@ -118,10 +110,6 @@ class TaxDepreciationServiceImplTest {
         verify(repository).saveAll(list);
     }
 
-    /**
-     * Verifies that the service correctly delegates saving a valid TaxDepreciation
-     * entity to the repository.
-     */
     @Test
     @DisplayName("Save taxDepreciation when valid taxDepreciation is provided")
     void saveTaxDepreciationWhenValidTaxDepreciationIsProvided() {
@@ -135,9 +123,6 @@ class TaxDepreciationServiceImplTest {
         verify(repository, times(1)).save(taxDepreciation);
     }
 
-    /**
-     * Verifies that updateService persists changes by calling repository.save().
-     */
     @Test
     @DisplayName("Update taxDepreciation when valid taxDepreciation is provided")
     void updateTaxDepreciationWhenValidTaxDepreciationIsProvided() {
@@ -151,9 +136,6 @@ class TaxDepreciationServiceImplTest {
         verify(repository, times(1)).save(taxDepreciation);
     }
 
-    /**
-     * Verifies that deleteByIdService deletes the entity by ID via the repository.
-     */
     @Test
     @DisplayName("Delete taxDepreciation when valid id is provided")
     void deleteTaxDepreciationWhenValidIdIsProvided() {
@@ -165,11 +147,9 @@ class TaxDepreciationServiceImplTest {
 
         // Assert
         verify(repository, times(1)).deleteById(id);
+        verify(repository, times(1)).flush(); // cubrir flush()
     }
 
-    /**
-     * Verifies that findByIdService returns the existing entity for a known ID.
-     */
     @Test
     @DisplayName("Return taxDepreciation when it exists for given id")
     void returnTaxDepreciationWhenItExistsForGivenId() {
@@ -186,9 +166,6 @@ class TaxDepreciationServiceImplTest {
         assertEquals(taxDepreciation, result);
     }
 
-    /**
-     * Verifies that findByIdService returns a new, empty instance when no entity exists.
-     */
     @Test
     @DisplayName("Return new taxDepreciation when none exists for given id")
     void returnNewTaxDepreciationWhenNoneExistsForGivenId() {
@@ -204,9 +181,6 @@ class TaxDepreciationServiceImplTest {
         assertNull(result.getId());
     }
 
-    /**
-     * Verifies that findAllService retrieves all entities via the repository.
-     */
     @Test
     @DisplayName("Return all taxDepreciations when findAllService is called")
     void returnAllTaxDepreciationsWhenFindAllServiceIsCalled() {
@@ -225,21 +199,15 @@ class TaxDepreciationServiceImplTest {
         assertEquals(taxDepreciation, result.get(0));
     }
 
-    /**
-     * Verifies that deleteAllService deletes the provided list via the repository.
-     */
     @Test
     @DisplayName("deleteAllService invokes repository.deleteAll")
     void deleteAllServiceInvokesDeleteAll() {
         List<TaxDepreciation> list = List.of(getTaxDepreciation(), new TaxDepreciation());
         service.deleteAllService(list);
         verify(repository).deleteAll(list);
+        verify(repository, times(1)).flush(); // cubrir flush()
     }
 
-    /**
-     * Verifies that findByFinancialFixedAssetIdService returns the list of
-     * TaxDepreciation entities associated with the given financial asset ID.
-     */
     @Test
     @DisplayName("findByFinancialFixedAssetIdService returns list")
     void findByFinancialFixedAssetIdServiceReturnsList() {
@@ -253,10 +221,6 @@ class TaxDepreciationServiceImplTest {
         assertSame(expected, result);
     }
 
-    /**
-     * Verifies that findByFinancialFixedAssetIdService returns an empty list
-     * when no entities are associated with the given financial asset ID.
-     */
     @Test
     @DisplayName("findByFinancialFixedAssetIdService returns empty list when none")
     void findByFinancialFixedAssetIdServiceReturnsEmpty() {
@@ -269,10 +233,6 @@ class TaxDepreciationServiceImplTest {
         assertTrue(result.isEmpty());
     }
 
-    /**
-     * Verifies that the all-arguments constructor of {@link TaxDepreciation}
-     * correctly assigns each field, and that getters return matching values.
-     */
     @Test
     @DisplayName("AllArgsConstructor and getters")
     void allArgsConstructorAndGetters() {
@@ -327,10 +287,6 @@ class TaxDepreciationServiceImplTest {
         assertFalse(td.isLast());
     }
 
-    /**
-     * Verifies the calculation logic for {@code TEMPORARY_DEDUCTION} type
-     * using sample asset and tax table values.
-     */
     @Test
     @DisplayName("calculateDepreciation TEMPORARY_DEDUCTION")
     void calculateDepreciationType01() {
@@ -361,10 +317,6 @@ class TaxDepreciationServiceImplTest {
         assertEquals(new BigDecimal("120.00"), td.getAnnualAccumulatedDepreciationPriorPeriod());
     }
 
-    /**
-     * Verifies the calculation logic for {@code TEMPORARY_ADDITION} type
-     * when the previous net tax value is zero and it is the first period.
-     */
     @Test
     @DisplayName("calculateDepreciation TEMPORARY_ADDITION")
     void calculateDepreciationType02() {
@@ -395,10 +347,6 @@ class TaxDepreciationServiceImplTest {
         assertEquals(new BigDecimal("495.00"), td.getNetTaxValue());
     }
 
-    /**
-     * Verifies the calculation logic for {@code PERMANENT_ADDITIONS} type
-     * when the previous net tax value is zero and isFirst=false.
-     */
     @Test
     @DisplayName("calculateDepreciation PERMANENT_ADDITIONS, old.isFirst=false & netTaxValue=0")
     void calculateDepreciationType03CaseZero() {
@@ -424,10 +372,6 @@ class TaxDepreciationServiceImplTest {
         assertEquals(BigDecimal.ZERO.setScale(2), td.getNetTaxValue());
     }
 
-    /**
-     * Verifies the calculation logic for {@code PERMANENT_ADDITIONS} type
-     * when the previous net tax value is non-zero and isFirst=true.
-     */
     @Test
     @DisplayName("calculateDepreciation PERMANENT_ADDITIONS, old.isFirst=true & netTaxValue>0")
     void calculateDepreciationType03CasePositive() {

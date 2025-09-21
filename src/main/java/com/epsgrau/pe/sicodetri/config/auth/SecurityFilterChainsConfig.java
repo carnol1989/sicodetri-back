@@ -2,7 +2,6 @@ package com.epsgrau.pe.sicodetri.config.auth;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -11,88 +10,81 @@ import org.springframework.security.oauth2.server.authorization.config.annotatio
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.LoginUrlAuthenticationEntryPoint;
 import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
+import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
+import org.springframework.security.web.util.matcher.OrRequestMatcher;
 
 /**
- * Configuration class defining security filter chains for the application.
- * Registers two {@link SecurityFilterChain} beans:
+ * Defines two {@link SecurityFilterChain} beans for the application.
  * <ul>
  *   <li>
- *     A high-precedence chain for OAuth2 Authorization Server endpoints
- *     (<code>/oauth2/**</code>), enabling OpenID Connect support and a
- *     login URL entry point.
+ *     <b>Authorization Server chain</b> ({@code @Order(1)}): applies the Spring Authorization Server
+ *     defaults, enables OpenID Connect 1.0, enables CORS with defaults, and redirects unauthenticated
+ *     requests to {@code /login}.
  *   </li>
  *   <li>
- *     A default, lowest-precedence chain for all other requests, configuring
- *     CSRF via cookies, permitting public access to <code>/</code>,
- *     <code>/login</code>, and <code>/error</code>, and enforcing form-based
- *     authentication on all other endpoints.
+ *     <b>Public web chain</b> ({@code @Order(3)}): limited to a set of public
+ *     endpoints (e.g., {@code /}, {@code /login**},
+ *     {@code /callback}, static assets, error endpoints, etc.). Configures CORS with defaults, CSRF with
+ *     cookie-based tokens (readable by JavaScript), permits the listed public endpoints and requires
+ *     authentication for any other request that matches this chain. This is <i>not</i> a catch-all chain.
  *   </li>
  * </ul>
+ *
+ * <p><b>Notes:</b></p>
+ * <ul>
+ *   <li>The Resource Server chain (e.g., for {@code /api/**}) is expected to be defined elsewhere
+ *       (e.g., in {@code ResourceServerConfig}) with a distinct {@code @Order} (commonly {@code 2}).</li>
+ *   <li>Although {@code /oauth2/**} and {@code /.well-known/**} are permitted here, those paths are
+ *       typically handled by the Authorization Server chain.</li>
+ * </ul>
+ *
  * <b>Class</b>: {@link SecurityFilterChainsConfig}<br/>
  * <b>Copyright</b>: &copy; 2024 EPS Grau. <br/>
  * <b>Company</b>: EPS Grau. <br/>
  *
- * @author EPS Grau <br/>
+ * @author EPS Grau
  *     <u>Service Provider</u>: Consultor TI <br/>
- *     <u>Developed by</u>: <br/>
+ *     <u>Developed by</u>:
  *     <ul>
- *     <li>Carlos Augusto Nole Machaca</li>
+ *       <li>Carlos Augusto Nole Machaca</li>
  *     </ul>
- *     <u>Changes</u>:<br/>
+ *     <u>Changes</u>:
  *     <ul>
- *     <li>Jul 21, 2025 (JAR) Creation class.</li>
+ *       <li>Jul 21, 2025 (JAR) Initial version.</li>
  *     </ul>
- * @version 1.0
+ * @version 1.1
  */
 @Configuration
 public class SecurityFilterChainsConfig {
 
     /**
-     * Builds the {@link org.springframework.security.web.SecurityFilterChain} dedicated to the
-     * OAuth 2.1 / OpenID Connect Authorization Server endpoints.
-     * <b>Scope</b>: this chain applies to the endpoints registered by
-     * {@link org.springframework.security.oauth2.server.authorization.config.annotation.web
-     * .configuration.OAuth2AuthorizationServerConfiguration},
-     * e.g. {@code /oauth2/authorize}, {@code /oauth2/token}, {@code
-     * /.well-known/openid-configuration},
-     * {@code /oauth2/jwks}, and related endpoints depending on your configuration.
-     * <b>Configuration</b>:
-     * <ul>
-     *   <li>Applies the framework’s defaults for the Authorization Server via
-     *       {@link org.springframework.security.oauth2.server.authorization.config.annotation.web
-     *       .configuration.OAuth2AuthorizationServerConfiguration#applyDefaultSecurity(org
-     *       .springframework.security.config.annotation.web.builders.HttpSecurity)}.</li>
-     *   <li>Enables OpenID Connect 1.0 support with
-     *       {@link org.springframework.security.oauth2.server.authorization.config.annotation.web
-     *       .configurers
-     *       .OAuth2AuthorizationServerConfigurer#oidc(org.springframework.security.config
-     *       .Customizer)}
-     *       using {@link org.springframework.security.config.Customizer#withDefaults()}.</li>
-     *   <li>Configures exception handling so unauthenticated requests are redirected to
-     *       {@code /login} using {@link org.springframework.security.web.authentication
-     *       .LoginUrlAuthenticationEntryPoint}.</li>
-     *   <li>Enables CORS with default settings ({@link org.springframework.security.config
-     *   .Customizer
-     *   #withDefaults()}).</li>
-     * </ul>
-     * <b>Order</b>: annotated with {@link org.springframework.core.annotation.Order @Order}
-     * at {@code Ordered.HIGHEST_PRECEDENCE}, ensuring this chain runs before other security chains
-     * (e.g., resource-server or general web chains).
+     * Builds the high-precedence {@link SecurityFilterChain} for OAuth 2.1 / OpenID Connect
+     * Authorization Server endpoints.
      *
-     * @param http the {@link org.springframework.security.config.annotation.web.builders
-     *             .HttpSecurity} to configure
-     * @return the built {@link org.springframework.security.web.SecurityFilterChain} for the
-     *          Authorization Server
+     * <p><b>Scope</b>: endpoints registered by
+     * {@link OAuth2AuthorizationServerConfiguration#applyDefaultSecurity(HttpSecurity)}, e.g.:
+     * {@code /oauth2/authorize}, {@code /oauth2/token}, {@code /.well-known/openid-configuration},
+     * {@code /oauth2/jwks}, among others depending on the configuration.</p>
+     *
+     * <p><b>Configuration</b>:</p>
+     * <ul>
+     *   <li>Applies Authorization Server defaults via
+     *       {@link OAuth2AuthorizationServerConfiguration#applyDefaultSecurity(HttpSecurity)}.</li>
+     *   <li>Enables OIDC 1.0 via {@link OAuth2AuthorizationServerConfigurer#oidc(Customizer)} with defaults.</li>
+     *   <li>Exception handling: redirects unauthenticated requests to {@code /login}
+     *       via {@link LoginUrlAuthenticationEntryPoint}.</li>
+     *   <li>CORS: enabled with {@link Customizer#withDefaults()}.</li>
+     * </ul>
+     *
+     * <p><b>Order</b>: {@code @Order(1)} — runs before other chains (e.g.,
+     * the resource server or public web chain).</p>
+     *
+     * @param http the {@link HttpSecurity} to configure
+     * @return the built {@link SecurityFilterChain} for the Authorization Server
      * @throws Exception if the filter chain cannot be constructed
-     * @see org.springframework.security.oauth2.server.authorization.config
-     *      .annotation.configuration.OAuth2AuthorizationServerConfiguration
-     * @see org.springframework.security.oauth2.server.authorization.config.annotation.web
-     *      .configurers.OAuth2AuthorizationServerConfigurer
-     * @see org.springframework.security.web.authentication.LoginUrlAuthenticationEntryPoint
-     * @see org.springframework.security.config.Customizer#withDefaults()
-    */
+     */
     @Bean
-    @Order(Ordered.HIGHEST_PRECEDENCE)
+    @Order(1)
     public SecurityFilterChain authorizationServerSecurityFilterChain(HttpSecurity http)
         throws Exception {
         OAuth2AuthorizationServerConfiguration.applyDefaultSecurity(http);
@@ -106,64 +98,65 @@ public class SecurityFilterChainsConfig {
     }
 
     /**
-     * Builds the default (catch-all) {@link org.springframework.security.web.SecurityFilterChain}
-     * for non-API endpoints.
+     * Builds the public-endpoints {@link SecurityFilterChain} used for non-API routes such as the home page,
+     * login, callbacks, static assets, and error endpoints.
      *
-     * <p><b>Order</b>: annotated with {@link org.springframework.core.annotation.Order @Order}
-     * at {@code Ordered.LOWEST_PRECEDENCE}, ensuring it runs after higher-priority chains
-     * such as the authorization server and the resource server.</p>
+     * <p><b>Scope</b>: restricted by a {@code securityMatcher} to the following routes:
+     * {@code /}, {@code /login**}, {@code /callback}, {@code /v1/callback}, {@code /index.html},
+     * {@code /favicon.ico}, {@code /static/**}, {@code /auth/token}, {@code /error**}.</p>
      *
      * <p><b>Configuration</b>:</p>
      * <ul>
-     *   <li><b>CORS</b>: enabled with {@link org.springframework.security.config.Customizer
-     *   #withDefaults()}.</li>
-     *   <li><b>CSRF</b>:
+     *   <li>CORS: enabled with {@link Customizer#withDefaults()}.</li>
+     *   <li>CSRF:
      *     <ul>
-     *       <li>Ignores CSRF protection for {@code /auth/token} and {@code /logout}.</li>
-     *       <li>Uses {@link org.springframework.security.web.csrf.CookieCsrfTokenRepository
-     *       #withHttpOnlyFalse()}
-     *           so the CSRF cookie is readable by JavaScript (e.g., SPA frameworks).</li>
+     *       <li>Ignores {@code /auth/token} and {@code /logout}.</li>
+     *       <li>Uses {@link CookieCsrfTokenRepository#withHttpOnlyFalse()}
+     *       so the CSRF cookie is readable by the SPA.</li>
      *     </ul>
      *   </li>
-     *   <li><b>Authorization</b>:
+     *   <li>Authorization:
      *     <ul>
      *       <li>Permits unauthenticated access to:
-     *         <code>/</code>, <code>/login**</code>, <code>/callback</code>,
-     *         <code>/v1/callback</code>,
-     *         <code>/index.html</code>, <code>/favicon.ico</code>, <code>/static/**</code>,
-     *         <code>/auth/token</code>, <code>/oauth2/**</code>, <code>/.well-known/**</code>,
-     *         <code>/error**</code>.
-     *       </li>
-     *       <li>Requires authentication for any other request.</li>
+     *           {@code /}, {@code /login**}, {@code /callback}, {@code /v1/callback},
+     *           {@code /index.html}, {@code /favicon.ico}, {@code /static/**},
+     *           {@code /auth/token}, {@code /oauth2/**}, {@code /.well-known/**}, {@code /error**}.</li>
+     *       <li>Requires authentication for any other request <i>within this chain's matcher</i>.</li>
      *     </ul>
      *   </li>
-     *   <li><b>Form Login</b>: enabled with defaults.</li>
-     *   <li><b>OAuth2 Resource Server (JWT)</b>: enabled with defaults.</li>
-     *   <li><b>Logout</b>:
+     *   <li>Form Login: enabled with defaults.</li>
+     *   <li>Logout:
      *     <ul>
-     *       <li>Logout URL: <code>/logout</code>, success redirect to <code>/login?logout</code>
-     *       .</li>
-     *       <li>Deletes cookies <code>JSESSIONID</code> and <code>XSRF-TOKEN</code>.</li>
+     *       <li>URL: {@code /logout}, success redirect: {@code /login?logout}.</li>
+     *       <li>Deletes cookies {@code JSESSIONID} and {@code XSRF-TOKEN}.</li>
      *       <li>Clears authentication and invalidates the HTTP session.</li>
      *     </ul>
      *   </li>
      * </ul>
      *
-     * @param http the {@link org.springframework.security.config.annotation.web.builders
-     *             .HttpSecurity} to configure
-     * @return the built {@link org.springframework.security.web.SecurityFilterChain} for general
-     *         web endpoints
+     * <p><b>Order</b>: {@code @Order(3)} — runs after the Authorization Server chain and after any
+     * resource server chain (commonly {@code @Order(2)}).</p>
+     *
+     * @param http the {@link HttpSecurity} to configure
+     * @return the built {@link SecurityFilterChain} for public web endpoints
      * @throws Exception if the security filter chain cannot be built
-     * @see org.springframework.security.config.Customizer#withDefaults()
-     * @see org.springframework.security.web.csrf.CookieCsrfTokenRepository
-     * @see org.springframework.security.oauth2.server.resource.authentication
-     *      .JwtAuthenticationToken
-     * @see org.springframework.security.web.authentication.logout.LogoutHandler
-    */
+     */
     @Bean
-    @Order(Ordered.LOWEST_PRECEDENCE)
+    @Order(3)
     public SecurityFilterChain defaultSecurityFilterChain(HttpSecurity http) throws Exception {
         http
+            .securityMatcher(request -> new OrRequestMatcher(
+                new AntPathRequestMatcher("/"),
+                new AntPathRequestMatcher("/login**"),
+                new AntPathRequestMatcher("/callback"),
+                new AntPathRequestMatcher("/v1/callback"),
+                new AntPathRequestMatcher("/index.html"),
+                new AntPathRequestMatcher("/favicon.ico"),
+                new AntPathRequestMatcher("/static/**"),
+                new AntPathRequestMatcher("/auth/token"),
+                new AntPathRequestMatcher("/logout"),
+                new AntPathRequestMatcher("/error**")
+            ).matches(request))
             .cors(Customizer.withDefaults())
             .csrf(csrf -> csrf
                 .ignoringRequestMatchers("/auth/token", "/logout")
@@ -177,14 +170,13 @@ public class SecurityFilterChainsConfig {
                     "/index.html", "/favicon.ico", "/static/**",
                     "/auth/token",
                     "/oauth2/**", "/.well-known/**",
+                    "/logout",
                     "/error**"
                 ).permitAll()
                 .anyRequest().authenticated()
             )
             .formLogin(Customizer.withDefaults())
-            .oauth2ResourceServer(oaut2 ->
-                oaut2.jwt(Customizer.withDefaults())
-            ).logout(logout -> logout
+            .logout(logout -> logout
                 .logoutUrl("/logout")
                 .logoutSuccessUrl("/login?logout")
                 .deleteCookies("JSESSIONID", "XSRF-TOKEN")

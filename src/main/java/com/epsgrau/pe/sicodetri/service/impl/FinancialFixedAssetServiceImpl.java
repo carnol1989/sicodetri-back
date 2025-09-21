@@ -24,7 +24,7 @@ import com.epsgrau.pe.sicodetri.service.FinancialFixedAssetService;
 import com.epsgrau.pe.sicodetri.service.TaxDepreciationService;
 import com.epsgrau.pe.sicodetri.service.TaxTableSunatService;
 import com.epsgrau.pe.sicodetri.service.projection.ProjectionGenerator;
-import com.epsgrau.pe.sicodetri.service.projection.ProjectionType;
+import com.epsgrau.pe.sicodetri.util.enums.ProjectionType;
 import java.io.IOException;
 import java.sql.SQLException;
 import java.time.LocalDate;
@@ -48,32 +48,37 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 /**
- * Implementation of {@link FinancialFixedAssetService} that handles the import,
- * persistence, and querying of financial fixed assets and their related depreciation,
- * additions, deductions, and reporting.
- * Key responsibilities include:
+ * Concrete implementation of {@link FinancialFixedAssetService}.
+ *
+ * <p><b>Responsibilities</b>:</p>
  * <ul>
- *   <li>Loading and parsing Excel files into {@link InputData} models</li>
- *   <li>Converting {@link InputData} into {@link FinancialFixedAsset} entities and saving them</li>
- *   <li>Deleting assets by period or by ID</li>
- *   <li>Generating depreciation projections via {@link ProjectionGenerator}</li>
- *   <li>Delegating to JDBC repository for stored‐procedure reports</li>
+ *   <li>Import and parsing of Excel sources into {@link InputData}.</li>
+ *   <li>Transformation and persistence of {@link FinancialFixedAsset} entities.</li>
+ *   <li>Query and deletion operations scoped by accounting period and user context (added-by).</li>
+ *   <li>Projection workflows via pluggable {@link ProjectionGenerator} strategies.</li>
+ *   <li>Stored-procedure backed reporting through JDBC repositories.</li>
  * </ul>
+ *
+ * <p><b>Transactions</b>: Write operations are demarcated with {@link Transactional};
+ * read paths are {@code readOnly=true} to optimize persistence behavior. Methods explicitly
+ * flush where immediate visibility is required.</p>
+ *
  * <b>Class</b>: {@link FinancialFixedAssetServiceImpl}<br/>
  * <b>Copyright</b>: &copy; 2024 EPS Grau. <br/>
  * <b>Company</b>: EPS Grau. <br/>
  *
- * @author EPS Grau <br/>
- *     <u>Service Provider</u>: Consultor TI <br/>
- *     <u>Developed by</u>: <br/>
+ * @author EPS Grau
+ *     <br/><u>Service Provider</u>: Consultor TI
+ *     <br/><u>Developed by</u>:
  *     <ul>
- *     <li>Carlos Augusto Nole Machaca</li>
+ *       <li>Carlos Augusto Nole Machaca</li>
  *     </ul>
- *     <u>Changes</u>:<br/>
+ *     <u>Changes</u>:
  *     <ul>
- *     <li>Jun 06, 2025 (JAR) Creation class.</li>
+ *       <li>Jun 06, 2025 (JAR) Creation class.</li>
  *     </ul>
  * @version 1.0
+ * @since 1.0
  */
 @Slf4j
 @Service
@@ -82,11 +87,11 @@ public class FinancialFixedAssetServiceImpl implements FinancialFixedAssetServic
     private final Map<ProjectionType, ProjectionGenerator> projectionGenerators;
 
     /**
-     * Constructs the service implementation, building a map of projection generators
-     * keyed by their {@link ProjectionType}.
+     * Builds the strategy map of projection generators keyed by {@link ProjectionType}.
      *
-     * @param generators the list of ProjectionGenerator implementations to support various
-     *                   projection types
+     * <p>If multiple generators report the same type, the last one in the provided list wins.</p>
+     *
+     * @param generators non-null list of available {@link ProjectionGenerator} implementations
      */
     @Autowired
     public FinancialFixedAssetServiceImpl(List<ProjectionGenerator> generators) {
@@ -116,14 +121,21 @@ public class FinancialFixedAssetServiceImpl implements FinancialFixedAssetServic
     private TaxTableSunatService taxTableService;
 
     /**
-     * Reads the first sheet of the provided Excel {@code file} and maps each data row
-     * (skipping headers) into an {@link InputData} object, preserving row numbers
-     * and total row count.
+     * Reads the first sheet of the provided Excel file and maps each data row
+     * (header rows are skipped) into {@link InputData}, preserving row numbers and total row count.
      *
-     * @param file   the uploaded Excel file (XLSX)
-     * @param period the accounting period string (format YYYY-MM-DD)
-     * @return a list of {@link InputData} instances representing each valid row
-     * @throws RuntimeException if file cannot be read or a row mapping fails
+     * <p><b>Notes</b>:</p>
+     * <ul>
+     *   <li>Only the first sheet is processed.</li>
+     *   <li>Rows with index {@code &le; 10} are considered headers and ignored.</li>
+     *   <li>When the file is empty, an empty list is returned.</li>
+     * </ul>
+     *
+     * @param file      uploaded Excel file (.xlsx), must not be {@code null}
+     * @param period    accounting period to attach to each row (e.g., {@code 2025-06-01})
+     * @param username  user identifier to be captured as owner/creator
+     * @return non-null list of {@link InputData} instances (possibly empty)
+     * @throws RuntimeException if the file cannot be read or a row mapping fails
      */
     @Override
     public List<InputData> loadExcelFileToObjectService(MultipartFile file, String period,
@@ -174,14 +186,13 @@ public class FinancialFixedAssetServiceImpl implements FinancialFixedAssetServic
     }
 
     /**
-     * Processes a single Excel {@link Cell}, extracting its value and assigning it
-     * to the corresponding field in the given models.
+     * Processes a single Excel {@link Cell} and assigns its value to the corresponding field(s)
+     * in {@link InputData}, {@link FixedAssetDetail}, and/or {@link Depreciation}.
      *
-     * @param cell        the Excel cell to process
-     * @param inputData   the InputData instance to populate with raw cell values
-     * @param assetDetail the FixedAssetDetail instance to populate with descriptive fields
-     * @param depreciation the Depreciation instance to populate with method and document
-     *                     information
+     * @param cell         cell to process
+     * @param inputData    container for raw values
+     * @param assetDetail  descriptive attributes of the fixed asset
+     * @param depreciation depreciation metadata and authorization info
      */
     private void processCell(Cell cell, InputData inputData, FixedAssetDetail assetDetail,
                              Depreciation depreciation) {
@@ -228,11 +239,10 @@ public class FinancialFixedAssetServiceImpl implements FinancialFixedAssetServic
     }
 
     /**
-     * Returns the string representation of the given Excel {@link Cell}'s value,
-     * or an empty string if the cell is null or has no content.
+     * Extracts a trimmed string value from an Excel {@link Cell}, returning {@code ""} for null/blank cells.
      *
-     * @param cell the Excel cell from which to extract the value
-     * @return the cell's value as a trimmed string, or an empty string if the cell is null/empty
+     * @param cell source cell
+     * @return non-null string (may be empty)
      */
     private String getCellValue(Cell cell) {
         Object value = getValueCell(cell);
@@ -240,11 +250,13 @@ public class FinancialFixedAssetServiceImpl implements FinancialFixedAssetServic
     }
 
     /**
-     * Normalizes a date string into ISO format (YYYY-MM-DD). Accepts input in either
-     * "DD/MM/YYYY" or "YYYY-MM-DD" form; if the string cannot be parsed, returns a default date.
+     * Normalizes a date string to ISO format {@code yyyy-MM-dd}.
      *
-     * @param date the input date string
-     * @return the formatted date in "YYYY-MM-DD" format, or {@code S_DATE_DEFAULT} if parsing fails
+     * <p>Accepted inputs: {@code dd/MM/yyyy} or already-ISO strings; otherwise falls back to
+     * {@link com.epsgrau.pe.sicodetri.util.Constants#S_DATE_DEFAULT}.</p>
+     *
+     * @param date raw date text
+     * @return normalized ISO string or the default date value
      */
     private String formatDate(String date) {
         if (date.contains("/")) {
@@ -257,11 +269,14 @@ public class FinancialFixedAssetServiceImpl implements FinancialFixedAssetServic
     }
 
     /**
-     * Persists all {@link FinancialFixedAsset} entities converted from the given list
-     * of {@link InputData} for the specified accountingPeriod.
+     * Persists all {@link FinancialFixedAsset} entities produced from the supplied {@link InputData}.
      *
-     * @param accountingPeriod the accounting period for which to save assets
-     * @param listInputData    the list of input data to transform and save
+     * <p>Delegates to {@link #getListFinancialFixedAsset(String, List, String)} for transformation,
+     * then performs a bulk save.</p>
+     *
+     * @param accountingPeriod accounting period that will be persisted on each entity
+     * @param listInputData    input rows to transform and persist
+     * @param username         user identifier recorded as {@code addedBy}
      */
     @Override
     @Transactional
@@ -273,11 +288,24 @@ public class FinancialFixedAssetServiceImpl implements FinancialFixedAssetServic
     }
 
     /**
-     * Get List of financial fixed asset.
+     * Transforms {@link InputData} rows into {@link FinancialFixedAsset} entities, enforcing
+     * basic invariants and field parsing.
      *
-     * @param accountingPeriod Accounting period
-     * @param listInputData List input data
-     * @return List of FinancialFixedAsset
+     * <p><b>Validation</b>:</p>
+     * <ul>
+     *   <li>{@code listInputData} must not be {@code null}; each element must not be {@code null}.</li>
+     *   <li>{@code accountingPeriod} on each {@link InputData} must be non-null and equal to the method argument.</li>
+     *   <li>{@code username} on each {@link InputData} must equal the method argument.</li>
+     * </ul>
+     *
+     * <p>Parsing of dates/numbers is delegated to shared utility functions; parsing failures are wrapped
+     * in a {@link RuntimeException} enriched with the row number.</p>
+     *
+     * @param accountingPeriod expected accounting period (ISO {@code yyyy-MM-dd})
+     * @param listInputData    source rows to convert
+     * @param username         expected owner (added-by)
+     * @return list of populated entities ready for persistence
+     * @throws IllegalArgumentException on null inputs or missing required fields
      */
     public static List<FinancialFixedAsset> getListFinancialFixedAsset(String accountingPeriod,
         List<InputData> listInputData, String username) {
@@ -423,9 +451,9 @@ public class FinancialFixedAssetServiceImpl implements FinancialFixedAssetServic
     }
 
     /**
-     * Updates an existing {@link FinancialFixedAsset} in the database.
+     * Updates an existing {@link FinancialFixedAsset}.
      *
-     * @param obj the FinancialFixedAsset to update
+     * @param obj entity with updated state (must contain a valid id)
      */
     @Override
     @Transactional
@@ -434,9 +462,9 @@ public class FinancialFixedAssetServiceImpl implements FinancialFixedAssetServic
     }
 
     /**
-     * Deletes the {@link FinancialFixedAsset} identified by the given ID.
+     * Deletes a {@link FinancialFixedAsset} by id.
      *
-     * @param id the ID of the FinancialFixedAsset to delete
+     * @param id entity identifier
      */
     @Override
     @Transactional
@@ -445,25 +473,39 @@ public class FinancialFixedAssetServiceImpl implements FinancialFixedAssetServic
     }
 
     /**
-     * Deletes all {@link FinancialFixedAsset} records for the given accounting period.
+     * Deletes all assets for a given period and user, then flushes to ensure immediate persistence.
      *
-     * @param period the accounting period whose assets should be deleted
+     * @param period   accounting period to match
+     * @param username owner (added-by) filter
      */
     @Override
     @Transactional
     public void deleteByAccountingPeriodAndAddedByService(LocalDate period, String username) {
         repository.deleteByAccountingPeriodAndAddedBy(period, username);
+        repository.flush();
     }
 
     /**
-     * Generates a depreciation projection of type {@code type} for the given list
-     * of fixed assets and accounting period, delegating to the appropriate generator.
+     * Bulk deletes the provided assets and flushes the persistence context.
      *
-     * @param type              the projection type (e.g., TEMPORARY_DEDUCTION)
-     * @param accountingPeriod  the period for which to generate projections
-     * @param fixedAssets       the list of assets to project
-     * @param accountingAccount the accounting account filter for projection
-     * @throws IllegalArgumentException if no generator exists for the specified type
+     * @param fixedAssets assets to remove
+     */
+    @Override
+    @Transactional
+    public void deleteAllFinancialFixedAsset(List<FinancialFixedAsset> fixedAssets) {
+        repository.deleteAll(fixedAssets);
+        repository.flush();
+    }
+
+    /**
+     * Delegates a projection run to the {@link ProjectionGenerator} registered for the given {@code type}.
+     *
+     * @param type               projection type
+     * @param accountingPeriod   base period for the projection
+     * @param fixedAssets        target assets
+     * @param accountingAccount  optional account prefix used for filtering (not all generators may use it)
+     * @param username           user context for auditing
+     * @throws IllegalArgumentException when no generator is registered for {@code type}
      */
     @Transactional
     @Modifying
@@ -481,10 +523,10 @@ public class FinancialFixedAssetServiceImpl implements FinancialFixedAssetServic
     }
 
     /**
-     * Retrieves a single {@link FinancialFixedAsset} by its ID.
+     * Retrieves a {@link FinancialFixedAsset} by id; returns a new empty instance if not found.
      *
-     * @param id the identifier of the FinancialFixedAsset
-     * @return the found entity, or a new empty instance if not present
+     * @param id entity identifier
+     * @return existing entity or a new placeholder instance (never {@code null})
      */
     @Override
     @Transactional(readOnly = true)
@@ -494,10 +536,11 @@ public class FinancialFixedAssetServiceImpl implements FinancialFixedAssetServic
     }
 
     /**
-     * Finds all {@link FinancialFixedAsset} entities matching the given main fixed asset code.
+     * Finds assets by main fixed asset code and owner (added-by).
      *
-     * @param mainFixedAssetCode the main code to filter by
-     * @return list of matching FinancialFixedAsset instances
+     * @param mainFixedAssetCode main code to match
+     * @param username           owner filter
+     * @return matching assets (never {@code null})
      */
     @Override
     @Transactional(readOnly = true)
@@ -508,11 +551,11 @@ public class FinancialFixedAssetServiceImpl implements FinancialFixedAssetServic
     }
 
     /**
-     * Finds all {@link FinancialFixedAsset} entities whose accounting account starts
-     * with the given prefix.
+     * Finds assets whose accounting account starts with the given prefix for a specific owner.
      *
-     * @param accountingAccount the account code prefix
-     * @return list of matching FinancialFixedAsset instances
+     * @param accountingAccount account prefix
+     * @param username          owner filter
+     * @return matching assets (never {@code null})
      */
     @Override
     @Transactional(readOnly = true)
@@ -523,9 +566,9 @@ public class FinancialFixedAssetServiceImpl implements FinancialFixedAssetServic
     }
 
     /**
-     * Retrieves all {@link FinancialFixedAsset} entities.
+     * Returns all assets.
      *
-     * @return list of all FinancialFixedAsset instances
+     * @return all persisted assets (never {@code null})
      */
     @Override
     @Transactional(readOnly = true)
@@ -534,10 +577,11 @@ public class FinancialFixedAssetServiceImpl implements FinancialFixedAssetServic
     }
 
     /**
-     * Finds {@link FinancialFixedAsset} entities for the specified accounting period.
+     * Finds assets for a given period and owner.
      *
-     * @param period the accounting period filter
-     * @return list of matching FinancialFixedAsset instances
+     * @param period   accounting period
+     * @param username owner filter
+     * @return matching assets (never {@code null})
      */
     @Override
     @Transactional(readOnly = true)
@@ -546,12 +590,12 @@ public class FinancialFixedAssetServiceImpl implements FinancialFixedAssetServic
     }
 
     /**
-     * Finds {@link FinancialFixedAsset} entities for the specified period whose
-     * accounting account starts with the given prefix.
+     * Finds assets for a given period whose account starts with a given prefix for the specified owner.
      *
-     * @param period the accounting period filter
-     * @param account the accounting account prefix
-     * @return list of matching FinancialFixedAsset instances
+     * @param period   accounting period
+     * @param account  account prefix
+     * @param username owner filter
+     * @return matching assets (never {@code null})
      */
     @Override
     @Transactional(readOnly = true)
@@ -563,11 +607,11 @@ public class FinancialFixedAssetServiceImpl implements FinancialFixedAssetServic
     }
 
     /**
-     * Finds {@link FinancialFixedAsset} entities whose accounting account code prefix
-     * is in the given list.
+     * Finds assets whose accounting account prefix is contained in the provided list for the specified owner.
      *
-     * @param prefixes list of 3-character prefixes
-     * @return list of matching FinancialFixedAsset instances
+     * @param username owner filter
+     * @param prefixes list of prefixes to match
+     * @return matching assets (never {@code null})
      */
     @Override
     @Transactional(readOnly = true)
@@ -577,11 +621,11 @@ public class FinancialFixedAssetServiceImpl implements FinancialFixedAssetServic
     }
 
     /**
-     * Calls the JDBC stored procedure to generate the tax book report.
+     * Executes the stored procedure that generates the Fixed Asset Tax Book dataset.
      *
-     * @param params the report parameters
-     * @return a list of {@link FinancialFixedAssetDto} rows
-     * @throws SQLException if the procedure call fails
+     * @param params report parameters (must not be {@code null})
+     * @return non-null list of {@link FinancialFixedAssetDto} rows (possibly empty)
+     * @throws SQLException if the underlying JDBC call fails
      */
     @Override
     @Transactional(readOnly = true)
@@ -591,11 +635,10 @@ public class FinancialFixedAssetServiceImpl implements FinancialFixedAssetServic
     }
 
     /**
-     * Calls the JDBC stored procedure to generate the detailed financial and
-     * tax depreciation report.
+     * Executes the stored procedure that generates the Financial &amp; Tax Depreciation Detail dataset.
      *
-     * @param params the report parameters
-     * @return a list of {@link FinancialFixedAssetDto} rows
+     * @param params report parameters (must not be {@code null})
+     * @return non-null list of {@link FinancialFixedAssetDto} rows (possibly empty)
      */
     @Override
     @Transactional(readOnly = true)
