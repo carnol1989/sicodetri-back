@@ -21,6 +21,7 @@ import com.epsgrau.pe.sicodetri.model.InputData;
 import com.epsgrau.pe.sicodetri.model.ResponseData;
 import com.epsgrau.pe.sicodetri.service.FinancialFixedAssetService;
 import com.epsgrau.pe.sicodetri.service.ReportJasperService;
+import com.epsgrau.pe.sicodetri.service.projection.ProjectionJobService;
 import com.epsgrau.pe.sicodetri.service.report.ReportStrategy;
 import com.epsgrau.pe.sicodetri.service.report.ReportStrategyFactory;
 import com.epsgrau.pe.sicodetri.util.Constants;
@@ -46,6 +47,8 @@ import java.time.format.DateTimeParseException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+import jakarta.validation.constraints.Min;
 import lombok.extern.slf4j.Slf4j;
 import net.sf.jasperreports.engine.JRException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -99,6 +102,11 @@ import org.springframework.web.multipart.MultipartFile;
 @RestController
 @RequestMapping("/api/v1/financial-fixed-assets")
 public class FinancialFixedAssetController {
+
+    private static final int DEFAULT_PAGE_SIZE = 1000;
+
+    @Autowired
+    private ProjectionJobService projectionJobService;
 
     @Autowired
     private FinancialFixedAssetService service;
@@ -293,9 +301,9 @@ public class FinancialFixedAssetController {
      * @return a {@link ResponseEntity} with a {@link ResponseData} payload describing the outcome
      */
     @Operation(
-        summary = "Generar proyección de Activos Fijos",
-        description = "Genera adiciones/deducciones temporales según tipo, periodo "
-            + "y cuenta (o ALL para prefijos 332–337)."
+        summary = "Generar proyección por lotes",
+        description = "Ejecuta la proyección indicada (TEMPORARY_DEDUCTIONS, TEMPORARY_ADDITIONS o PERMANENT_ADDITIONS) "
+            + "usando procesamiento por bloques (chunks). Devuelve un resumen con contadores y duración."
     )
     @ApiResponses(
         value = {
@@ -321,58 +329,68 @@ public class FinancialFixedAssetController {
                     schema = @Schema(implementation = ResponseData.class))),
             @ApiResponse(responseCode = "401", description = "No autenticado."),
             @ApiResponse(responseCode = "403", description = "Prohibido.")})
-    @PostMapping("/projection")
+    @PostMapping(value = "/projection", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<ResponseData> generateProjectionController(
-        @Parameter(description = "Tipo de proyección (e.g. TEMPORARY_DEDUCTION, "
-            + "TEMPORARY_ADDITION)")
-        @RequestParam(name = "type") ProjectionType type,
-        @Parameter(description = "Periodo contable", example = "2022-01-01")
-        @RequestParam(name = "period") String period,
-        @Parameter(description = "Cuenta contable que inicia con", example = "332")
-        @RequestParam(name = "account") String account,
+        @Parameter(description = "Tipo de proyección", required = true,
+            schema = @Schema(implementation = ProjectionType.class, allowableValues = {
+                "TEMPORARY_DEDUCTIONS", "TEMPORARY_ADDITIONS", "PERMANENT_ADDITIONS"}))
+        @RequestParam("type") ProjectionType type,
+        @Parameter(description = "Periodo contable (yyyy-MM-dd). Se normaliza al primer día del mes.", required = true,
+            example = "2025-01-01")
+        @RequestParam("period") String period,
+        @Parameter(description = "Tamaño del chunk (número de activos por bloque).",
+            example = "1000")
+        @RequestParam(name = "pageSize", required = false) @Min(1) Integer pageSize,
         Authentication authentication) {
-        String username = (authentication != null) ? authentication.getName() : "ANONYMOUS";
-        String messageError = "Error al generar proyección.";
+
+        final String username = (authentication != null && authentication.getName() != null)
+            ? authentication.getName()
+            : "ANONYMOUS";
+
+        final String errorTitle = "Error al generar proyección por lotes.";
         try {
-            LocalDate periodDate = LocalDate.parse(period,
-                DateTimeFormatter.ofPattern(Constants.FORMATTER_YYYY_MM_DD));
+            // 1) Parse/validación de periodo
+            final LocalDate periodDate = LocalDate.parse(
+                period, DateTimeFormatter.ofPattern(Constants.FORMATTER_YYYY_MM_DD));
 
-            List<FinancialFixedAsset> listFinancialFixedAsset;
-            if (account.equalsIgnoreCase(ALL)) {
-                List<String> prefixes = List.of("332", "333", "334", "335", "336", "337");
-                listFinancialFixedAsset = service.findByAddedByAndAccountingAccountPrefixesService(username, prefixes);
-            } else {
-                listFinancialFixedAsset = service.findByPeriodAndAddedByAndAccountStartingWithService(
-                    periodDate, account, username);
-            }
-            log.info("Activos a procesar ({}): {}", type, listFinancialFixedAsset.size());
+            // 2) Page size efectivo
+            final int chunkSize = (pageSize == null || pageSize <= 0) ? DEFAULT_PAGE_SIZE : pageSize;
 
-            if (listFinancialFixedAsset.isEmpty()) {
-                return buildResponseWithError(
-                    messageError + " No se encontraron registros.",
-                    HttpStatus.NOT_FOUND,
-                    period);
-            }
+            // 3) Ejecutar job por lotes
+            ProjectionJobService.ProjectionJobSummary summary =
+                projectionJobService.generate(username, periodDate, type, chunkSize);
 
-            service.generateProjectionService(type, periodDate, listFinancialFixedAsset, account,
-                username);
-            return buildResponse("Proyección generada correctamente.",
-                listFinancialFixedAsset.size(), HttpStatus.CREATED);
+            // 4) Respuesta OK
+            return ok("Proyección generada correctamente (procesamiento por lotes).", summary, HttpStatus.CREATED);
         } catch (DateTimeParseException dtpe) {
-            return buildResponseWithError(
-                "Formato de fecha inválido. Use 'YYYY-MM-DD'.",
-                HttpStatus.BAD_REQUEST,
-                period
-            );
+            return fail(errorTitle, HttpStatus.BAD_REQUEST, "Formato de fecha inválido", dtpe.getMessage());
         } catch (IllegalArgumentException iae) {
-            return buildResponseWithError(
-                "Tipo de proyección no soportado: " + iae.getMessage(),
-                HttpStatus.BAD_REQUEST,
-                period
-            );
-        } catch (Exception e) {
-            return handleException(messageError, e, HttpStatus.EXPECTATION_FAILED);
+            return fail(errorTitle, HttpStatus.BAD_REQUEST, "Datos inválidos", iae.getMessage());
+        } catch (Exception ex) {
+            log.error(errorTitle, ex);
+            return fail(errorTitle, HttpStatus.EXPECTATION_FAILED, "Excepción no controlada", ex.getMessage());
         }
+    }
+
+    private ResponseEntity<ResponseData> ok(String message, Object payload, HttpStatus status) {
+        ResponseData rd = new ResponseData();
+        rd.setTimestamp(java.time.LocalDateTime.now());
+        rd.setMessage(message);
+        rd.setCode(Constants.S_VAL_00);
+        rd.setResponse(payload);
+        return ResponseEntity.status(status).contentType(MediaType.APPLICATION_JSON).body(rd);
+    }
+
+    private ResponseEntity<ResponseData> fail(String title,
+                                              HttpStatus status,
+                                              String message,
+                                              String details) {
+        ResponseData rd = new ResponseData();
+        rd.setTimestamp(java.time.LocalDateTime.now());
+        rd.setMessage(title);
+        rd.setCode(Constants.S_VAL_01);
+        rd.setException(new ExceptionResponse(java.time.LocalDateTime.now(), message, details));
+        return ResponseEntity.status(status).contentType(MediaType.APPLICATION_JSON).body(rd);
     }
 
     /**

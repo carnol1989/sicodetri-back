@@ -22,9 +22,13 @@ import com.epsgrau.pe.sicodetri.service.projection.ProjectionGenerator;
 import com.epsgrau.pe.sicodetri.util.enums.ProjectionType;
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.YearMonth;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -56,149 +60,171 @@ import org.springframework.stereotype.Component;
  * @see ProjectionType#TEMPORARY_ADDITIONS
  */
 @Component
-public class TemporaryAdditionProjectionGenerator extends AbstractProjectionGenerator
-    implements ProjectionGenerator {
+public class TemporaryAdditionProjectionGenerator extends AbstractProjectionGenerator {
 
-    @Autowired
-    private TaxTableSunatService taxTableService;
-
-    /**
-     * Identifies the projection type handled by this generator.
-     *
-     * @return the {@link ProjectionType} value {@link ProjectionType#TEMPORARY_ADDITIONS}.
-     */
     @Override
-    public ProjectionType getType() {
-        return ProjectionType.TEMPORARY_ADDITIONS;
-    }
+    protected Projection doGenerate(String username,
+                                    LocalDate period,
+                                    FinancialFixedAsset asset,
+                                    Map<String, TaxTableSunat> taxParams) {
 
-    /**
-     * Generates temporary-additions projections for the supplied assets and starting period.
-     *
-     * <p>For each asset, this method selects the SUNAT tax table using the accounting account
-     * prefix, verifies eligibility, and—if eligible—computes the monthly financial/tax
-     * depreciation, additions, and deductions across the asset’s useful life. Existing
-     * persisted calculation records for the asset are removed and replaced with the new ones.</p>
-     *
-     * @param username          user identifier used for auditing on generated records
-     * @param accountingPeriod  starting accounting period for the projection
-     * @param fixedAssets       list of fixed assets to evaluate and project
-     *
-     * @apiNote This method assumes each asset has a non-null accounting account with
-     *           at least three characters (for prefix resolution).
-     */
-    @Override
-    public void generate(String username, LocalDate accountingPeriod, List<FinancialFixedAsset> fixedAssets) {
-        for (FinancialFixedAsset f : fixedAssets) {
-            String prefix = f.getFixedAssetAccountingAccount().substring(0, 3);
-            TaxTableSunat table = taxTableService.findByAccountigAccountService(prefix);
-            if (table == null) {
-                continue;
+        // 0) Elegibilidad: si no califica, devolvemos vacío (ahorra CPU/GC)
+        if (!isEligible(asset)) {
+            Projection empty = new Projection();
+            empty.setTaxDepreciationList(new ArrayList<>());
+            empty.setAdditionList(new ArrayList<>());
+            empty.setFinancialDepreciationList(new ArrayList<>());
+            empty.setDeductionList(new ArrayList<>());
+            return empty;
+        }
+
+        // 1) Resolver parámetros tributarios (clave estable; por defecto: cuenta contable del activo)
+        final String taxKey = resolveTaxKey(asset);
+        final TaxTableSunat taxTable = requireTax(taxKey, taxParams);
+
+        // 2) Ventana de proyección (por defecto: el mes del 'period'; override computeProjectionEnd si vas por vida útil)
+        final LocalDate end = computeProjectionEnd(period, asset);
+        requireMonthLoopInvariant(period, end);
+
+        // 3) Contenedores de salida
+        final List<TaxDepreciation> taxList = new ArrayList<>();
+        final List<Addition> additions = new ArrayList<>();
+        final List<FinancialDepreciation> finList = new ArrayList<>();
+
+        // 4) Registro previo para la primera iteración (tu entidad usa isFirst)
+        TaxDepreciation prev = firstPrevForTemporaryAddition(username, asset, period);
+
+        // 5) Bucle mensual: delega cálculo a la entidad (calculateDepreciation)
+        for (LocalDate m = period; !m.isAfter(end); m = nextMonth(m)) {
+
+            // a) Construir registro actual
+            TaxDepreciation curr = new TaxDepreciation();
+            curr.setFinancialFixedAsset(asset);
+            curr.setAccountingPeriod(m);
+            curr.setAddedBy(username);
+            curr.setAdditionDate(LocalDateTime.now());
+            // La semántica de "primer mes" la determina prev.isFirst
+            curr.setFirst(prev != null && prev.isFirst());
+
+            // b) Cálculo con método de dominio (TEMPORARY_ADDITIONS = S_VAL_02)
+            curr.calculateDepreciation(asset, taxTable, m, prev, S_VAL_02);
+
+            // c) Depreciación financiera del mes (si aplica para comparación; por defecto 0)
+            BigDecimal finDep = computeFinancialDepForMonth(asset, m, curr.getAnnualNetTaxValuePriorPeriod());
+
+            // d) Adición temporal = exceso trib. vs. financiero (> 0)
+            BigDecimal tempAddition = curr.getValueDepreciation().subtract(finDep, MC);
+            if (tempAddition.signum() > 0) {
+                additions.add(newAddition(username, curr, m, tempAddition));
             }
-            if (isEligible(f)) {
-                processAsset(f, username, accountingPeriod, table);
+
+            // e) (Opcional) registrar dep. financiera mensual si la persistes
+            if (finDep.signum() > 0) {
+                FinancialDepreciation fd = newFinancialDepreciation(username, asset, m, finDep);
+                if (fd != null) finList.add(fd);
+            }
+
+            // f) Agregar y avanzar
+            taxList.add(curr);
+            prev = curr;
+
+            // g) Corte temprano si el neto llega a 0 (evita iteraciones inútiles)
+            if (shouldStop(curr.getNetTaxValue())) {
+                break;
             }
         }
+
+        // 6) Empaquetar resultado
+        Projection p = new Projection();
+        p.setTaxDepreciationList(taxList);
+        p.setAdditionList(additions);
+        p.setFinancialDepreciationList(finList);
+        p.setDeductionList(new ArrayList<>());
+        return p;
     }
 
     /**
-     * Determines whether a fixed asset qualifies for the temporary-additions projection.
-     *
-     * <p>An asset is considered <em>eligible</em> when all of the following are true:</p>
-     * <ul>
-     *   <li>The acquisition date is not the default placeholder
-     *   ({@link com.epsgrau.pe.sicodetri.util.Constants#LOCAL_DATE_DEFAULT}).</li>
-     *   <li>The accounting account starts with one of the prefixes {@code 332}, {@code 333},
-     *       {@code 334}, {@code 335}, {@code 336}, or {@code 337}.</li>
-     *   <li>The “well appraised / pre-investment study” field does <strong>not</strong>
-     *       contain any of: {@code "tasacion"}, {@code "valor tasado"}, {@code "valortasado"}
-     *       (case-insensitive).</li>
-     *   <li>The initial balance is strictly greater than zero.</li>
-     * </ul>
-     *
-     * @param f the fixed asset under evaluation
-     * @return {@code true} if the asset meets all criteria; {@code false} otherwise
+     * Activo elegible para TEMPORARY_ADDITIONS.
+     * Mantiene tu lógica: fecha válida, cuenta 332–337, sin “tasación” en descripción,
+     * y saldo inicial > 0.
      */
     private boolean isEligible(FinancialFixedAsset f) {
         String desc = f.getWellAppraisedPreInvestmentStudyDry();
-        String lower = desc == null ? "" : desc.toLowerCase(Locale.ROOT).trim();
+        String lower = (desc == null ? "" : desc.toLowerCase(Locale.ROOT).trim());
         return !f.getAcquisitionDate().equals(LOCAL_DATE_DEFAULT)
             && (f.getFixedAssetAccountingAccount().startsWith(S_VAL_332)
-              || f.getFixedAssetAccountingAccount().startsWith(S_VAL_333)
-              || f.getFixedAssetAccountingAccount().startsWith(S_VAL_334)
-              || f.getFixedAssetAccountingAccount().startsWith(S_VAL_335)
-              || f.getFixedAssetAccountingAccount().startsWith(S_VAL_336)
-              || f.getFixedAssetAccountingAccount().startsWith(S_VAL_337))
+            || f.getFixedAssetAccountingAccount().startsWith(S_VAL_333)
+            || f.getFixedAssetAccountingAccount().startsWith(S_VAL_334)
+            || f.getFixedAssetAccountingAccount().startsWith(S_VAL_335)
+            || f.getFixedAssetAccountingAccount().startsWith(S_VAL_336)
+            || f.getFixedAssetAccountingAccount().startsWith(S_VAL_337))
             && !(lower.contains("tasacion")
-              || lower.contains("valor tasado")
-              || lower.contains("valortasado"))
+            || lower.contains("valor tasado")
+            || lower.contains("valortasado"))
             && f.getInitialBalance().compareTo(BigDecimal.ZERO) > N_VAL_0;
     }
 
-    /**
-     * Projects a single fixed asset for the temporary-additions scenario and persists results.
-     *
-     * <p>Processing steps:</p>
-     * <ol>
-     *   <li>Initialize the first tax-depreciation snapshot (first/last flags, zero net value).</li>
-     *   <li>Build a working {@link Projection} model anchored at the supplied period.</li>
-     *   <li>Iterate month-by-month across the asset’s useful life (as per SUNAT table),
-     *       invoking {@link AbstractProjectionGenerator#processYearDepreciation} with
-     *       {@code S_VAL_02} to populate financial/tax depreciation and additions/deductions.</li>
-     *   <li>Delete prior persisted calculations for this asset and save the newly computed sets.</li>
-     * </ol>
-     *
-     * <p><b>Side effects:</b> existing financial depreciation, tax depreciation, additions,
-     * and deductions tied to the asset are removed and replaced.</p>
-     *
-     * @param fixedAsset the asset to project
-     * @param username   user identifier used for auditing on generated rows
-     * @param period     starting accounting period for the projection
-     * @param table      SUNAT tax table entry resolved for the asset’s account prefix
-     */
-    private void processAsset(FinancialFixedAsset fixedAsset,
-                              String username,
-                              LocalDate period,
-                              TaxTableSunat table) {
-        TaxDepreciation firstTax = new TaxDepreciation();
-        firstTax.setNetTaxValue(BigDecimal.ZERO);
-        firstTax.setFirst(true);
-        firstTax.setLast(false);
-
-        Projection proj = new Projection();
-        proj.setAccountigPeriod(period);
-        proj.setAccountigPeriodNext(period);
-        proj.setFinancialDepreciationList(new ArrayList<>());
-        proj.setTaxDepreciationList(new ArrayList<>());
-        proj.setAdditionList(new ArrayList<>());
-        proj.setDeductionList(new ArrayList<>());
-        proj.setTaxDepreciation(firstTax);
-
-        int years = 1;
-        int remaining = table.getUsefulLifeYears();
-        for (int i = 0; i < remaining; i++) {
-            proj = processYearDepreciation(fixedAsset, username, proj, table, S_VAL_02, years);
-            years++;
-        }
-
-        List<FinancialDepreciation> listFinancialDepreciation =
-            financialDepreciationService.findByFinancialFixedAssetIdService(fixedAsset.getId());
-        financialDepreciationService.deleteAllService(listFinancialDepreciation);
-        financialDepreciationService.saveAllService(proj.getFinancialDepreciationList());
-
-        List<TaxDepreciation> listTaxDepreciation =
-            taxDepreciationService.findByFinancialFixedAssetIdService(fixedAsset.getId());
-        taxDepreciationService.deleteAllService(listTaxDepreciation);
-        taxDepreciationService.saveAllService(proj.getTaxDepreciationList());
-
-        List<Deduction> listDeduction =
-            deductionService.findByTaxDepreciationInService(listTaxDepreciation);
-        deductionService.deleteAllService(listDeduction);
-        deductionService.saveAllService(proj.getDeductionList());
-
-        List<Addition> listAddition =
-            additionService.findByTaxDepreciationInService(listTaxDepreciation);
-        additionService.deleteAllService(listAddition);
-        additionService.saveAllService(proj.getAdditionList());
+    /** Primer registro “previo” para que tu entidad trate el primer mes como tal (isFirst=true). */
+    protected TaxDepreciation firstPrevForTemporaryAddition(String username, FinancialFixedAsset asset,
+                                                            LocalDate period) {
+        TaxDepreciation prev = new TaxDepreciation();
+        prev.setFinancialFixedAsset(asset);
+        prev.setAccountingPeriod(period.minusMonths(1)); // solo informativo
+        prev.setAddedBy(username);
+        prev.setAdditionDate(LocalDateTime.now());
+        prev.setFirst(true);   // *** clave para tu calculateDepreciation ***
+        prev.setLast(false);
+        // Campos numéricos pueden quedar en null/0; tu método los maneja en S_VAL_02
+        return prev;
     }
+
+    /**
+     * Si necesitas una regla financiera para la comparación, implementa aquí.
+     * Por defecto, 0 (toda la depreciación del mes se considera adición temporal).
+     */
+    protected BigDecimal computeFinancialDepForMonth(FinancialFixedAsset asset,
+                                                     LocalDate month,
+                                                     BigDecimal financialBase) {
+        return BigDecimal.ZERO;
+    }
+
+    /** Construye una fila de Adición temporal enlazada al registro tributario del mes. */
+    protected Addition newAddition(String username,
+                                   TaxDepreciation taxRow,
+                                   LocalDate accountingDate,
+                                   BigDecimal value) {
+        Addition add = new Addition();
+        add.setTaxDepreciation(taxRow);
+        add.setValueAddition(roundMoney(value));
+        // Campos opcionales (si existen en tu modelo):
+        try {
+            Addition.class.getMethod("setAccountingPeriod", LocalDate.class).invoke(add, accountingDate);
+        } catch (Exception ignored) {}
+        try {
+            Addition.class.getMethod("setAddedBy", String.class).invoke(add, username);
+            Addition.class.getMethod("setAdditionDate", LocalDateTime.class).invoke(add, LocalDateTime.now());
+        } catch (Exception ignored) {}
+        return add;
+    }
+
+    /** Construye una fila de Depreciación financiera mensual (si tu modelo la persiste). */
+    protected FinancialDepreciation newFinancialDepreciation(String username,
+                                                             FinancialFixedAsset asset,
+                                                             LocalDate accountingDate,
+                                                             BigDecimal finDepreciation) {
+        if (finDepreciation == null || finDepreciation.signum() == 0) {
+            return null;
+        }
+        FinancialDepreciation fd = new FinancialDepreciation();
+        fd.setFinancialFixedAsset(asset);
+        fd.setAccountingPeriod(accountingDate);
+        fd.setValueDepreciation(roundMoney(finDepreciation));
+        try {
+            FinancialDepreciation.class.getMethod("setAddedBy", String.class).invoke(fd, username);
+            FinancialDepreciation.class.getMethod("setAdditionDate", LocalDateTime.class)
+                .invoke(fd, LocalDateTime.now());
+        } catch (Exception ignored) {}
+        return fd;
+    }
+
 }

@@ -4,6 +4,9 @@ import com.epsgrau.pe.sicodetri.entity.TaxTableSunat;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
+import java.util.Collection;
+import java.util.List;
+
 /**
  * Repository interface for performing CRUD operations on {@link TaxTableSunat} entities.
  * Extends {@link JpaRepository} to provide standard data access methods and declares
@@ -26,6 +29,8 @@ import org.springframework.stereotype.Repository;
  */
 @Repository
 public interface TaxTableSunatRepository extends JpaRepository<TaxTableSunat, Long> {
+
+    List<TaxTableSunat> findByAccountingAccountIn(Collection<String> accounts);
 
     /**
      * Retrieves the {@link TaxTableSunat} entry matching the specified accounting account code.

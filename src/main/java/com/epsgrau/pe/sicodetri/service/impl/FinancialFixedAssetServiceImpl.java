@@ -24,6 +24,7 @@ import com.epsgrau.pe.sicodetri.service.FinancialFixedAssetService;
 import com.epsgrau.pe.sicodetri.service.TaxDepreciationService;
 import com.epsgrau.pe.sicodetri.service.TaxTableSunatService;
 import com.epsgrau.pe.sicodetri.service.projection.ProjectionGenerator;
+import com.epsgrau.pe.sicodetri.service.projection.ProjectionJobService;
 import com.epsgrau.pe.sicodetri.util.enums.ProjectionType;
 import java.io.IOException;
 import java.sql.SQLException;
@@ -31,8 +32,10 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
@@ -84,21 +87,6 @@ import org.springframework.web.multipart.MultipartFile;
 @Service
 public class FinancialFixedAssetServiceImpl implements FinancialFixedAssetService {
 
-    private final Map<ProjectionType, ProjectionGenerator> projectionGenerators;
-
-    /**
-     * Builds the strategy map of projection generators keyed by {@link ProjectionType}.
-     *
-     * <p>If multiple generators report the same type, the last one in the provided list wins.</p>
-     *
-     * @param generators non-null list of available {@link ProjectionGenerator} implementations
-     */
-    @Autowired
-    public FinancialFixedAssetServiceImpl(List<ProjectionGenerator> generators) {
-        this.projectionGenerators = generators.stream()
-            .collect(Collectors.toMap(ProjectionGenerator::getType, g -> g));
-    }
-
     @Autowired
     private FinancialFixedAssetRepository repository;
 
@@ -119,6 +107,92 @@ public class FinancialFixedAssetServiceImpl implements FinancialFixedAssetServic
 
     @Autowired
     private TaxTableSunatService taxTableService;
+
+    @Autowired
+    private FinancialFixedAssetRepository assetRepository;
+
+    @Autowired
+    private ProjectionJobService projectionJobService;
+
+    /**
+     * New preferred API: run projection by chunks for ALL assets.
+     *
+     * @param username user who triggered the job
+     * @param period   accounting period
+     * @param type     projection type
+     * @param pageSize chunk size (e.g., 1000)
+     * @return job summary with counters and duration
+     */
+    public ProjectionJobService.ProjectionJobSummary generateProjectionBatch(
+        String username, LocalDate period, ProjectionType type, int pageSize) {
+
+        Objects.requireNonNull(period, "period");
+        Objects.requireNonNull(type, "type");
+        if (pageSize <= 0) throw new IllegalArgumentException("pageSize must be > 0");
+
+        log.info("Starting batch projection. user={}, period={}, type={}, pageSize={}",
+            username, period, type, pageSize);
+
+        ProjectionJobService.ProjectionJobSummary summary =
+            projectionJobService.generate(username, period, type, pageSize);
+
+        log.info("Batch projection finished. {}", summary);
+        return summary;
+    }
+
+    /**
+     * Legacy API (backward compatibility): previously computed projection in-memory and persisted
+     * inside this service. Now it delegates to the batch job for robustness and performance.
+     *
+     * @param type     projection type
+     * @param period   accounting period
+     * @param assets   (ignored) kept for backward compatibility; batch runs over all assets
+     * @param account  (ignored) was used to filter; batch runs globally
+     * @param username user who triggered the job
+     */
+    @Override
+    public void generateProjectionService(ProjectionType type,
+                                          LocalDate period,
+                                          List<FinancialFixedAsset> assets,
+                                          String account,
+                                          String username) {
+        // Decide a sane default for chunk size. You can externalize it (application.yml)
+        final int defaultPageSize = 1000;
+        log.warn("generateProjectionService(...) is deprecated. Delegating to batch job. "
+                + "type={}, period={}, username={}, legacyAssetsSize={}, legacyAccount={}",
+            type, period, username, assets != null ? assets.size() : 0, account);
+
+        projectionJobService.generate(username, period, type, defaultPageSize);
+    }
+
+    /**
+     * Compatibility helper used by older controllers to get a subset of assets.
+     * With the batch approach, we no longer need to pre-filter in the service; the job
+     * iterates all assets. Keep this only if your UI still expects it.
+     *
+     * @param period   (kept for signature compatibility; not used here)
+     * @param account  prefix of the accounting account
+     * @param username (kept for signature compatibility; not used here)
+     * @return assets whose accounting account starts with the given prefix
+     */
+    @Override
+    public List<FinancialFixedAsset> findByPeriodAndAddedByAndAccountStartingWithService(
+        LocalDate period, String account, String username) {
+
+        if (account == null || account.isBlank()) {
+            return Collections.emptyList();
+        }
+        final String prefix = account.trim();
+
+        // Minimal-impact approach to avoid changing repository: in-memory filter.
+        // If volume is large, add a repository method:
+        // List<FinancialFixedAsset> findByFixedAssetAccountingAccountStartingWith(String prefix);
+        List<FinancialFixedAsset> all = assetRepository.findAll();
+        return all.stream()
+            .filter(a -> a != null && a.getFixedAssetAccountingAccount() != null)
+            .filter(a -> a.getFixedAssetAccountingAccount().startsWith(prefix))
+            .collect(Collectors.toList());
+    }
 
     /**
      * Reads the first sheet of the provided Excel file and maps each data row
@@ -498,31 +572,6 @@ public class FinancialFixedAssetServiceImpl implements FinancialFixedAssetServic
     }
 
     /**
-     * Delegates a projection run to the {@link ProjectionGenerator} registered for the given {@code type}.
-     *
-     * @param type               projection type
-     * @param accountingPeriod   base period for the projection
-     * @param fixedAssets        target assets
-     * @param accountingAccount  optional account prefix used for filtering (not all generators may use it)
-     * @param username           user context for auditing
-     * @throws IllegalArgumentException when no generator is registered for {@code type}
-     */
-    @Transactional
-    @Modifying
-    @Override
-    public void generateProjectionService(ProjectionType type,
-                                          LocalDate accountingPeriod,
-                                          List<FinancialFixedAsset> fixedAssets,
-                                          String accountingAccount,
-                                          String username) {
-        ProjectionGenerator gen = projectionGenerators.get(type);
-        if (gen == null) {
-            throw new IllegalArgumentException("Tipo de proyección no soportado: " + type);
-        }
-        gen.generate(username, accountingPeriod, fixedAssets);
-    }
-
-    /**
      * Retrieves a {@link FinancialFixedAsset} by id; returns a new empty instance if not found.
      *
      * @param id entity identifier
@@ -587,23 +636,6 @@ public class FinancialFixedAssetServiceImpl implements FinancialFixedAssetServic
     @Transactional(readOnly = true)
     public List<FinancialFixedAsset> findByPeriodAndAddedByService(LocalDate period, String username) {
         return new ArrayList<>(repository.findByAccountingPeriodAndAddedBy(period, username));
-    }
-
-    /**
-     * Finds assets for a given period whose account starts with a given prefix for the specified owner.
-     *
-     * @param period   accounting period
-     * @param account  account prefix
-     * @param username owner filter
-     * @return matching assets (never {@code null})
-     */
-    @Override
-    @Transactional(readOnly = true)
-    public List<FinancialFixedAsset> findByPeriodAndAddedByAndAccountStartingWithService(LocalDate period,
-                                                                                         String account,
-                                                                                         String username) {
-        return new ArrayList<>(repository.findByAccountingPeriodAndAddedByAndFixedAssetAccountingAccountStartingWith(
-            period, username, account));
     }
 
     /**

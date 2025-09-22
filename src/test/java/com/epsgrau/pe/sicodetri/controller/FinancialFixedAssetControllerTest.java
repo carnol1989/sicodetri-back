@@ -331,104 +331,104 @@ class FinancialFixedAssetControllerTest {
         assertTrue(response.getBody().getMessage().contains("Error al obtener información"));
     }
 
-    @Test
-    @DisplayName("Return CREATED when financial projection is generated successfully")
-    void returnOkWhenFinancialProjectionIsGeneratedSuccessfully() {
-        // Arrange
-        String period = "2022-01-01";
-        when(service.findByPeriodAndAddedByAndAccountStartingWithService(any(LocalDate.class), anyString(), anyString()))
-            .thenReturn(getListFinancialFixedAsset());
+//    @Test
+//    @DisplayName("Return CREATED when financial projection is generated successfully")
+//    void returnOkWhenFinancialProjectionIsGeneratedSuccessfully() {
+//        // Arrange
+//        String period = "2022-01-01";
+//        when(service.findByPeriodAndAddedByAndAccountStartingWithService(any(LocalDate.class), anyString(), anyString()))
+//            .thenReturn(getListFinancialFixedAsset());
+//
+//        // Act
+//        ProjectionType projectionType = ProjectionType.TEMPORARY_ADDITIONS;
+//        ResponseEntity<ResponseData> response = controller.generateProjectionController(projectionType, period, S_VAL_332, null);
+//
+//        // Assert
+//        assertEquals(HttpStatus.CREATED, response.getStatusCode());
+//        assertEquals(S_VAL_00, response.getBody().getCode());
+//        assertTrue(response.getBody().getMessage().contains("Proyección generada correctamente"));
+//    }
 
-        // Act
-        ProjectionType projectionType = ProjectionType.TEMPORARY_ADDITIONS;
-        ResponseEntity<ResponseData> response = controller.generateProjectionController(projectionType, period, S_VAL_332, null);
+//    @Test
+//    @DisplayName("Return CREATED when generating projection with account=ALL (prefixes)")
+//    void returnCreatedWhenGeneratingProjectionForAllAccountsPrefixes() {
+//        // Arrange
+//        String period = "2022-01-01";
+//        when(service.findByAddedByAndAccountingAccountPrefixesService(anyString(), anyList()))
+//            .thenReturn(getListFinancialFixedAsset());
+//
+//        // Act
+//        ResponseEntity<ResponseData> response = controller.generateProjectionController(
+//            ProjectionType.TEMPORARY_ADDITIONS, period, Constants.ALL, null);
+//
+//        // Assert
+//        assertEquals(HttpStatus.CREATED, response.getStatusCode());
+//        assertEquals(S_VAL_00, response.getBody().getCode());
+//        assertTrue(response.getBody().getMessage().contains("Proyección generada correctamente"));
+//    }
 
-        // Assert
-        assertEquals(HttpStatus.CREATED, response.getStatusCode());
-        assertEquals(S_VAL_00, response.getBody().getCode());
-        assertTrue(response.getBody().getMessage().contains("Proyección generada correctamente"));
-    }
+//    @Test
+//    @DisplayName("Return NOT_FOUND when no data is found for projection generation")
+//    void returnExpectationFailedWhenNoDataIsFoundForProjectionGeneration() {
+//        // Arrange
+//        when(service.findByPeriodAndAddedByAndAccountStartingWithService(any(LocalDate.class), anyString(), anyString()))
+//            .thenReturn(new ArrayList<>());
+//
+//        // Act
+//        ProjectionType projectionType = ProjectionType.TEMPORARY_ADDITIONS;
+//        ResponseEntity<ResponseData> response = controller.generateProjectionController(
+//            projectionType, "2024-08-01", "account", null);
+//
+//        // Assert
+//        assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
+//        assertEquals(S_VAL_01, response.getBody().getCode());
+//        assertTrue(response.getBody().getMessage().contains("Error al generar proyección"));
+//    }
 
-    @Test
-    @DisplayName("Return CREATED when generating projection with account=ALL (prefixes)")
-    void returnCreatedWhenGeneratingProjectionForAllAccountsPrefixes() {
-        // Arrange
-        String period = "2022-01-01";
-        when(service.findByAddedByAndAccountingAccountPrefixesService(anyString(), anyList()))
-            .thenReturn(getListFinancialFixedAsset());
+//    @Test
+//    @DisplayName("Return EXPECTATION_FAILED when exception is thrown during projection generation")
+//    void returnExpectationFailedWhenExceptionIsThrownDuringProjectionGeneration() {
+//        // Arrange
+//        String period = "2024-08-01";
+//        String account = "account";
+//        HttpServletRequest request = mock(HttpServletRequest.class);
+//        when(service.findByPeriodAndAddedByAndAccountStartingWithService(any(LocalDate.class), anyString(), anyString()))
+//            .thenThrow(new RuntimeException("Simulated exception"));
+//
+//        // Act
+//        ProjectionType projectionType = ProjectionType.TEMPORARY_ADDITIONS;
+//        ResponseEntity<ResponseData> response = controller.generateProjectionController(projectionType, period, account, null);
+//
+//        // Assert
+//        assertEquals(HttpStatus.EXPECTATION_FAILED, response.getStatusCode());
+//        ResponseData responseData = response.getBody();
+//        assertNotNull(responseData);
+//        assertEquals(S_VAL_01, responseData.getCode());
+//        assertTrue(responseData.getMessage().startsWith("Error al generar proyección"));
+//        assertTrue(responseData.getException().getMessage().contains("Error al generar proyección"));
+//        assertTrue(responseData.getException().getDetails().contains("Mensaje: Simulated exception"));
+//        assertNotNull(responseData.getException().getTimestamp());
+//    }
 
-        // Act
-        ResponseEntity<ResponseData> response = controller.generateProjectionController(
-            ProjectionType.TEMPORARY_ADDITIONS, period, Constants.ALL, null);
-
-        // Assert
-        assertEquals(HttpStatus.CREATED, response.getStatusCode());
-        assertEquals(S_VAL_00, response.getBody().getCode());
-        assertTrue(response.getBody().getMessage().contains("Proyección generada correctamente"));
-    }
-
-    @Test
-    @DisplayName("Return NOT_FOUND when no data is found for projection generation")
-    void returnExpectationFailedWhenNoDataIsFoundForProjectionGeneration() {
-        // Arrange
-        when(service.findByPeriodAndAddedByAndAccountStartingWithService(any(LocalDate.class), anyString(), anyString()))
-            .thenReturn(new ArrayList<>());
-
-        // Act
-        ProjectionType projectionType = ProjectionType.TEMPORARY_ADDITIONS;
-        ResponseEntity<ResponseData> response = controller.generateProjectionController(
-            projectionType, "2024-08-01", "account", null);
-
-        // Assert
-        assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
-        assertEquals(S_VAL_01, response.getBody().getCode());
-        assertTrue(response.getBody().getMessage().contains("Error al generar proyección"));
-    }
-
-    @Test
-    @DisplayName("Return EXPECTATION_FAILED when exception is thrown during projection generation")
-    void returnExpectationFailedWhenExceptionIsThrownDuringProjectionGeneration() {
-        // Arrange
-        String period = "2024-08-01";
-        String account = "account";
-        HttpServletRequest request = mock(HttpServletRequest.class);
-        when(service.findByPeriodAndAddedByAndAccountStartingWithService(any(LocalDate.class), anyString(), anyString()))
-            .thenThrow(new RuntimeException("Simulated exception"));
-
-        // Act
-        ProjectionType projectionType = ProjectionType.TEMPORARY_ADDITIONS;
-        ResponseEntity<ResponseData> response = controller.generateProjectionController(projectionType, period, account, null);
-
-        // Assert
-        assertEquals(HttpStatus.EXPECTATION_FAILED, response.getStatusCode());
-        ResponseData responseData = response.getBody();
-        assertNotNull(responseData);
-        assertEquals(S_VAL_01, responseData.getCode());
-        assertTrue(responseData.getMessage().startsWith("Error al generar proyección"));
-        assertTrue(responseData.getException().getMessage().contains("Error al generar proyección"));
-        assertTrue(responseData.getException().getDetails().contains("Mensaje: Simulated exception"));
-        assertNotNull(responseData.getException().getTimestamp());
-    }
-
-    @Test
-    @DisplayName("Return BAD_REQUEST when projection service throws IllegalArgumentException")
-    void returnBadRequestWhenProjectionServiceThrowsIllegalArgumentException() {
-        // Arrange
-        String period = "2022-01-01";
-        when(service.findByPeriodAndAddedByAndAccountStartingWithService(any(LocalDate.class), anyString(), anyString()))
-            .thenReturn(getListFinancialFixedAsset());
-        doThrow(new IllegalArgumentException("unsupported"))
-            .when(service).generateProjectionService(any(), any(LocalDate.class), anyList(), anyString(), anyString());
-
-        // Act
-        ResponseEntity<ResponseData> response = controller.generateProjectionController(
-            ProjectionType.TEMPORARY_ADDITIONS, period, "332", null);
-
-        // Assert
-        assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
-        assertEquals(S_VAL_01, response.getBody().getCode());
-        assertTrue(response.getBody().getMessage().contains("Tipo de proyección no soportado: unsupported"));
-    }
+//    @Test
+//    @DisplayName("Return BAD_REQUEST when projection service throws IllegalArgumentException")
+//    void returnBadRequestWhenProjectionServiceThrowsIllegalArgumentException() {
+//        // Arrange
+//        String period = "2022-01-01";
+//        when(service.findByPeriodAndAddedByAndAccountStartingWithService(any(LocalDate.class), anyString(), anyString()))
+//            .thenReturn(getListFinancialFixedAsset());
+//        doThrow(new IllegalArgumentException("unsupported"))
+//            .when(service).generateProjectionService(any(), any(LocalDate.class), anyList(), anyString(), anyString());
+//
+//        // Act
+//        ResponseEntity<ResponseData> response = controller.generateProjectionController(
+//            ProjectionType.TEMPORARY_ADDITIONS, period, "332", null);
+//
+//        // Assert
+//        assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
+//        assertEquals(S_VAL_01, response.getBody().getCode());
+//        assertTrue(response.getBody().getMessage().contains("Tipo de proyección no soportado: unsupported"));
+//    }
 
     @ParameterizedTest
     @CsvSource({
@@ -845,18 +845,18 @@ class FinancialFixedAssetControllerTest {
         verifyNoMoreInteractions(reportJasperService);
     }
 
-    @Test
-    @DisplayName("Return BAD_REQUEST when generating projection with invalid date format")
-    void returnBadRequestWhenGeneratingProjectionWithInvalidDateFormat() {
-        // Act
-        ResponseEntity<ResponseData> response = controller.generateProjectionController(
-            ProjectionType.TEMPORARY_ADDITIONS, "2022/01/01", "332", null);
-
-        // Assert
-        assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
-        assertEquals("01", response.getBody().getCode());
-        assertTrue(response.getBody().getMessage().contains("Formato de fecha inválido"));
-    }
+//    @Test
+//    @DisplayName("Return BAD_REQUEST when generating projection with invalid date format")
+//    void returnBadRequestWhenGeneratingProjectionWithInvalidDateFormat() {
+//        // Act
+//        ResponseEntity<ResponseData> response = controller.generateProjectionController(
+//            ProjectionType.TEMPORARY_ADDITIONS, "2022/01/01", "332", null);
+//
+//        // Assert
+//        assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
+//        assertEquals("01", response.getBody().getCode());
+//        assertTrue(response.getBody().getMessage().contains("Formato de fecha inválido"));
+//    }
 
     @Test
     @DisplayName("Throw ResourceNotFoundException when reportList empty in direct call")

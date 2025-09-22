@@ -4,7 +4,11 @@ import com.epsgrau.pe.sicodetri.entity.Addition;
 import com.epsgrau.pe.sicodetri.entity.TaxDepreciation;
 import java.util.List;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
 
 /**
  * Repository interface for performing CRUD operations on {@link Addition} entities.
@@ -29,6 +33,37 @@ import org.springframework.stereotype.Repository;
  */
 @Repository
 public interface AdditionRepository extends JpaRepository<Addition, Long> {
+
+    /**
+     * Deletes all additions belonging to tax depreciations of a given Financial Fixed Asset.
+     *
+     * <p>Bulk delete using a correlated subquery; prefer this over loading entities in memory.</p>
+     *
+     * @param ffaId the Financial Fixed Asset identifier
+     * @return number of affected rows
+     */
+    @SuppressWarnings("checkstyle:Indentation")
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Transactional
+    @Query("""
+      delete from Addition a
+      where a.taxDepreciation.id in (
+        select td.id from TaxDepreciation td
+        where td.financialFixedAsset.id = :ffaId
+      )
+      """)
+    int deleteByFfaId(@Param("ffaId") Long ffaId);
+
+    /**
+     * Deletes all additions linked to the given list of tax depreciation ids.
+     *
+     * @param taxDepreciationIds list of tax depreciation identifiers
+     * @return number of affected rows
+     */
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Transactional
+    @Query("delete from Addition a where a.taxDepreciation.id in :ids")
+    int deleteByTaxDepreciationIds(@Param("ids") List<Long> taxDepreciationIds);
 
     /**
      * Retrieves all {@link Addition} records associated with any of the given

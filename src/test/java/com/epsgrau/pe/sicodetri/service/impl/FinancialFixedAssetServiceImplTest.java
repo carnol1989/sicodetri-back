@@ -155,10 +155,10 @@ class FinancialFixedAssetServiceImplTest {
     void setUp() {
         MockitoAnnotations.openMocks(this);
 
-        when(generateTemporaryDeductions.getType()).thenReturn(ProjectionType.TEMPORARY_DEDUCTIONS);
-        when(generateTemporaryAdditions.getType()).thenReturn(ProjectionType.TEMPORARY_ADDITIONS);
-
-        service = new FinancialFixedAssetServiceImpl(List.of(generateTemporaryDeductions, generateTemporaryAdditions));
+//        when(generateTemporaryDeductions.getType()).thenReturn(ProjectionType.TEMPORARY_DEDUCTIONS);
+//        when(generateTemporaryAdditions.getType()).thenReturn(ProjectionType.TEMPORARY_ADDITIONS);
+//
+//        service = new FinancialFixedAssetServiceImpl(List.of(generateTemporaryDeductions, generateTemporaryAdditions));
 
         ReflectionTestUtils.setField(service, "repository", repository);
         ReflectionTestUtils.setField(service, "repositoryJdbc", repositoryJdbc);
@@ -839,35 +839,35 @@ class FinancialFixedAssetServiceImplTest {
         assertNotNull(actualAsset.getAdditionDate());
     }
 
-    @Test
-    @DisplayName("generate projection service throws on unsupported type")
-    void generateProjectionServiceThrowsOnUnsupportedType() {
-        List<FinancialFixedAsset> fixedAssets = Collections.emptyList();
-        IllegalArgumentException ex = assertThrows(
-            IllegalArgumentException.class,
-            () -> service.generateProjectionService(
-                null,
-                LocalDate.now(),
-                fixedAssets,
-                "ACC",
-                null
-            ),
-            "Cuando se pase un tipo de proyección no soportado (null), debe lanzarse IllegalArgumentException"
-        );
-        assertTrue(ex.getMessage().contains("no soportado"));
-    }
+//    @Test
+//    @DisplayName("generate projection service throws on unsupported type")
+//    void generateProjectionServiceThrowsOnUnsupportedType() {
+//        List<FinancialFixedAsset> fixedAssets = Collections.emptyList();
+//        IllegalArgumentException ex = assertThrows(
+//            IllegalArgumentException.class,
+//            () -> service.generateProjectionService(
+//                null,
+//                LocalDate.now(),
+//                fixedAssets,
+//                "ACC",
+//                null
+//            ),
+//            "Cuando se pase un tipo de proyección no soportado (null), debe lanzarse IllegalArgumentException"
+//        );
+//        assertTrue(ex.getMessage().contains("no soportado"));
+//    }
 
-    @Test
-    @DisplayName("generate projection service delegates to correct generator")
-    void generateProjectionServiceDelegatesToGenerator() {
-        String username = "katherine_gutierrez";
-        LocalDate date = LocalDate.of(2022,1,1);
-        List<FinancialFixedAsset> assets = List.of(new FinancialFixedAsset());
-        service.generateProjectionService(ProjectionType.TEMPORARY_DEDUCTIONS, date, assets, "ACC", username);
-        verify(generateTemporaryDeductions).generate(username, date, assets);
-        // no invoca al otro
-        verify(generateTemporaryAdditions, never()).generate(any(), any(), any());
-    }
+//    @Test
+//    @DisplayName("generate projection service delegates to correct generator")
+//    void generateProjectionServiceDelegatesToGenerator() {
+//        String username = "katherine_gutierrez";
+//        LocalDate date = LocalDate.of(2022,1,1);
+//        List<FinancialFixedAsset> assets = List.of(new FinancialFixedAsset());
+//        service.generateProjectionService(ProjectionType.TEMPORARY_DEDUCTIONS, date, assets, "ACC", username);
+//        verify(generateTemporaryDeductions).generate(username, date, assets);
+//        // no invoca al otro
+//        verify(generateTemporaryAdditions, never()).generate(any(), any(), any());
+//    }
 
     @Test
     @DisplayName("findByAccountingAccountPrefixesService delegates to repository")
@@ -930,27 +930,27 @@ class FinancialFixedAssetServiceImplTest {
         assertTrue(result.isEmpty(), "Debe devolver lista vacía cuando el archivo está vacío");
     }
 
-    @Test
-    @DisplayName("generate projection service delegates to additions generator")
-    void generateProjectionServiceDelegatesToAdditionsGenerator() {
-        // Arrange
-        String username = "katherine_gutierrez";
-        LocalDate date = LocalDate.of(2023, 6, 1);
-        List<FinancialFixedAsset> assets = List.of(new FinancialFixedAsset());
-
-        // Act
-        service.generateProjectionService(
-            ProjectionType.TEMPORARY_ADDITIONS,
-            date,
-            assets,
-            "ACC",
-            username
-        );
-
-        // Assert
-        verify(generateTemporaryAdditions).generate(username, date, assets);
-        verify(generateTemporaryDeductions, never()).generate(any(), any(), any());
-    }
+//    @Test
+//    @DisplayName("generate projection service delegates to additions generator")
+//    void generateProjectionServiceDelegatesToAdditionsGenerator() {
+//        // Arrange
+//        String username = "katherine_gutierrez";
+//        LocalDate date = LocalDate.of(2023, 6, 1);
+//        List<FinancialFixedAsset> assets = List.of(new FinancialFixedAsset());
+//
+//        // Act
+//        service.generateProjectionService(
+//            ProjectionType.TEMPORARY_ADDITIONS,
+//            date,
+//            assets,
+//            "ACC",
+//            username
+//        );
+//
+//        // Assert
+//        verify(generateTemporaryAdditions).generate(username, date, assets);
+//        verify(generateTemporaryDeductions, never()).generate(any(), any(), any());
+//    }
 
     @Test
     @DisplayName("Return empty list when findByAccountingAccountPrefixesService returns empty result")

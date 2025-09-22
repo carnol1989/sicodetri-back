@@ -4,9 +4,11 @@ import com.epsgrau.pe.sicodetri.entity.TaxTableSunat;
 import com.epsgrau.pe.sicodetri.repository.TaxTableSunatRepository;
 import com.epsgrau.pe.sicodetri.service.TaxTableSunatService;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -116,6 +118,16 @@ public class TaxTableSunatServiceImpl implements TaxTableSunatService {
         List<TaxTableSunat> listTaxTableSunat = new ArrayList<>();
         repository.findAll().forEach(listTaxTableSunat::add);
         return listTaxTableSunat;
+    }
+
+    @Override
+    public List<TaxTableSunat> findAll() {
+        return repository.findAll(Sort.by("accountingAccount").ascending());
+    }
+
+    @Override
+    public List<TaxTableSunat> findByAccountingAccountIn(Collection<String> accounts) {
+        return repository.findByAccountingAccountIn(accounts);
     }
 
     /**

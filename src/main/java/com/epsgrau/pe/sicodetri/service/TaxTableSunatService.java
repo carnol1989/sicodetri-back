@@ -2,6 +2,9 @@ package com.epsgrau.pe.sicodetri.service;
 
 import com.epsgrau.pe.sicodetri.entity.TaxTableSunat;
 
+import java.util.Collection;
+import java.util.List;
+
 
 /**
  * Service interface for managing SUNAT tax table entries.
@@ -24,6 +27,13 @@ import com.epsgrau.pe.sicodetri.entity.TaxTableSunat;
  * @version 1.0
  */
 public interface TaxTableSunatService extends CrudService<TaxTableSunat, Long> {
+
+    /**
+     * Returns all SUNAT tax rows.
+     */
+    List<TaxTableSunat> findAll();
+
+    List<TaxTableSunat> findByAccountingAccountIn(Collection<String> accounts);
 
     /**
      * Retrieves the {@link TaxTableSunat} entry corresponding to the specified

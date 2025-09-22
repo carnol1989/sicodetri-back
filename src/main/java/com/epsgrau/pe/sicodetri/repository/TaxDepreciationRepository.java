@@ -1,9 +1,15 @@
 package com.epsgrau.pe.sicodetri.repository;
 
 import com.epsgrau.pe.sicodetri.entity.TaxDepreciation;
+
+import java.time.LocalDate;
 import java.util.List;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
 
 /**
  * Repository interface for performing CRUD operations on {@link TaxDepreciation} entities.
@@ -29,6 +35,17 @@ import org.springframework.stereotype.Repository;
 public interface TaxDepreciationRepository extends JpaRepository<TaxDepreciation, Long> {
 
     /**
+     * Deletes all tax depreciation rows linked to a given Financial Fixed Asset.
+     * This is a bulk operation to avoid loading entities into memory.
+     *
+     * @param ffaId the Financial Fixed Asset identifier
+     */
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Transactional
+    @Query("delete from TaxDepreciation td where td.financialFixedAsset.id = :ffaId")
+    int deleteByFfaId(@Param("ffaId") Long ffaId);
+
+    /**
      * Retrieves all {@link TaxDepreciation} entries associated with the specified
      * financial fixed asset ID.
      *
@@ -36,5 +53,16 @@ public interface TaxDepreciationRepository extends JpaRepository<TaxDepreciation
      * @return a list of matching TaxDepreciation entities; empty if none found
      */
     List<TaxDepreciation> findByFinancialFixedAssetId(Long fixedAssetId);
+
+    /**
+     * Deletes all tax depreciation rows for a given accounting period.
+     *
+     * @param period accounting period to purge
+     * @return number of affected rows
+     */
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Transactional
+    @Query("delete from TaxDepreciation td where td.accountingPeriod = :period")
+    int deleteByAccountingPeriod(@Param("period") LocalDate period);
 
 }

@@ -1,9 +1,10 @@
 package com.epsgrau.pe.sicodetri.service.projection;
 
 import com.epsgrau.pe.sicodetri.entity.FinancialFixedAsset;
-import com.epsgrau.pe.sicodetri.util.enums.ProjectionType;
+import com.epsgrau.pe.sicodetri.entity.TaxTableSunat;
+import com.epsgrau.pe.sicodetri.model.Projection;
 import java.time.LocalDate;
-import java.util.List;
+import java.util.Map;
 
 /**
  * Defines the contract for generating different types of depreciation projections.
@@ -29,22 +30,18 @@ import java.util.List;
 public interface ProjectionGenerator {
 
     /**
-     * Returns the {@link ProjectionType} that this generator supports.
+     * Computes a projection for a single asset.
+     * Implementations MUST be pure (no repositories, no transactions).
      *
-     * @return the projection type handled by this implementation
+     * @param username  who triggered the job (can be "ANONYMOUS")
+     * @param period    accounting period (first day of month recommended)
+     * @param asset     asset to project
+     * @param taxParams preloaded SUNAT params indexed by a stable key
+     * @return populated Projection
      */
-    ProjectionType getType();
-
-    /**
-     * Executes the projection computation for the specified accounting period
-     * and list of fixed assets.
-     * Implementations should iterate over the assets, apply the appropriate
-     * depreciation and addition/deduction logic, and persist or return the
-     * results as needed.
-     *
-     * @param accountingPeriod the starting period for projection (e.g., month/year)
-     * @param fixedAssets      the list of {@link FinancialFixedAsset} entities to process
-     */
-    void generate(String username, LocalDate accountingPeriod, List<FinancialFixedAsset> fixedAssets);
+    Projection generate(String username,
+                        LocalDate period,
+                        FinancialFixedAsset asset,
+                        Map<String, TaxTableSunat> taxParams);
 
 }
