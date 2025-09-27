@@ -42,7 +42,7 @@ import org.springframework.util.StopWatch;
  * <br>DIP/OCP: Delegates to {@link ProjectionGenerator} resolved by {@link ProjectionGeneratorResolver}.
  */
 @Service
-public final class DefaultProjectionJobService implements ProjectionJobService {
+public class DefaultProjectionJobService implements ProjectionJobService {
 
     private static final Logger log = LoggerFactory.getLogger(DefaultProjectionJobService.class);
 
@@ -88,12 +88,12 @@ public final class DefaultProjectionJobService implements ProjectionJobService {
     @Override
     public ProjectionJobSummary generate(String username, LocalDate period, ProjectionType type, int pageSize) {
         validateInputs(period, type, pageSize);
+        log.info("[INICIO][generate]");
+
         final ProjectionGenerator generator = resolver.get(type);
 
-        // Preload tax params ONCE per job
         final Map<String, TaxTableSunat> taxParams = preloadTaxParams(type);
 
-        // Iterate pages
         final StopWatch jobWatch = new StopWatch("projection-" + type);
         jobWatch.start("total");
 
@@ -151,6 +151,7 @@ public final class DefaultProjectionJobService implements ProjectionJobService {
         Map<String, TaxTableSunat> taxParams,
         List<FinancialFixedAsset> assets
     ) {
+        log.info("[INICIO][processChunk]");
         final long t0 = System.nanoTime();
 
         long deletes = 0;
@@ -160,16 +161,13 @@ public final class DefaultProjectionJobService implements ProjectionJobService {
         long dedIns = 0;
 
         for (FinancialFixedAsset ffa : assets) {
-            // 1) Purge previous rows (bulk, no entity load)
             deletes += call(() -> deductionRepo.deleteByFfaId(ffa.getId()));
             deletes += call(() -> additionRepo.deleteByFfaId(ffa.getId()));
             deletes += call(() -> taxDepRepo.deleteByFfaId(ffa.getId()));
             deletes += call(() -> finDepRepo.deleteByFfaId(ffa.getId()));
 
-            // 2) Compute projection in-memory (pure function)
             final Projection p = generator.generate(username, period, ffa, taxParams);
 
-            // 3) Persist in batches (Hibernate + PG driver batching)
             if (!p.getFinancialDepreciationList().isEmpty()) {
                 finDepRepo.saveAll(p.getFinancialDepreciationList());
                 finIns += p.getFinancialDepreciationList().size();
@@ -188,7 +186,6 @@ public final class DefaultProjectionJobService implements ProjectionJobService {
             }
         }
 
-        // Keep the persistence context lean across chunks
         entityManager.clear();
 
         final Duration took = Duration.ofNanos(System.nanoTime() - t0);
@@ -208,11 +205,11 @@ public final class DefaultProjectionJobService implements ProjectionJobService {
     }
 
     private Map<String, TaxTableSunat> preloadTaxParams(ProjectionType type) {
+        log.info("[INICIO][preloadTaxParams]");
         final Set<String> allowed = allowedAccountsFor(type);
         final List<TaxTableSunat> rows = allowed.isEmpty()
             ? List.of()
             : taxService.findByAccountingAccountIn(allowed);
-
         return rows.stream().collect(Collectors.toUnmodifiableMap(
             TaxTableSunat::getAccountingAccount, t -> t, (a, b) -> a));
     }
@@ -221,6 +218,7 @@ public final class DefaultProjectionJobService implements ProjectionJobService {
      * Retorna el conjunto de cuentas contables permitidas según el tipo de proyección.
      */
     private static Set<String> allowedAccountsFor(ProjectionType type) {
+        log.info("[INICIO][allowedAccountsFor]");
         return switch (type) {
           case TEMPORARY_DEDUCTIONS, PERMANENT_ADDITIONS -> Set.of("332");
           case TEMPORARY_ADDITIONS -> Set.of("332", "333", "334", "335", "336", "337");

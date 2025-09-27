@@ -146,6 +146,7 @@ public class TaxDepreciation {
      */
     public void calculateDepreciation(FinancialFixedAsset fixedAsset, TaxTableSunat taxTable,
         LocalDate accountingPeriod, TaxDepreciation taxDepreciationOld, String typeProjection) {
+        log.info("[INICIO][TaxDepreciation.calculateDepreciation]");
         MathContext mathContext = new MathContext(N_VAL_15, RoundingMode.HALF_UP);
 
         BigDecimal initialBalance = fixedAsset.getInitialBalance()

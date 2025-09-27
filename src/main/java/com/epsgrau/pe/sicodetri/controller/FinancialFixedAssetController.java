@@ -1,7 +1,6 @@
 package com.epsgrau.pe.sicodetri.controller;
 
 import static com.epsgrau.pe.sicodetri.helper.ExcelHelper.hasExcelFormat;
-import static com.epsgrau.pe.sicodetri.util.Constants.ALL;
 import static com.epsgrau.pe.sicodetri.util.Constants.COMPANY_NAME;
 import static com.epsgrau.pe.sicodetri.util.Constants.COMPANY_NAME_VALUE;
 import static com.epsgrau.pe.sicodetri.util.Constants.N_VAL_1;
@@ -296,7 +295,7 @@ public class FinancialFixedAssetController {
      *
      * @param type    the projection type (e.g., {@code TEMPORARY_DEDUCTION}, {@code TEMPORARY_ADDITION})
      * @param period  the accounting period in {@code YYYY-MM-DD} format
-     * @param account the accounting account prefix, or {@code ALL} to process predefined prefixes
+     * @param pageSize the accounting account prefix, or {@code ALL} to process predefined prefixes
      * @param authentication current principal (used to scope data by user), may be {@code null}
      * @return a {@link ResponseEntity} with a {@link ResponseData} payload describing the outcome
      */
@@ -342,6 +341,7 @@ public class FinancialFixedAssetController {
             example = "1000")
         @RequestParam(name = "pageSize", required = false) @Min(1) Integer pageSize,
         Authentication authentication) {
+        log.info("[INICIO][generateProjectionController]");
 
         final String username = (authentication != null && authentication.getName() != null)
             ? authentication.getName()
@@ -349,25 +349,21 @@ public class FinancialFixedAssetController {
 
         final String errorTitle = "Error al generar proyección por lotes.";
         try {
-            // 1) Parse/validación de periodo
             final LocalDate periodDate = LocalDate.parse(
                 period, DateTimeFormatter.ofPattern(Constants.FORMATTER_YYYY_MM_DD));
 
-            // 2) Page size efectivo
             final int chunkSize = (pageSize == null || pageSize <= 0) ? DEFAULT_PAGE_SIZE : pageSize;
 
-            // 3) Ejecutar job por lotes
+            log.info("username: {}\nperiodDate: {}\ntype: {}\nchunkSize: {}", username, periodDate, type, chunkSize);
             ProjectionJobService.ProjectionJobSummary summary =
                 projectionJobService.generate(username, periodDate, type, chunkSize);
 
-            // 4) Respuesta OK
             return ok("Proyección generada correctamente (procesamiento por lotes).", summary, HttpStatus.CREATED);
         } catch (DateTimeParseException dtpe) {
             return fail(errorTitle, HttpStatus.BAD_REQUEST, "Formato de fecha inválido", dtpe.getMessage());
         } catch (IllegalArgumentException iae) {
             return fail(errorTitle, HttpStatus.BAD_REQUEST, "Datos inválidos", iae.getMessage());
         } catch (Exception ex) {
-            log.error(errorTitle, ex);
             return fail(errorTitle, HttpStatus.EXPECTATION_FAILED, "Excepción no controlada", ex.getMessage());
         }
     }
@@ -385,6 +381,7 @@ public class FinancialFixedAssetController {
                                               HttpStatus status,
                                               String message,
                                               String details) {
+        log.error("[ERROR][fail] message: {}\ndetails: {}", message, details);
         ResponseData rd = new ResponseData();
         rd.setTimestamp(java.time.LocalDateTime.now());
         rd.setMessage(title);
