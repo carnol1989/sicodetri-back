@@ -14,6 +14,7 @@ import com.epsgrau.pe.sicodetri.service.TaxTableSunatService;
 import com.epsgrau.pe.sicodetri.service.projection.ProjectionGenerator;
 import com.epsgrau.pe.sicodetri.service.projection.ProjectionGeneratorResolver;
 import com.epsgrau.pe.sicodetri.service.projection.ProjectionJobService;
+import com.epsgrau.pe.sicodetri.service.tax.TaxTableCatalog;
 import com.epsgrau.pe.sicodetri.util.enums.ProjectionType;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
@@ -92,7 +93,7 @@ public class DefaultProjectionJobService implements ProjectionJobService {
 
         final ProjectionGenerator generator = resolver.get(type);
 
-        final Map<String, TaxTableSunat> taxParams = preloadTaxParams(type);
+        final TaxTableCatalog taxCatalog = preloadTaxParams(type);
 
         final StopWatch jobWatch = new StopWatch("projection-" + type);
         jobWatch.start("total");
@@ -113,7 +114,7 @@ public class DefaultProjectionJobService implements ProjectionJobService {
             final List<FinancialFixedAsset> chunk = slice.getContent();
 
             if (!chunk.isEmpty()) {
-                final ChunkResult result = processChunk(username, period, type, generator, taxParams, chunk);
+                final ChunkResult result = processChunk(username, period, type, generator, taxCatalog, chunk);
                 assets += chunk.size();
                 deletes += result.deletes();
                 finIns += result.finDepInserted();
@@ -148,7 +149,7 @@ public class DefaultProjectionJobService implements ProjectionJobService {
         LocalDate period,
         ProjectionType type,
         ProjectionGenerator generator,
-        Map<String, TaxTableSunat> taxParams,
+        TaxTableCatalog taxCatalog,
         List<FinancialFixedAsset> assets
     ) {
         log.info("[INICIO][processChunk]");
@@ -166,7 +167,7 @@ public class DefaultProjectionJobService implements ProjectionJobService {
             deletes += call(() -> taxDepRepo.deleteByFfaId(ffa.getId()));
             deletes += call(() -> finDepRepo.deleteByFfaId(ffa.getId()));
 
-            final Projection p = generator.generate(username, period, ffa, taxParams);
+            final Projection p = generator.generate(username, period, ffa, taxCatalog);
 
             if (!p.getFinancialDepreciationList().isEmpty()) {
                 finDepRepo.saveAll(p.getFinancialDepreciationList());
@@ -204,14 +205,14 @@ public class DefaultProjectionJobService implements ProjectionJobService {
         }
     }
 
-    private Map<String, TaxTableSunat> preloadTaxParams(ProjectionType type) {
+    private TaxTableCatalog preloadTaxParams(ProjectionType type) {
         log.info("[INICIO][preloadTaxParams]");
         final Set<String> allowed = allowedAccountsFor(type);
         final List<TaxTableSunat> rows = allowed.isEmpty()
             ? List.of()
             : taxService.findByAccountingAccountIn(allowed);
-        return rows.stream().collect(Collectors.toUnmodifiableMap(
-            TaxTableSunat::getAccountingAccount, t -> t, (a, b) -> a));
+
+        return TaxTableCatalog.of(rows);
     }
 
     /**

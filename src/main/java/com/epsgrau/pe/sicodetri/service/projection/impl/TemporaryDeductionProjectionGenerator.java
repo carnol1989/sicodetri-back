@@ -14,6 +14,8 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.Period;
 import java.util.Map;
+
+import com.epsgrau.pe.sicodetri.service.tax.TaxTableCatalog;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
@@ -69,13 +71,13 @@ public class TemporaryDeductionProjectionGenerator extends AbstractProjectionGen
         String username,
         LocalDate period,
         FinancialFixedAsset asset,
-        Map<String, TaxTableSunat> taxParams
+        TaxTableCatalog taxCatalog
     ) {
         if (!isEligible(asset)) {
             return newBaseProjection(period, asset); // empty lists but correct prev state
         }
 
-        final TaxTableSunat table = requireTaxByPrefix(S_VAL_332, taxParams);
+        final TaxTableSunat table = requireTaxByPrefix(S_VAL_332, asset, taxCatalog);
 
         Projection proj = newBaseProjection(period, asset);
 
@@ -90,7 +92,7 @@ public class TemporaryDeductionProjectionGenerator extends AbstractProjectionGen
     }
 
     private boolean isEligible(FinancialFixedAsset f) {
-        return !f.getAcquisitionDate().equals(LOCAL_DATE_DEFAULT)
+        return !LOCAL_DATE_DEFAULT.equals(f.getAcquisitionDate())
             && f.getFixedAssetAccountingAccount().startsWith(S_VAL_332)
             && f.getInitialBalance().compareTo(BigDecimal.ZERO) > N_VAL_0
             && f.getRevaluedAmount().compareTo(BigDecimal.ZERO) == N_VAL_0;

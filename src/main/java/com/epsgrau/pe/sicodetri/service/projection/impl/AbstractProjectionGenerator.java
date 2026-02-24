@@ -11,6 +11,7 @@ import com.epsgrau.pe.sicodetri.entity.TaxDepreciation;
 import com.epsgrau.pe.sicodetri.entity.TaxTableSunat;
 import com.epsgrau.pe.sicodetri.model.Projection;
 import com.epsgrau.pe.sicodetri.service.projection.ProjectionGenerator;
+import com.epsgrau.pe.sicodetri.service.tax.TaxTableCatalog;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -61,16 +62,16 @@ public abstract class AbstractProjectionGenerator implements ProjectionGenerator
         String username,
         LocalDate period,
         FinancialFixedAsset asset,
-        Map<String, TaxTableSunat> taxParams
+        TaxTableCatalog taxCatalog
     ) {
         Objects.requireNonNull(asset, "asset must not be null");
         Objects.requireNonNull(period, "period must not be null");
-        Objects.requireNonNull(taxParams, "taxParams must not be null");
+        Objects.requireNonNull(taxCatalog, "taxCatalog must not be null");
 
         final String safeUser = (username == null || username.isBlank()) ? "ANONYMOUS" : username;
         final LocalDate normalized = YearMonth.from(period).atDay(1);
 
-        return doGenerate(safeUser, normalized, asset, taxParams);
+        return doGenerate(safeUser, normalized, asset, taxCatalog);
     }
 
     /**
@@ -80,7 +81,7 @@ public abstract class AbstractProjectionGenerator implements ProjectionGenerator
         String username,
         LocalDate period,
         FinancialFixedAsset asset,
-        Map<String, TaxTableSunat> taxParams
+        TaxTableCatalog taxCatalog
     );
 
     /**
@@ -103,7 +104,6 @@ public abstract class AbstractProjectionGenerator implements ProjectionGenerator
         int numberYears
     ) {
         for (int month = 0; month < 12; month++) {
-
             // 1) Financial depreciation
             FinancialDepreciation fin = new FinancialDepreciation();
             fin.setFinancialFixedAsset(fixedAsset);
@@ -138,7 +138,8 @@ public abstract class AbstractProjectionGenerator implements ProjectionGenerator
             BigDecimal diff = taxDep.subtract(finDep);
 
             BigDecimal prevNet = Objects.requireNonNullElse(
-                projection.getTaxDepreciation() != null ? projection.getTaxDepreciation().getNetTaxValue() : BigDecimal.ZERO,
+                projection.getTaxDepreciation() != null ? projection.getTaxDepreciation().getNetTaxValue()
+                    : BigDecimal.ZERO,
                 BigDecimal.ZERO
             );
             BigDecimal currNet = Objects.requireNonNullElse(tax.getNetTaxValue(), BigDecimal.ZERO);
@@ -153,9 +154,7 @@ public abstract class AbstractProjectionGenerator implements ProjectionGenerator
                 ded.setAddedBy(username);
                 ded.setAdditionDate(LocalDateTime.now());
                 projection.getDeductionList().add(ded);
-
             } else {
-
                 BigDecimal valueToAdd =
                     (typeProjection.equals(S_VAL_01) || typeProjection.equals(S_VAL_03))
                         ? finDep
@@ -209,14 +208,11 @@ public abstract class AbstractProjectionGenerator implements ProjectionGenerator
         return p;
     }
 
-    protected TaxTableSunat requireTaxByPrefix(String prefix, Map<String, TaxTableSunat> taxParams) {
-        Objects.requireNonNull(prefix, "prefix");
-        final String key = prefix.length() >= 3 ? prefix.substring(0, 3) : prefix;
-        final TaxTableSunat t = taxParams.get(key);
-        if (t == null) {
-            throw new IllegalArgumentException("Missing TaxTableSunat for accounting_account prefix: " + key);
-        }
-        return t;
+    protected TaxTableSunat requireTaxByPrefix(String prefix,
+                                               FinancialFixedAsset asset,
+                                               TaxTableCatalog taxCatalog) {
+        Objects.requireNonNull(asset, "asset");
+        return taxCatalog.resolve(prefix, asset.getAcquisitionDate());
     }
 
 }

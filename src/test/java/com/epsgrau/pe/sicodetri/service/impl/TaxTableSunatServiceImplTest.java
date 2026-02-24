@@ -295,6 +295,8 @@ class TaxTableSunatServiceImplTest {
             addedBy,
             additionDate,
             null,
+            null,
+            null,
             null
         );
 
@@ -343,11 +345,11 @@ class TaxTableSunatServiceImplTest {
     @DisplayName("equals & hashCode")
     void equalsAndHashCode() {
         TaxTableSunat a = new TaxTableSunat(1L, "X", "D", 1, 1,
-            "Y", null, null, null, null);
+            "Y", null, null, null, null, null, null);
         TaxTableSunat b = new TaxTableSunat(1L, "X", "D", 1, 1,
-            "Y", null, null, null, null);
+            "Y", null, null, null, null, null, null);
         TaxTableSunat c = new TaxTableSunat(2L, "Z", "D2", 2, 2,
-            "N", null, null, null, null);
+            "N", null, null, null, null, null, null);
 
         assertTrue(a.equals(b));
         assertEquals(a.hashCode(), b.hashCode());

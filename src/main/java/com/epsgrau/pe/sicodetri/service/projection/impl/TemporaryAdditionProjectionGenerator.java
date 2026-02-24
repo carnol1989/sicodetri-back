@@ -17,6 +17,7 @@ import com.epsgrau.pe.sicodetri.entity.TaxDepreciation;
 import com.epsgrau.pe.sicodetri.entity.TaxTableSunat;
 import com.epsgrau.pe.sicodetri.model.Projection;
 import com.epsgrau.pe.sicodetri.service.projection.ProjectionGenerator;
+import com.epsgrau.pe.sicodetri.service.tax.TaxTableCatalog;
 import com.epsgrau.pe.sicodetri.util.enums.ProjectionType;
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -64,7 +65,7 @@ public class TemporaryAdditionProjectionGenerator extends AbstractProjectionGene
         String username,
         LocalDate period,
         FinancialFixedAsset asset,
-        Map<String, TaxTableSunat> taxParams
+        TaxTableCatalog taxCatalog
     ) {
         if (!isEligible(asset)) {
             return newBaseProjection(period, asset);
@@ -72,7 +73,7 @@ public class TemporaryAdditionProjectionGenerator extends AbstractProjectionGene
 
         // OK logic: key is the first 3 digits (332-337)
         String prefix = asset.getFixedAssetAccountingAccount().substring(0, 3);
-        TaxTableSunat table = requireTaxByPrefix(prefix, taxParams);
+        TaxTableSunat table = requireTaxByPrefix(prefix, asset, taxCatalog);
 
         Projection proj = newBaseProjection(period, asset);
 

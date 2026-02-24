@@ -1,11 +1,10 @@
 package com.epsgrau.pe.sicodetri.repository;
 
 import com.epsgrau.pe.sicodetri.entity.TaxTableSunat;
-import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.stereotype.Repository;
-
 import java.util.Collection;
 import java.util.List;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
 
 /**
  * Repository interface for performing CRUD operations on {@link TaxTableSunat} entities.

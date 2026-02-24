@@ -3,6 +3,8 @@ package com.epsgrau.pe.sicodetri.service.projection;
 import com.epsgrau.pe.sicodetri.entity.FinancialFixedAsset;
 import com.epsgrau.pe.sicodetri.entity.TaxTableSunat;
 import com.epsgrau.pe.sicodetri.model.Projection;
+import com.epsgrau.pe.sicodetri.service.tax.TaxTableCatalog;
+
 import java.time.LocalDate;
 import java.util.Map;
 
@@ -36,12 +38,12 @@ public interface ProjectionGenerator {
      * @param username  who triggered the job (can be "ANONYMOUS")
      * @param period    accounting period (first day of month recommended)
      * @param asset     asset to project
-     * @param taxParams preloaded SUNAT params indexed by a stable key
+     * @param taxCatalog preloaded SUNAT params indexed by a stable key
      * @return populated Projection
      */
     Projection generate(String username,
                         LocalDate period,
                         FinancialFixedAsset asset,
-                        Map<String, TaxTableSunat> taxParams);
+                        TaxTableCatalog taxCatalog);
 
 }

@@ -15,6 +15,8 @@ import java.time.LocalDate;
 import java.time.Period;
 import java.util.Locale;
 import java.util.Map;
+
+import com.epsgrau.pe.sicodetri.service.tax.TaxTableCatalog;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
@@ -70,13 +72,13 @@ public class PermanentAdditionProjectionGenerator extends AbstractProjectionGene
         String username,
         LocalDate period,
         FinancialFixedAsset asset,
-        Map<String, TaxTableSunat> taxParams
+        TaxTableCatalog taxCatalog
     ) {
         if (!isEligible(asset)) {
             return newBaseProjection(period, asset);
         }
 
-        final TaxTableSunat table = requireTaxByPrefix(S_VAL_332, taxParams);
+        final TaxTableSunat table = requireTaxByPrefix(S_VAL_332, asset, taxCatalog);
 
         Projection proj = newBaseProjection(period, asset);
 
